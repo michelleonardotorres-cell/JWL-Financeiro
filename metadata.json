@@ -1,0 +1,5 @@
+{
+  "name": "Construtora Financeiro",
+  "description": "Dashboard financeiro unificado para construtora, consolidando lançamentos, contas a pagar, DRE, relatórios por obra e receitas.",
+  "requestFramePermissions": []
+}

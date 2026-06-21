@@ -1,0 +1,50 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useState } from "react";
+import Sidebar from "./components/Sidebar";
+import Dashboard from "./components/Dashboard";
+import Lancamentos from "./components/Lancamentos";
+import ContasPagar from "./components/ContasPagar";
+import DRE from "./components/DRE";
+import RelatorioObra from "./components/RelatorioObra";
+import Fornecedores from "./components/Fornecedores";
+import Receitas from "./components/Receitas";
+import Contratos from "./components/Contratos";
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [efetivarData, setEfetivarData] = useState<any>(null);
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <Dashboard />;
+      case "lancamentos":
+        return <Lancamentos setActiveTab={setActiveTab} efetivarData={efetivarData} setEfetivarData={setEfetivarData} />;
+      case "contas-pagar":
+        return <ContasPagar onEfetivar={(data: any) => { setEfetivarData(data); setActiveTab("lancamentos"); }} />;
+      case "dre":
+        return <DRE />;
+      case "relatorio-obra":
+        return <RelatorioObra />;
+      case "fornecedores":
+        return <Fornecedores />;
+      case "receitas":
+        return <Receitas />;
+      case "contratos":
+        return <Contratos />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-zinc-50 font-sans text-zinc-900 overflow-hidden">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <main className="flex-1 overflow-y-auto">{renderContent()}</main>
+    </div>
+  );
+}
