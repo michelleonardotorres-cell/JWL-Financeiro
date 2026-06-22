@@ -35,8 +35,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       icon: BookUser,
       subItems: [
         { id: "obras", label: "Obras" },
-        { id: "fornecedores", label: "Fornecedores" },
-        { id: "recebedor", label: "Recebedor" },
+        { id: "fornecedores", label: "Fornecedor / Recebedor" },
       ]
     },
     { id: "receitas", label: "Receitas (12 Meses)", icon: TrendingUp },

@@ -271,7 +271,7 @@ export default function Fornecedores() {
         {/* Cabeçalho */}
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold text-zinc-700 flex items-center gap-2">
-            Fornecedores
+            Fornecedores / Recebedores
           </h1>
           <div className="w-5 h-5 bg-zinc-200 rounded text-zinc-500 flex items-center justify-center cursor-help" title="Gerencie seus fornecedores">
             <Info size={14} />
@@ -498,7 +498,7 @@ export default function Fornecedores() {
           <div className="bg-[#f3f4f6] shadow-xl w-full max-w-6xl overflow-hidden flex flex-col h-[90vh] rounded border border-zinc-300">
             <div className="p-4 border-b border-zinc-200 flex justify-between items-center bg-[#f8f9fa]">
               <h2 className="text-xl font-bold text-[#5e6e82] flex items-center gap-2 uppercase tracking-wide">
-                {isViewing ? "Ficha de Cadastro" : (editingId ? "Editar Fornecedor" : "Novo Fornecedor")}
+                {isViewing ? "Ficha de Cadastro" : (editingId ? "Editar Cadastro" : "Novo Cadastro")}
                 <div className="w-4 h-4 bg-zinc-200 rounded text-zinc-500 flex items-center justify-center cursor-help">
                   <Info size={10} />
                 </div>
