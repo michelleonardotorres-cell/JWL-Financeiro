@@ -7,10 +7,10 @@ const columns = [
   "cidade", "comentario", "segmento", "contaBancaria", "contato1Nome", "contato1Email",
   "contato1Cargo", "contato1Telefone", "contato1Aniversario", "contato2Nome",
   "contato2Email", "contato2Cargo", "contato2Telefone", "contato2Aniversario",
-  "dadosBancarios", "funcao"
+  "dados_bancarios", "funcao"
 ];
 
-const selectFields = columns.map(c => `"${c}"`).join(", ");
+const selectFields = columns.map(c => c === 'dados_bancarios' ? '"dados_bancarios" AS "dadosBancarios"' : `"${c}"`).join(", ");
 
 export default async function handler(req, res) {
   setCors(res);
