@@ -683,14 +683,16 @@ export default function Recebedores() {
                   <div className="space-y-3">
                     <div>
                       <label className="block mb-1 font-medium">Segmento:</label>
-                      <select value={formData.segmento} onChange={e => setFormData({...formData, segmento: e.target.value})} className="w-full p-1.5 border border-zinc-300 rounded focus:outline-none focus:border-[#3db2e3] text-zinc-600 bg-white">
-                        <option value="">Selecione</option>
-                        <option value="Material de Construção">Material de Construção</option>
-                        <option value="FRETE">FRETE</option>
-                        <option value="Venda de Insulfilm">Venda de Insulfilm</option>
-                        <option value="COMÉRIO VAREJISTA DE MATERIAL ELÉTRICO">COMÉRIO VAREJISTA DE MATERIAL ELÉTRICO</option>
-                        <option value="Água/consumo">Água/consumo</option>
-                      </select>
+                      <input 
+                        list="segmento-options-recebedores"
+                        value={formData.segmento} 
+                        onChange={e => setFormData({...formData, segmento: e.target.value})} 
+                        className="w-full p-1.5 border border-zinc-300 rounded focus:outline-none focus:border-[#3db2e3] text-zinc-600 bg-white"
+                        placeholder="Digite ou selecione..."
+                      />
+                      <datalist id="segmento-options-recebedores">
+                        {uniqueSegmentos.map((s, i) => <option key={i} value={s as string} />)}
+                      </datalist>
                     </div>
                     <div>
                       <label className="block mb-1 font-medium">Conta Bancária:</label>
