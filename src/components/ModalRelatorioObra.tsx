@@ -51,7 +51,7 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
   }, {} as Record<string, number>);
 
   const despesasPorCategoria = Object.entries(despesasPorCategoriaMap)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({ name, value: value as number }))
     .filter((c) => c.value > 0)
     .sort((a, b) => b.value - a.value);
 

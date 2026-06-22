@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
-import { safeFormatDate } from "../utils";
+import { Fornecedor, Lancamento } from "../types";
 import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
+import { safeFormatDate } from "../utils";
 
 export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
     const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -51,6 +52,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       nf: "",
       recebedorFornecedor: fornecedores.find(f => f.id === newConta.fornecedorId)?.nome || "",
       descricao: newConta.descricao,
+      categoria: "Conta Fixa",
       tipoLancamento: "Conta Fixa",
       subtipo: "",
       obraId: newConta.obraId || undefined,

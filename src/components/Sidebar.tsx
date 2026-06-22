@@ -9,6 +9,8 @@ import {
   TrendingUp,
   CalendarDays,
   RotateCcw,
+  BookUser,
+  ChevronRight
 } from "lucide-react";
 
 type SidebarProps = {
@@ -19,6 +21,7 @@ type SidebarProps = {
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const menuItems = [
     { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
@@ -26,16 +29,27 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     { id: "contas-pagar", label: "Contas a Pagar", icon: CreditCard },
     { id: "contratos", label: "Contratos Fixos", icon: CalendarDays },
     { id: "dre", label: "DRE Construtora", icon: BarChart3 },
-    { id: "obras", label: "Obras", icon: Building2 },
-    { id: "fornecedores", label: "Fornecedores", icon: Users },
+    { 
+      id: "contatos", 
+      label: "Contatos", 
+      icon: BookUser,
+      subItems: [
+        { id: "obras", label: "Obras" },
+        { id: "fornecedores", label: "Fornecedores" },
+        { id: "recebedor", label: "Recebedor" },
+      ]
+    },
     { id: "receitas", label: "Receitas (12 Meses)", icon: TrendingUp },
   ];
 
   return (
     <aside
       onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
-      className={`${isExpanded ? "w-64" : "w-20"} bg-zinc-950 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 transition-all duration-300 ease-in-out z-20 overflow-hidden relative`}
+      onMouseLeave={() => {
+        setIsExpanded(false);
+        setActiveDropdown(null);
+      }}
+      className={`${isExpanded ? "w-64" : "w-20"} bg-zinc-950 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 transition-all duration-300 ease-in-out z-50 relative`}
     >
       <div className={`p-4 border-b border-zinc-800 flex items-center ${isExpanded ? "justify-start" : "justify-center"}`}>
         <div className="flex items-center justify-center min-w-[24px]">
@@ -52,30 +66,62 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           </div>
         </div>
       </div>
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className={`flex-1 p-4 space-y-1 ${activeDropdown ? 'overflow-visible' : 'overflow-y-auto'}`}>
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = activeTab === item.id || (item.subItems && item.subItems.some(sub => sub.id === activeTab));
+          const isDropdownOpen = activeDropdown === item.id;
+
           return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center ${isExpanded ? "justify-start px-3" : "justify-center px-0"} py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                ? "bg-emerald-500/10 text-emerald-400"
-                : "hover:bg-zinc-900 hover:text-white"
-                }`}
-              title={!isExpanded ? item.label : undefined}
-            >
-              <div className="flex items-center justify-center min-w-[20px]">
-                <Icon
-                  size={20}
-                  className={isActive ? "text-emerald-500" : "text-zinc-500"}
-                />
-              </div>
-              <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 ml-3 w-auto" : "opacity-0 w-0 ml-0"}`}>
-                {item.label}
-              </span>
-            </button>
+            <div key={item.id} className="relative">
+              <button
+                onClick={() => {
+                  if (item.subItems) {
+                    setActiveDropdown(isDropdownOpen ? null : item.id);
+                  } else {
+                    setActiveTab(item.id);
+                    setActiveDropdown(null);
+                  }
+                }}
+                className={`w-full flex items-center justify-between py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : "hover:bg-zinc-900 hover:text-white"
+                  } ${isExpanded ? "px-3" : "px-0 justify-center"}`}
+                title={!isExpanded ? item.label : undefined}
+              >
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center min-w-[20px]">
+                    <Icon
+                      size={20}
+                      className={isActive ? "text-emerald-500" : "text-zinc-500"}
+                    />
+                  </div>
+                  <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 ml-3 w-auto" : "opacity-0 w-0 ml-0"}`}>
+                    {item.label}
+                  </span>
+                </div>
+                {item.subItems && (
+                  <ChevronRight size={16} className={`transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 w-0"} ${isDropdownOpen ? 'rotate-90' : ''}`} />
+                )}
+              </button>
+
+              {item.subItems && isDropdownOpen && (
+                <div className="absolute left-full top-0 ml-2 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl w-48 py-2 z-[100]">
+                  {item.subItems.map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => {
+                        setActiveTab(sub.id);
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-zinc-800 transition-colors ${activeTab === sub.id ? 'text-emerald-400 font-medium' : 'text-zinc-300'}`}
+                    >
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

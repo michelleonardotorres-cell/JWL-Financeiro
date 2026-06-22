@@ -13,6 +13,7 @@ import Obras from "./components/Obras";
 import Fornecedores from "./components/Fornecedores";
 import Receitas from "./components/Receitas";
 import Contratos from "./components/Contratos";
+import Recebedores from "./components/Recebedores";
 import { DataProvider, useData } from "./contexts/DataContext";
 
 function AppContent() {
@@ -62,6 +63,8 @@ function AppContent() {
         return <Receitas />;
       case "contratos":
         return <Contratos />;
+      case "recebedor":
+        return <Recebedores />;
       default:
         return <Dashboard />;
     }
