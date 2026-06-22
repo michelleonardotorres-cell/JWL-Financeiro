@@ -273,9 +273,6 @@ export default function Fornecedores() {
           <h1 className="text-2xl font-bold text-zinc-700 flex items-center gap-2">
             Fornecedores / Recebedores
           </h1>
-          <div className="w-5 h-5 bg-zinc-200 rounded text-zinc-500 flex items-center justify-center cursor-help" title="Gerencie seus fornecedores">
-            <Info size={14} />
-          </div>
         </div>
 
         {/* Barra de Ferramentas */}
@@ -499,9 +496,6 @@ export default function Fornecedores() {
             <div className="p-4 border-b border-zinc-200 flex justify-between items-center bg-[#f8f9fa]">
               <h2 className="text-xl font-bold text-[#5e6e82] flex items-center gap-2 uppercase tracking-wide">
                 {isViewing ? "Ficha de Cadastro" : (editingId ? "Editar Cadastro" : "Novo Cadastro")}
-                <div className="w-4 h-4 bg-zinc-200 rounded text-zinc-500 flex items-center justify-center cursor-help">
-                  <Info size={10} />
-                </div>
               </h2>
               <div className="flex gap-2">
                 {isViewing ? (
