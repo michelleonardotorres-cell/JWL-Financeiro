@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { Building2, Search, Plus, Edit, Trash2, X, Save } from "lucide-react";
+import { Building2, Search, Plus, Edit, Trash2, X, Save, BarChart3 } from "lucide-react";
 import { normalizeString } from "../utils";
 import { useData } from "../contexts/DataContext";
 import { Obra } from "../types";
+import ModalRelatorioObra from "./ModalRelatorioObra";
 
 export default function Obras() {
   const { obras, addObra, updateObra, deleteObra } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [relatorioObraId, setRelatorioObraId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Omit<Obra, "id">>({
     nome: "",
@@ -173,6 +175,9 @@ export default function Obras() {
                         {formatCurrency(valorTotal)}
                       </td>
                       <td className="p-4 text-center space-x-2">
+                        <button onClick={() => setRelatorioObraId(o.id)} className="p-1.5 text-zinc-400 hover:text-emerald-600 bg-zinc-100 hover:bg-emerald-50 rounded transition-colors" title="Ver Relatório">
+                          <BarChart3 size={16} />
+                        </button>
                         <button onClick={() => openModal(o)} className="p-1.5 text-zinc-400 hover:text-indigo-600 bg-zinc-100 hover:bg-indigo-50 rounded transition-colors" title="Editar">
                           <Edit size={16} />
                         </button>
@@ -264,6 +269,14 @@ export default function Obras() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Relatorio Modal */}
+      {relatorioObraId && (
+        <ModalRelatorioObra 
+          obraId={relatorioObraId} 
+          onClose={() => setRelatorioObraId(null)} 
+        />
       )}
     </div>
   );
