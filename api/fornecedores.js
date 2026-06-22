@@ -45,9 +45,11 @@ export default async function handler(req, res) {
       const insertPlaceholders = values.map((_, i) => `$${i + 1}`).join(", ");
       const updateSet = columns.slice(1).map((col, i) => `"${col}"=$${i + 2}`).join(", ");
 
+      const insertFields = columns.map(c => `"${c}"`).join(", ");
+
       if (req.method === "POST") {
         const { rows } = await pool.query(
-          `INSERT INTO fornecedores (${selectFields}) VALUES (${insertPlaceholders}) ON CONFLICT (id) DO UPDATE SET ${updateSet} RETURNING *`,
+          `INSERT INTO fornecedores (${insertFields}) VALUES (${insertPlaceholders}) ON CONFLICT (id) DO UPDATE SET ${updateSet} RETURNING *`,
           values
         );
         if (!rows || !rows[0] || Object.keys(rows[0]).some(k => k.startsWith('fakeField'))) {
