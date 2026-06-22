@@ -44,22 +44,16 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
   const totalDespesas = despesas.reduce((acc, curr) => acc + curr.valor, 0);
   const saldo = receitas - totalDespesas;
 
-  const categorias = [
-    "Materiais",
-    "Mão de Obra",
-    "Equipamentos",
-    "Impostos",
-    "Despesas Administrativas",
-  ];
-  
-  const despesasPorCategoria = categorias
-    .map((cat) => ({
-      name: cat,
-      value: despesas
-        .filter((d) => d.categoria === cat)
-        .reduce((acc, curr) => acc + curr.valor, 0),
-    }))
-    .filter((c) => c.value > 0);
+  const despesasPorCategoriaMap = despesas.reduce((acc, d) => {
+    const cat = d.tipoLancamento || d.categoria || "Outros";
+    acc[cat] = (acc[cat] || 0) + d.valor;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const despesasPorCategoria = Object.entries(despesasPorCategoriaMap)
+    .map(([name, value]) => ({ name, value }))
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   const COLORS = ["#0ea5e9", "#f43f5e", "#f59e0b", "#8b5cf6", "#10b981"];
 
