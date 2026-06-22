@@ -1,6 +1,32 @@
 import { Obra, Fornecedor, Lancamento, Contrato } from "./types";
+import { getXataClient } from "./xata";
 
 const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
+let isSyncingFromXata = false;
+
+// Debounce helper to group multiple rapid mutations
+function debounce(fn: Function, delay: number) {
+  let timeoutId: any;
+  return function (...args: any[]) {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// Map of debounced sync functions per table
+const syncDebouncers: Record<string, () => void> = {
+  obras: debounce(() => syncTableToXata("obras", obras), 1000),
+  fornecedores: debounce(() => syncTableToXata("fornecedores", fornecedores), 1000),
+  lancamentos: debounce(() => syncTableToXata("lancamentos", lancamentos), 1000),
+  contratos: debounce(() => syncTableToXata("contratos", contratos), 1000),
+};
+
+function triggerXataSync(key: string) {
+  if (isSyncingFromXata) return; // Prevent loops when pulling data
+  if (syncDebouncers[key]) {
+    syncDebouncers[key]();
+  }
+}
 
 function createLocalStorageArrayProxy<T>(key: string, defaultValue: T[]): T[] {
   if (!isBrowser) {
@@ -24,6 +50,7 @@ function createLocalStorageArrayProxy<T>(key: string, defaultValue: T[]): T[] {
   const save = () => {
     try {
       localStorage.setItem(key, JSON.stringify(rawArray));
+      triggerXataSync(key);
     } catch (e) {
       console.error("Failed to save to localStorage for", key, e);
     }
@@ -75,7 +102,6 @@ const initialFornecedores: Fornecedor[] = [
 ];
 
 const initialLancamentos: Lancamento[] = [
-  // Novos lançamentos baseados na imagem
   {
     id: "l18",
     dataCompetencia: "2024-11-13",
@@ -124,7 +150,6 @@ const initialLancamentos: Lancamento[] = [
     obraId: "o2",
     status: "Pago",
   },
-  // Receitas
   {
     id: "l1",
     dataCompetencia: "2023-10-01",
@@ -197,8 +222,6 @@ const initialLancamentos: Lancamento[] = [
     obraId: "o2",
     status: "Pago",
   },
-
-  // Despesas Materiais
   {
     id: "l7",
     dataCompetencia: "2024-03-10",
@@ -236,8 +259,6 @@ const initialLancamentos: Lancamento[] = [
     fornecedorId: "f1",
     status: "Aberto",
   },
-
-  // Despesas Mão de Obra
   {
     id: "l10",
     dataCompetencia: "2024-03-01",
@@ -275,8 +296,6 @@ const initialLancamentos: Lancamento[] = [
     fornecedorId: "f4",
     status: "Pago",
   },
-
-  // Equipamentos
   {
     id: "l13",
     dataCompetencia: "2024-03-05",
@@ -302,8 +321,6 @@ const initialLancamentos: Lancamento[] = [
     fornecedorId: "f3",
     status: "Aberto",
   },
-
-  // Impostos
   {
     id: "l15",
     dataCompetencia: "2024-02-28",
@@ -327,8 +344,6 @@ const initialLancamentos: Lancamento[] = [
     obraId: "o2",
     status: "Aberto",
   },
-
-  // Atrasados
   {
     id: "l17",
     dataCompetencia: "2024-02-15",
@@ -377,3 +392,153 @@ export const fornecedores: Fornecedor[] = createLocalStorageArrayProxy("forneced
 export const lancamentos: Lancamento[] = createLocalStorageArrayProxy("lancamentos", initialLancamentos);
 export const contratos: Contrato[] = createLocalStorageArrayProxy("contratos", initialContratos);
 
+// Seed empty database tables in Xata with initial mock data
+async function seedXata(xata: any) {
+  try {
+    console.log("[Xata Seed] Seeding empty database tables...");
+    for (const item of initialObras) {
+      await xata.db.obras.create(item);
+    }
+    for (const item of initialFornecedores) {
+      await xata.db.fornecedores.create(item);
+    }
+    for (const item of initialLancamentos) {
+      await xata.db.lancamentos.create(item);
+    }
+    for (const item of initialContratos) {
+      await xata.db.contratos.create(item);
+    }
+    console.log("[Xata Seed] Database successfully seeded in Xata!");
+  } catch (err) {
+    console.error("[Xata Seed] Failed to seed Xata database:", err);
+  }
+}
+
+// Perform a table diff and synchronize it to Xata
+async function syncTableToXata(tableName: string, currentItems: any[]) {
+  // If the credentials are not set, don't attempt to sync
+  if (!import.meta.env.VITE_XATA_API_KEY || !import.meta.env.VITE_XATA_DATABASE_URL) {
+    return;
+  }
+
+  const xata = getXataClient();
+  try {
+    console.log(`[Xata Sync] Syncing table "${tableName}" to Xata cloud...`);
+    const dbItems = await xata.db[tableName].getAll();
+
+    // 1. Insert or Update records
+    for (const item of currentItems) {
+      const dbItem = dbItems.find((x: any) => x.id === item.id);
+      if (!dbItem) {
+        console.log(`[Xata Sync] Creating new record in ${tableName}:`, item.id);
+        await xata.db[tableName].create(item);
+      } else {
+        // Compare keys to check for changes
+        let hasChanges = false;
+        for (const key of Object.keys(item)) {
+          if (item[key] !== (dbItem as any)[key]) {
+            hasChanges = true;
+            break;
+          }
+        }
+        if (hasChanges) {
+          console.log(`[Xata Sync] Updating changed record in ${tableName}:`, item.id);
+          await xata.db[tableName].createOrUpdate(item.id, item);
+        }
+      }
+    }
+
+    // 2. Delete missing records
+    for (const dbItem of dbItems) {
+      if (!currentItems.some((x) => x.id === dbItem.id)) {
+        console.log(`[Xata Sync] Deleting removed record from ${tableName}:`, dbItem.id);
+        await xata.db[tableName].delete(dbItem.id);
+      }
+    }
+    console.log(`[Xata Sync] Table "${tableName}" successfully synced!`);
+  } catch (err) {
+    console.error(`[Xata Sync] Error syncing table "${tableName}":`, err);
+  }
+}
+
+// Pull latest records from Xata and sync them down to local arrays
+export async function initializeXataSync() {
+  if (!isBrowser) return;
+
+  // Verify that API key and Database URL are set
+  if (!import.meta.env.VITE_XATA_API_KEY || !import.meta.env.VITE_XATA_DATABASE_URL || import.meta.env.VITE_XATA_API_KEY === 'your-xata-api-key-here') {
+    console.warn("[Xata Sync] Configuration keys missing or default template values detected. Sync disabled.");
+    return;
+  }
+
+  const xata = getXataClient();
+  try {
+    console.log("[Xata Sync] Synchronizing schemas and tables from cloud...");
+    const dbObras = await xata.db.obras.getAll();
+    const dbFornecedores = await xata.db.fornecedores.getAll();
+    const dbLancamentos = await xata.db.lancamentos.getAll();
+    const dbContratos = await xata.db.contratos.getAll();
+
+    // Check if the database has zero records (blank slate)
+    if (dbObras.length === 0 && dbFornecedores.length === 0 && dbLancamentos.length === 0 && dbContratos.length === 0) {
+      await seedXata(xata);
+    } else {
+      isSyncingFromXata = true;
+
+      // Overwrite local arrays in-place to preserve reactive references
+      obras.length = 0;
+      obras.push(...dbObras.map(x => ({ id: x.id, nome: x.nome || "", status: (x.status || "Em Andamento") as Obra["status"] })));
+
+      fornecedores.length = 0;
+      fornecedores.push(...dbFornecedores.map(x => ({ id: x.id, nome: x.nome || "", cnpj: x.cnpj || "" })));
+
+      lancamentos.length = 0;
+      lancamentos.push(...dbLancamentos.map(x => ({
+        id: x.id,
+        dataCompetencia: x.dataCompetencia || "",
+        dataVencimento: x.dataVencimento || "",
+        dataPagamento: x.dataPagamento,
+        formaPagamento: x.formaPagamento,
+        nf: x.nf,
+        descricao: x.descricao || "",
+        valor: x.valor || 0,
+        tipo: (x.tipo === "Receita" || x.tipo === "Despesa") ? x.tipo : "Despesa",
+        categoria: x.categoria || "",
+        tipoLancamento: x.tipoLancamento,
+        subtipo: x.subtipo,
+        obraId: x.obraId,
+        fornecedorId: x.fornecedorId,
+        recebedorFornecedor: x.recebedorFornecedor,
+        contratoId: x.contratoId,
+        status: (x.status === "Pago" || x.status === "Aberto" || x.status === "Atrasado") ? x.status : "Aberto"
+      })));
+
+      contratos.length = 0;
+      contratos.push(...dbContratos.map(x => ({
+        id: x.id,
+        descricao: x.descricao || "",
+        valorPrevisto: x.valorPrevisto || 0,
+        tipo: (x.tipo === "Receita" || x.tipo === "Despesa") ? x.tipo : "Despesa",
+        categoria: x.categoria || "",
+        tipoLancamento: x.tipoLancamento,
+        subtipo: x.subtipo,
+        obraId: x.obraId,
+        fornecedorId: x.fornecedorId,
+        recebedorFornecedor: x.recebedorFornecedor,
+        diaVencimento: x.diaVencimento || 1,
+        ativo: x.ativo !== undefined ? x.ativo : true
+      })));
+
+      // Update localStorage values
+      localStorage.setItem("obras", JSON.stringify(obras));
+      localStorage.setItem("fornecedores", JSON.stringify(fornecedores));
+      localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
+      localStorage.setItem("contratos", JSON.stringify(contratos));
+
+      isSyncingFromXata = false;
+      console.log("[Xata Sync] Local data synchronized with cloud state.");
+    }
+  } catch (err) {
+    console.error("[Xata Sync] Failed to initialize synchronization:", err);
+  }
+}
