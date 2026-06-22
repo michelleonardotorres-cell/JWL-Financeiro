@@ -1,5 +1,5 @@
-// api/_db.js - Shared PostgreSQL connection pool for all API routes
-const { Pool } = require("pg");
+import pg from 'pg';
+const { Pool } = pg;
 
 let pool;
 
@@ -30,4 +30,4 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-module.exports = { getPool, setCors };
+export { getPool, setCors };

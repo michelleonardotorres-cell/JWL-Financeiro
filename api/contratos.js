@@ -1,7 +1,6 @@
-// api/contratos.js - CRUD serverless function for contratos table
-const { getPool, setCors } = require("./_db");
+import { getPool, setCors } from "./_db.js";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
 
