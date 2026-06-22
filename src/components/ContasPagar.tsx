@@ -37,14 +37,13 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     setNewConta((prev) => ({ ...prev, valor: numericValue }));
   };
 
-  const handleSaveNewConta = () => {
+  const handleSaveNewConta = async () => {
     if (!newConta.descricao || !newConta.valor) {
       alert("Por favor, preencha a descrição e o valor.");
       return;
     }
 
-    const newLancamento = {
-      id: `l${Date.now()}`,
+    const newLancamento: Omit<Lancamento, "id"> = {
       dataCompetencia: undefined,
       dataVencimento: newConta.dataVencimento,
       dataPagamento: undefined,
@@ -60,9 +59,22 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       status: "Aberto" as const,
       fornecedorId: newConta.fornecedorId || undefined,
     };
-    initialLancamentos.unshift(newLancamento);
-    setLancamentosBase([...initialLancamentos]);
-    setIsAdding(false);
+    try {
+      const created = await addLancamento(newLancamento);
+      setLancamentosBase([created, ...lancamentosBase]);
+      setIsAdding(false);
+      setNewConta({
+        dataVencimento: new Date().toISOString().split('T')[0],
+        descricao: "",
+        fornecedorId: "",
+        obraId: "",
+        valor: 0,
+      });
+      setValorInput("");
+      alert("Nova conta cadastrada com sucesso!");
+    } catch(e) {
+      alert("Erro ao salvar conta");
+    }
     setNewConta({
       dataVencimento: new Date().toISOString().split('T')[0],
       descricao: "",
@@ -86,31 +98,39 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     setValorInput("");
   };
 
-  const handlePagar = (id: string) => {
-    const index = initialLancamentos.findIndex((l) => l.id === id);
-    if (index !== -1) {
-      const updated = {
-        ...initialLancamentos[index],
+  const handlePagar = async (id: string) => {
+    const item = lancamentosBase.find((l) => l.id === id);
+    if (item) {
+      const updated: Lancamento = {
+        ...item,
         status: "Pago" as const,
         dataPagamento: new Date().toISOString().split("T")[0],
       };
-      initialLancamentos.splice(index, 1, updated);
-      setLancamentosBase([...initialLancamentos]);
-      alert("Conta marcada como paga!");
+      try {
+        await updateLancamento(updated);
+        setLancamentosBase(prev => prev.map(l => l.id === id ? updated : l));
+        alert("Conta marcada como paga!");
+      } catch(e) {
+        alert("Erro ao marcar como pago");
+      }
     }
   };
 
-  const handleDesfazerPagamento = (id: string) => {
-    const index = initialLancamentos.findIndex((l) => l.id === id);
-    if (index !== -1) {
-      const updated = {
-        ...initialLancamentos[index],
+  const handleDesfazerPagamento = async (id: string) => {
+    const item = lancamentosBase.find((l) => l.id === id);
+    if (item) {
+      const updated: Lancamento = {
+        ...item,
         status: "Aberto" as const,
         dataPagamento: undefined,
       };
-      initialLancamentos.splice(index, 1, updated);
-      setLancamentosBase([...initialLancamentos]);
-      alert("Pagamento desfeito com sucesso! A conta voltou para o estado em aberto.");
+      try {
+        await updateLancamento(updated);
+        setLancamentosBase(prev => prev.map(l => l.id === id ? updated : l));
+        alert("Pagamento desfeito com sucesso! A conta voltou para o estado em aberto.");
+      } catch(e) {
+        alert("Erro ao desfazer pagamento");
+      }
     }
   };
 

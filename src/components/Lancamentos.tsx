@@ -308,7 +308,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     setConfirmDeleteText("");
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editEntry.descricao || !editEntry.valor) {
       alert("Por favor, preencha a descrição e o valor.");
       return;
@@ -338,32 +338,36 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       status: isBoletoOuPrazo ? "Aberto" : "Pago",
     };
 
-    const index = initialLancamentos.findIndex((item) => item.id === editingLancamento!.id);
-    if (index !== -1) {
-      initialLancamentos.splice(index, 1, updatedEntry);
-    }
-    const stateIndex = data.findIndex((item) => item.id === editingLancamento!.id);
-    if (stateIndex !== -1) {
-      const updatedData = [...data];
-      updatedData.splice(stateIndex, 1, updatedEntry);
-      setData(updatedData);
+    try {
+      const updated = await updateLancamento(updatedEntry);
+      const stateIndex = data.findIndex((item) => item.id === editingLancamento!.id);
+      if (stateIndex !== -1) {
+        const updatedData = [...data];
+        updatedData.splice(stateIndex, 1, updated);
+        setData(updatedData);
+      }
+    } catch (e) {
+      alert("Erro ao atualizar lançamento");
+      return;
     }
 
     setEditingLancamento(null);
     alert("Lançamento atualizado com sucesso!");
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (confirmDeleteText.toLowerCase() !== "confirmar") {
       alert("Você deve digitar 'confirmar' para prosseguir com a exclusão.");
       return;
     }
 
-    const index = initialLancamentos.findIndex((item) => item.id === deletingLancamento!.id);
-    if (index !== -1) {
-      initialLancamentos.splice(index, 1);
+    try {
+      await deleteLancamento(deletingLancamento!.id);
+      setData(data.filter((item) => item.id !== deletingLancamento!.id));
+    } catch (e) {
+      alert("Erro ao excluir lançamento");
+      return;
     }
-    setData(data.filter((item) => item.id !== deletingLancamento!.id));
     setDeletingLancamento(null);
     alert("Lançamento excluído com sucesso!");
   };
@@ -580,7 +584,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!newEntry.descricao || !newEntry.valor) {
       alert("Por favor, preencha a descrição e o valor.");
       return;
@@ -593,8 +597,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       newEntry.tipoLancamento === "EMPRESTIMOS";
     const isBoletoOuPrazo = newEntry.formaPagamento === "BOLETO" || newEntry.formaPagamento === "A PRAZO";
 
-    const entry: Lancamento = {
-      id: `l${data.length + 1}`,
+    const entry: Omit<Lancamento, "id"> = {
       dataCompetencia: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
       dataVencimento: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
       dataPagamento: isBoletoOuPrazo ? undefined : (newEntry.dataPagamento || newEntry.dataCompetencia),
@@ -612,8 +615,13 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       contratoId: newEntry.contratoId
     };
 
-    setData([entry, ...data]);
-    initialLancamentos.unshift(entry); // Mutates global mock so ContasPagar receives it
+    try {
+      const created = await addLancamento(entry);
+      setData([created, ...data]);
+    } catch (e) {
+      alert("Erro ao salvar lançamento");
+      return;
+    }
     setIsAdding(false);
 
     if (isBoletoOuPrazo && !isReceita) {

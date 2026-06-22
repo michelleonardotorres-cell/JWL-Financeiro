@@ -63,14 +63,13 @@ export default function Contratos() {
         });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!newEntry.descricao || !newEntry.valorPrevisto || !newEntry.diaVencimento) {
             alert("Por favor, preencha a descrição, valor e dia de vencimento.");
             return;
         }
 
-        const entry: Contrato = {
-            id: `c${data.length + 1}`,
+        const entry: Omit<Contrato, "id"> = {
             descricao: newEntry.descricao,
             valorPrevisto: newEntry.valorPrevisto,
             tipo: "Despesa",
@@ -83,9 +82,13 @@ export default function Contratos() {
             ativo: true,
         };
 
-        setData([entry, ...data]);
-        initialContratos.unshift(entry);
-        setIsAdding(false);
+        try {
+            const created = await addContrato(entry);
+            setData([created, ...data]);
+            setIsAdding(false);
+        } catch(e) {
+            alert("Erro ao salvar contrato");
+        }
     };
 
     const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
