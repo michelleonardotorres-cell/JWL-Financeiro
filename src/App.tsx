@@ -9,7 +9,7 @@ import Dashboard from "./components/Dashboard";
 import Lancamentos from "./components/Lancamentos";
 import ContasPagar from "./components/ContasPagar";
 import DRE from "./components/DRE";
-import RelatorioObra from "./components/RelatorioObra";
+import Obras from "./components/Obras";
 import Fornecedores from "./components/Fornecedores";
 import Receitas from "./components/Receitas";
 import Contratos from "./components/Contratos";
@@ -54,8 +54,8 @@ function AppContent() {
         return <ContasPagar onEfetivar={(data: any) => { setEfetivarData(data); setActiveTab("lancamentos"); }} />;
       case "dre":
         return <DRE />;
-      case "relatorio-obra":
-        return <RelatorioObra />;
+      case "obras":
+        return <Obras />;
       case "fornecedores":
         return <Fornecedores />;
       case "receitas":

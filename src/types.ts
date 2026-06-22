@@ -1,6 +1,11 @@
 export type Obra = {
   id: string;
   nome: string;
+  cliente?: string;
+  endereco?: string;
+  valorContrato?: number;
+  aditivo?: number;
+  reajusteContrato?: number;
   status: "Em Andamento" | "Concluída" | "Planejamento";
 };
 
@@ -17,6 +22,10 @@ export type Fornecedor = {
   id: string;
   nome: string;
   cnpj: string;
+  cpf?: string;
+  endereco?: string;
+  dadosBancarios?: string;
+  funcao?: string;
 };
 
 export type Lancamento = {

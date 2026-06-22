@@ -20,20 +20,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const handleReset = () => {
-    if (window.confirm("Deseja resetar todos os dados para o padrão inicial? Suas alterações locais serão apagadas.")) {
-      localStorage.clear();
-      window.location.reload();
-    }
-  };
-
   const menuItems = [
     { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
     { id: "lancamentos", label: "Lançamentos", icon: FileText },
     { id: "contas-pagar", label: "Contas a Pagar", icon: CreditCard },
     { id: "contratos", label: "Contratos Fixos", icon: CalendarDays },
     { id: "dre", label: "DRE Construtora", icon: BarChart3 },
-    { id: "relatorio-obra", label: "Relatório por Obra", icon: Building2 },
+    { id: "obras", label: "Obras", icon: Building2 },
     { id: "fornecedores", label: "Fornecedores", icon: Users },
     { id: "receitas", label: "Receitas (12 Meses)", icon: TrendingUp },
   ];
@@ -87,18 +80,6 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         })}
       </nav>
       <div className="p-4 border-t border-zinc-800 space-y-2 shrink-0">
-        <button
-          onClick={handleReset}
-          className={`w-full flex items-center ${isExpanded ? "justify-start px-3" : "justify-center px-0"} py-2 rounded-lg text-xs font-medium text-zinc-400 hover:bg-rose-950/30 hover:text-rose-400 transition-colors`}
-          title="Resetar Banco de Dados Local"
-        >
-          <div className="flex items-center justify-center min-w-[20px]">
-            <RotateCcw size={16} />
-          </div>
-          <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 ml-3 w-auto" : "opacity-0 w-0 ml-0"}`}>
-            Resetar Dados
-          </span>
-        </button>
         <div className={`text-[10px] text-zinc-600 transition-all duration-300 ${isExpanded ? "opacity-100 text-center" : "opacity-0"}`}>
           <span className="whitespace-nowrap overflow-hidden block">
             &copy; 2024 ConstruFin

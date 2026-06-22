@@ -3,6 +3,7 @@ import { safeFormatDate, normalizeString } from "../utils";
 import { Search, Filter, Plus, Save, X, Check, MoreHorizontal } from "lucide-react";
 import { Lancamento } from "../types";
 import { useData } from "../contexts/DataContext";
+import Combobox from "./Combobox";
 
 export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarData }: { setActiveTab?: (tab: string) => void, efetivarData?: any, setEfetivarData?: (data: any) => void }) {
     const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -868,17 +869,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     />
                   </td>
                   <td className="p-2">
-                    <input
-                      type="text"
-                      list="recebedores-list"
+                    <Combobox
+                      options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
+                      value={newEntry.recebedorFornecedor || ""}
+                      onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
                       placeholder="Recebedor"
-                      value={newEntry.recebedorFornecedor}
-                      onChange={(e) => setNewEntry({ ...newEntry, recebedorFornecedor: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
-                    <datalist id="recebedores-list">
-                      {[...fornecedores].sort((a, b) => a.nome.localeCompare(b.nome)).map(f => <option key={f.id} value={f.nome} />)}
-                    </datalist>
                   </td>
                   <td className="p-2">
                     <input
@@ -912,19 +908,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     />
                   </td>
                   <td className="p-2">
-                    <input
-                      type="text"
-                      list="obras-list"
-                      placeholder="Centro de Custo"
+                    <Combobox
+                      options={obras.map(o => ({ id: o.id, label: o.nome }))}
                       value={newEntry.obraId || ""}
-                      onChange={(e) => {
-                        setNewEntry({ ...newEntry, obraId: e.target.value });
-                      }}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                      onChange={(id) => setNewEntry({ ...newEntry, obraId: id })}
+                      placeholder="Centro de Custo"
                     />
-                    <datalist id="obras-list">
-                      {[...obras].sort((a, b) => a.nome.localeCompare(b.nome)).map(o => <option key={o.id} value={o.nome} />)}
-                    </datalist>
                   </td>
                   <td className="p-2">
                     <input
@@ -1270,16 +1259,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Fornecedor/Recebedor</label>
-                <input
-                  type="text"
-                  list="recebedores-list-edit"
+                <Combobox
+                  options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
                   value={editEntry.recebedorFornecedor || ""}
-                  onChange={(e) => setEditEntry({ ...editEntry, recebedorFornecedor: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                  onChange={(id) => setEditEntry({ ...editEntry, recebedorFornecedor: id })}
+                  placeholder="Recebedor"
                 />
-                <datalist id="recebedores-list-edit">
-                  {[...fornecedores].sort((a, b) => a.nome.localeCompare(b.nome)).map(f => <option key={f.id} value={f.nome} />)}
-                </datalist>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Tipo de Lançamento</label>
@@ -1305,16 +1290,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Centro de Custo</label>
-                <input
-                  type="text"
-                  list="obras-list-edit"
+                <Combobox
+                  options={obras.map(o => ({ id: o.id, label: o.nome }))}
                   value={editEntry.obraId || ""}
-                  onChange={(e) => setEditEntry({ ...editEntry, obraId: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                  onChange={(id) => setEditEntry({ ...editEntry, obraId: id })}
+                  placeholder="Centro de Custo"
                 />
-                <datalist id="obras-list-edit">
-                  {[...obras].sort((a, b) => a.nome.localeCompare(b.nome)).map(o => <option key={o.id} value={o.nome} />)}
-                </datalist>
               </div>
             </div>
             <div className="flex justify-end gap-3 border-t border-zinc-100 pt-4">

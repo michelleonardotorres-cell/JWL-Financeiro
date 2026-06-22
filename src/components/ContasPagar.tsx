@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { safeFormatDate } from "../utils";
 import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye } from "lucide-react";
 import { useData } from "../contexts/DataContext";
+import Combobox from "./Combobox";
 
 export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
     const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -18,8 +19,8 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   const [newConta, setNewConta] = useState({
     dataVencimento: new Date().toISOString().split('T')[0],
     descricao: "",
-    fornecedorNome: "",
-    obraNome: "",
+    fornecedorId: "",
+    obraId: "",
     valor: 0,
   });
 
@@ -42,40 +43,24 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       return;
     }
 
-    let supplier = fornecedores.find(
-      (f) => f.nome.toLowerCase() === newConta.fornecedorNome.toLowerCase()
-    );
-    let fornecedorId = supplier?.id;
-    if (newConta.fornecedorNome && !supplier) {
-      const newF = {
-        id: `f${fornecedores.length + 1}`,
-        nome: newConta.fornecedorNome,
-        cnpj: "00.000.000/0001-00",
-      };
-      fornecedores.push(newF);
-      fornecedorId = newF.id;
-    }
-
-    let obra = obras.find(
-      (o) => o.nome.toLowerCase() === newConta.obraNome.toLowerCase()
-    );
-    let obraId = obra?.id || newConta.obraNome;
-
-    const entry = {
-      id: `l${initialLancamentos.length + 1}`,
-      dataCompetencia: newConta.dataVencimento,
+    const newLancamento = {
+      id: `l${Date.now()}`,
+      dataCompetencia: undefined,
       dataVencimento: newConta.dataVencimento,
-      formaPagamento: "BOLETO",
+      dataPagamento: undefined,
+      formaPagamento: "",
+      nf: "",
+      recebedorFornecedor: fornecedores.find(f => f.id === newConta.fornecedorId)?.nome || "",
       descricao: newConta.descricao,
+      tipoLancamento: "Conta Fixa",
+      subtipo: "",
+      obraId: newConta.obraId || undefined,
       valor: newConta.valor,
       tipo: "Despesa" as const,
-      categoria: "Materiais",
-      fornecedorId: fornecedorId,
-      obraId: obraId,
       status: "Aberto" as const,
+      fornecedorId: newConta.fornecedorId || undefined,
     };
-
-    initialLancamentos.unshift(entry);
+    initialLancamentos.unshift(newLancamento);
     setLancamentosBase([...initialLancamentos]);
     setIsAdding(false);
     setNewConta({
@@ -307,30 +292,20 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     />
                   </td>
                   <td className="p-2">
-                    <input
-                      type="text"
-                      list="fornecedores-list"
+                    <Combobox
+                      options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
+                      value={newConta.fornecedorId || ""}
+                      onChange={(id) => setNewConta({ ...newConta, fornecedorId: id })}
                       placeholder="Fornecedor"
-                      value={newConta.fornecedorNome}
-                      onChange={(e) => setNewConta({ ...newConta, fornecedorNome: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
-                    <datalist id="fornecedores-list">
-                      {[...fornecedores].sort((a, b) => a.nome.localeCompare(b.nome)).map(f => <option key={f.id} value={f.nome} />)}
-                    </datalist>
                   </td>
                   <td className="p-2">
-                    <input
-                      type="text"
-                      list="obras-list"
+                    <Combobox
+                      options={obras.map(o => ({ id: o.id, label: o.nome }))}
+                      value={newConta.obraId || ""}
+                      onChange={(id) => setNewConta({ ...newConta, obraId: id })}
                       placeholder="Centro de Custo"
-                      value={newConta.obraNome}
-                      onChange={(e) => setNewConta({ ...newConta, obraNome: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
-                    <datalist id="obras-list">
-                      {[...obras].sort((a, b) => a.nome.localeCompare(b.nome)).map(o => <option key={o.id} value={o.nome} />)}
-                    </datalist>
                   </td>
                   <td className="p-2">
                     <input

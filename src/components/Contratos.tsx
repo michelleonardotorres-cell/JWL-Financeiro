@@ -3,6 +3,7 @@ import { Search, Plus, Save, X, Check, CalendarDays } from "lucide-react";
 import { Contrato } from "../types";
 import { normalizeString } from "../utils";
 import { useData } from "../contexts/DataContext";
+import Combobox from "./Combobox";
 
 export default function Contratos() {
     const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -166,13 +167,11 @@ export default function Contratos() {
                                         />
                                     </td>
                                     <td className="p-2">
-                                        <input
-                                            type="text"
-                                            list="recebedores-list"
+                                        <Combobox
+                                            options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
+                                            value={newEntry.recebedorFornecedor || ""}
+                                            onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
                                             placeholder="Recebedor"
-                                            value={newEntry.recebedorFornecedor}
-                                            onChange={(e) => setNewEntry({ ...newEntry, recebedorFornecedor: e.target.value })}
-                                            className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                                         />
                                     </td>
                                     <td className="p-2">
@@ -195,13 +194,11 @@ export default function Contratos() {
                                         />
                                     </td>
                                     <td className="p-2">
-                                        <input
-                                            type="text"
-                                            list="obras-list"
-                                            placeholder="Centro de Custo"
+                                        <Combobox
+                                            options={obras.map(o => ({ id: o.id, label: o.nome }))}
                                             value={newEntry.obraId || ""}
-                                            onChange={(e) => setNewEntry({ ...newEntry, obraId: e.target.value })}
-                                            className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            onChange={(id) => setNewEntry({ ...newEntry, obraId: id })}
+                                            placeholder="Centro de Custo"
                                         />
                                     </td>
                                     <td className="p-2">
