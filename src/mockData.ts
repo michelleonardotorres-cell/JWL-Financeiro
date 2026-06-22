@@ -1,5 +1,4 @@
 import { Obra, Fornecedor, Lancamento, Contrato } from "./types";
-import { getXataClient } from "./xata";
 
 const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
 let isSyncingFromXata = false;
@@ -392,48 +391,43 @@ export const fornecedores: Fornecedor[] = createLocalStorageArrayProxy("forneced
 export const lancamentos: Lancamento[] = createLocalStorageArrayProxy("lancamentos", initialLancamentos);
 export const contratos: Contrato[] = createLocalStorageArrayProxy("contratos", initialContratos);
 
-// Seed empty database tables in Xata with initial mock data
-async function seedXata(xata: any) {
+// Seed empty database tables via API routes
+async function seedXata() {
   try {
     console.log("[Xata Seed] Seeding empty database tables...");
     for (const item of initialObras) {
-      await xata.db.obras.create(item);
+      await fetch('/api/obras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
     }
     for (const item of initialFornecedores) {
-      await xata.db.fornecedores.create(item);
+      await fetch('/api/fornecedores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
     }
     for (const item of initialLancamentos) {
-      await xata.db.lancamentos.create(item);
+      await fetch('/api/lancamentos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
     }
     for (const item of initialContratos) {
-      await xata.db.contratos.create(item);
+      await fetch('/api/contratos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
     }
-    console.log("[Xata Seed] Database successfully seeded in Xata!");
+    console.log("[Xata Seed] Database successfully seeded via API!");
   } catch (err) {
-    console.error("[Xata Seed] Failed to seed Xata database:", err);
+    console.error("[Xata Seed] Failed to seed database:", err);
   }
 }
 
-// Perform a table diff and synchronize it to Xata
+// Perform a table diff and synchronize it to the API route
 async function syncTableToXata(tableName: string, currentItems: any[]) {
-  // If the credentials are not set, don't attempt to sync
-  if (!import.meta.env.VITE_XATA_API_KEY || !import.meta.env.VITE_XATA_DATABASE_URL) {
-    return;
-  }
-
-  const xata = getXataClient();
   try {
-    console.log(`[Xata Sync] Syncing table "${tableName}" to Xata cloud...`);
-    const dbItems = await xata.db[tableName].getAll();
+    console.log(`[Xata Sync] Syncing table "${tableName}" to backend...`);
+    const res = await fetch(`/api/${tableName}`);
+    if (!res.ok) throw new Error("Failed to fetch current DB items");
+    const dbItems = await res.json();
 
     // 1. Insert or Update records
     for (const item of currentItems) {
       const dbItem = dbItems.find((x: any) => x.id === item.id);
       if (!dbItem) {
         console.log(`[Xata Sync] Creating new record in ${tableName}:`, item.id);
-        await xata.db[tableName].create(item);
+        await fetch(`/api/${tableName}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
       } else {
-        // Compare keys to check for changes
         let hasChanges = false;
         for (const key of Object.keys(item)) {
           if (item[key] !== (dbItem as any)[key]) {
@@ -443,7 +437,7 @@ async function syncTableToXata(tableName: string, currentItems: any[]) {
         }
         if (hasChanges) {
           console.log(`[Xata Sync] Updating changed record in ${tableName}:`, item.id);
-          await xata.db[tableName].createOrUpdate(item.id, item);
+          await fetch(`/api/${tableName}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
         }
       }
     }
@@ -452,7 +446,7 @@ async function syncTableToXata(tableName: string, currentItems: any[]) {
     for (const dbItem of dbItems) {
       if (!currentItems.some((x) => x.id === dbItem.id)) {
         console.log(`[Xata Sync] Deleting removed record from ${tableName}:`, dbItem.id);
-        await xata.db[tableName].delete(dbItem.id);
+        await fetch(`/api/${tableName}?id=${dbItem.id}`, { method: 'DELETE' });
       }
     }
     console.log(`[Xata Sync] Table "${tableName}" successfully synced!`);
@@ -461,39 +455,44 @@ async function syncTableToXata(tableName: string, currentItems: any[]) {
   }
 }
 
-// Pull latest records from Xata and sync them down to local arrays
+// Pull latest records from backend and sync them down to local arrays
 export async function initializeXataSync() {
   if (!isBrowser) return;
 
-  // Verify that API key and Database URL are set
-  if (!import.meta.env.VITE_XATA_API_KEY || !import.meta.env.VITE_XATA_DATABASE_URL || import.meta.env.VITE_XATA_API_KEY === 'your-xata-api-key-here') {
-    console.warn("[Xata Sync] Configuration keys missing or default template values detected. Sync disabled.");
-    return;
-  }
-
-  const xata = getXataClient();
   try {
-    console.log("[Xata Sync] Synchronizing schemas and tables from cloud...");
-    const dbObras = await xata.db.obras.getAll();
-    const dbFornecedores = await xata.db.fornecedores.getAll();
-    const dbLancamentos = await xata.db.lancamentos.getAll();
-    const dbContratos = await xata.db.contratos.getAll();
+    console.log("[Xata Sync] Synchronizing schemas and tables from backend...");
+    const [resObras, resFornecedores, resLancamentos, resContratos] = await Promise.all([
+      fetch('/api/obras'),
+      fetch('/api/fornecedores'),
+      fetch('/api/lancamentos'),
+      fetch('/api/contratos')
+    ]);
+
+    if (!resObras.ok) {
+       console.warn("[Xata Sync] Backend not reachable. Running locally.");
+       return;
+    }
+
+    const dbObras = await resObras.json();
+    const dbFornecedores = await resFornecedores.json();
+    const dbLancamentos = await resLancamentos.json();
+    const dbContratos = await resContratos.json();
 
     // Check if the database has zero records (blank slate)
     if (dbObras.length === 0 && dbFornecedores.length === 0 && dbLancamentos.length === 0 && dbContratos.length === 0) {
-      await seedXata(xata);
+      await seedXata();
     } else {
       isSyncingFromXata = true;
 
       // Overwrite local arrays in-place to preserve reactive references
       obras.length = 0;
-      obras.push(...dbObras.map(x => ({ id: x.id, nome: x.nome || "", status: (x.status || "Em Andamento") as Obra["status"] })));
+      obras.push(...dbObras.map((x: any) => ({ id: x.id, nome: x.nome || "", status: (x.status || "Em Andamento") as Obra["status"] })));
 
       fornecedores.length = 0;
-      fornecedores.push(...dbFornecedores.map(x => ({ id: x.id, nome: x.nome || "", cnpj: x.cnpj || "" })));
+      fornecedores.push(...dbFornecedores.map((x: any) => ({ id: x.id, nome: x.nome || "", cnpj: x.cnpj || "" })));
 
       lancamentos.length = 0;
-      lancamentos.push(...dbLancamentos.map(x => ({
+      lancamentos.push(...dbLancamentos.map((x: any) => ({
         id: x.id,
         dataCompetencia: x.dataCompetencia || "",
         dataVencimento: x.dataVencimento || "",
@@ -514,7 +513,7 @@ export async function initializeXataSync() {
       })));
 
       contratos.length = 0;
-      contratos.push(...dbContratos.map(x => ({
+      contratos.push(...dbContratos.map((x: any) => ({
         id: x.id,
         descricao: x.descricao || "",
         valorPrevisto: x.valorPrevisto || 0,
