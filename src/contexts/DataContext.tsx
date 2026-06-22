@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Obra, Fornecedor, Lancamento, Contrato } from "../types";
-import { obrasApi, fornecedoresApi, lancamentosApi, contratosApi } from "../apiClient";
+import { Obra, Fornecedor, Recebedor, Lancamento, Contrato } from "../types";
+import { obrasApi, fornecedoresApi, recebedoresApi, lancamentosApi, contratosApi } from "../apiClient";
 
 interface DataContextType {
   obras: Obra[];
   fornecedores: Fornecedor[];
+  recebedores: Recebedor[];
   lancamentos: Lancamento[];
   contratos: Contrato[];
   isLoading: boolean;
@@ -20,6 +21,10 @@ interface DataContextType {
   updateFornecedor: (fornecedor: Fornecedor) => Promise<Fornecedor>;
   deleteFornecedor: (id: string) => Promise<void>;
   
+  addRecebedor: (recebedor: Omit<Recebedor, "id">) => Promise<Recebedor>;
+  updateRecebedor: (recebedor: Recebedor) => Promise<Recebedor>;
+  deleteRecebedor: (id: string) => Promise<void>;
+  
   addLancamento: (lancamento: Omit<Lancamento, "id">) => Promise<Lancamento>;
   updateLancamento: (lancamento: Lancamento) => Promise<Lancamento>;
   deleteLancamento: (id: string) => Promise<void>;
@@ -34,6 +39,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: ReactNode }) {
   const [obras, setObras] = useState<Obra[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [recebedores, setRecebedores] = useState<Recebedor[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,14 +49,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const [o, f, l, c] = await Promise.all([
+      const [o, f, r, l, c] = await Promise.all([
         obrasApi.getAll(),
         fornecedoresApi.getAll(),
+        recebedoresApi.getAll(),
         lancamentosApi.getAll(),
         contratosApi.getAll()
       ]);
       setObras(o);
       setFornecedores(f);
+      setRecebedores(r);
       setLancamentos(l);
       setContratos(c);
     } catch (err: any) {
@@ -96,6 +104,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setFornecedores(prev => prev.filter(f => f.id !== id));
   };
 
+  const addRecebedor = async (data: Omit<Recebedor, "id">) => {
+    const created = await recebedoresApi.create(data);
+    setRecebedores(prev => [...prev, created]);
+    return created;
+  };
+  const updateRecebedor = async (data: Recebedor) => {
+    const updated = await recebedoresApi.update(data);
+    setRecebedores(prev => prev.map(r => r.id === updated.id ? updated : r));
+    return updated;
+  };
+  const deleteRecebedor = async (id: string) => {
+    await recebedoresApi.delete(id);
+    setRecebedores(prev => prev.filter(r => r.id !== id));
+  };
+
   const addLancamento = async (data: Omit<Lancamento, "id">) => {
     const created = await lancamentosApi.create(data);
     setLancamentos(prev => [created, ...prev]); // Add at the top
@@ -128,9 +151,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      obras, fornecedores, lancamentos, contratos, isLoading, error, refreshData,
+      obras, fornecedores, recebedores, lancamentos, contratos, isLoading, error, refreshData,
       addObra, updateObra, deleteObra,
       addFornecedor, updateFornecedor, deleteFornecedor,
+      addRecebedor, updateRecebedor, deleteRecebedor,
       addLancamento, updateLancamento, deleteLancamento,
       addContrato, updateContrato, deleteContrato
     }}>

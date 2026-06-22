@@ -61,6 +61,8 @@ export type Fornecedor = {
   funcao?: string;
 };
 
+export type Recebedor = Fornecedor;
+
 export type Lancamento = {
   id: string;
   dataCompetencia: string;

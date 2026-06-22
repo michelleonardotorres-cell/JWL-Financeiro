@@ -12,6 +12,7 @@ import obrasHandler from './api/obras.js';
 import fornecedoresHandler from './api/fornecedores.js';
 import lancamentosHandler from './api/lancamentos.js';
 import contratosHandler from './api/contratos.js';
+import recebedoresHandler from './api/recebedores.js';
 
 const app = express();
 const port = 3001;
@@ -38,6 +39,7 @@ app.all('/api/obras', vercelHandler(obrasHandler));
 app.all('/api/fornecedores', vercelHandler(fornecedoresHandler));
 app.all('/api/lancamentos', vercelHandler(lancamentosHandler));
 app.all('/api/contratos', vercelHandler(contratosHandler));
+app.all('/api/recebedores', vercelHandler(recebedoresHandler));
 
 app.listen(port, () => {
   console.log(`API Server is running locally on http://localhost:${port}`);

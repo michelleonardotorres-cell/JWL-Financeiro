@@ -55,6 +55,17 @@ export const fornecedoresApi = {
   delete: (id: string) => apiFetch<{ok: boolean}>(`fornecedores?id=${id}`, { method: "DELETE" })
 };
 
+// Recebedores
+export const recebedoresApi = {
+  getAll: () => apiFetch<Fornecedor[]>("recebedores"),
+  create: (recebedor: Omit<Fornecedor, "id">) => {
+    const id = generateId("r");
+    return apiFetch<Fornecedor>("recebedores", { method: "POST", body: JSON.stringify({ ...recebedor, id }) });
+  },
+  update: (recebedor: Fornecedor) => apiFetch<Fornecedor>("recebedores", { method: "PUT", body: JSON.stringify(recebedor) }),
+  delete: (id: string) => apiFetch<{ok: boolean}>(`recebedores?id=${id}`, { method: "DELETE" })
+};
+
 // Lancamentos
 export const lancamentosApi = {
   getAll: () => apiFetch<Lancamento[]>("lancamentos"),
