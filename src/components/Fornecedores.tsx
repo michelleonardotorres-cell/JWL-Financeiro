@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { fornecedores, lancamentos } from "../mockData";
 import { Users, Search, AlertCircle } from "lucide-react";
 import { normalizeString } from "../utils";
+import { useData } from "../contexts/DataContext";
 
 export default function Fornecedores() {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
   const [searchTerm, setSearchTerm] = useState("");
 
   const formatCurrency = (value: number) =>

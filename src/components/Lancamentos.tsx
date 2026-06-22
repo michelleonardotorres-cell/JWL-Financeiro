@@ -1,10 +1,16 @@
 import React, { useState, useMemo } from "react";
-import { lancamentos as initialLancamentos, obras, fornecedores } from "../mockData";
 import { safeFormatDate, normalizeString } from "../utils";
 import { Search, Filter, Plus, Save, X, Check, MoreHorizontal } from "lucide-react";
 import { Lancamento } from "../types";
+import { useData } from "../contexts/DataContext";
 
 export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarData }: { setActiveTab?: (tab: string) => void, efetivarData?: any, setEfetivarData?: (data: any) => void }) {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
   const [data, setData] = useState<Lancamento[]>(initialLancamentos);
   const [isAdding, setIsAdding] = useState(false);
 

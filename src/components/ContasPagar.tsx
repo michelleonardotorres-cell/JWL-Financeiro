@@ -1,9 +1,15 @@
 import React, { useState, useMemo } from "react";
-import { lancamentos as initialLancamentos, fornecedores, contratos, obras } from "../mockData";
 import { safeFormatDate } from "../utils";
 import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye } from "lucide-react";
+import { useData } from "../contexts/DataContext";
 
 export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
   const [filterStatus, setFilterStatus] = useState<
     "Todos" | "Aberto" | "Atrasado" | "Pago"
   >("Todos");

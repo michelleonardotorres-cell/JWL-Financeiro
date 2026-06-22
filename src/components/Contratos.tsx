@@ -1,10 +1,16 @@
 import React, { useState, useMemo } from "react";
-import { contratos as initialContratos, obras, fornecedores } from "../mockData";
 import { Search, Plus, Save, X, Check, CalendarDays } from "lucide-react";
 import { Contrato } from "../types";
 import { normalizeString } from "../utils";
+import { useData } from "../contexts/DataContext";
 
 export default function Contratos() {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
     const [data, setData] = useState<Contrato[]>(initialContratos);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAdding, setIsAdding] = useState(false);

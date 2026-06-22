@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { obras, lancamentos } from "../mockData";
 import {
   PieChart,
   Pie,
@@ -9,8 +8,15 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Building2 } from "lucide-react";
+import { useData } from "../contexts/DataContext";
 
 export default function RelatorioObra() {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
   const sortedObras = [...obras].sort((a, b) => a.nome.localeCompare(b.nome));
   const [selectedObraId, setSelectedObraId] = useState<string>(sortedObras[0]?.id || "");
 

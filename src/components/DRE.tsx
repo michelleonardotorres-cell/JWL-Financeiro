@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { lancamentos } from "../mockData";
 import { Download } from "lucide-react";
+import { useData } from "../contexts/DataContext";
 
 export default function DRE() {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
   const [visao, setVisao] = useState<"Competencia" | "Caixa">("Competencia");
 
   const formatCurrency = (value: number) =>

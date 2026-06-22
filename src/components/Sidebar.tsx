@@ -17,6 +17,7 @@ type SidebarProps = {
 };
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleReset = () => {

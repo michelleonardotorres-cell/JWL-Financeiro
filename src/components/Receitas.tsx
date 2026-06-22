@@ -1,4 +1,3 @@
-import { lancamentos } from "../mockData";
 import {
   BarChart,
   Bar,
@@ -18,8 +17,15 @@ import {
 import { safeParseISO } from "../utils";
 import { ptBR } from "date-fns/locale";
 import { TrendingUp, CalendarDays } from "lucide-react";
+import { useData } from "../contexts/DataContext";
 
 export default function Receitas() {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",

@@ -1,8 +1,14 @@
-import { lancamentos, obras } from "../mockData";
 import { Building2, TrendingDown, TrendingUp, AlertCircle } from "lucide-react";
 import { safeFormatDate } from "../utils";
+import { useData } from "../contexts/DataContext";
 
 export default function Dashboard() {
+    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
   const receitas = lancamentos
     .filter((l) => l.tipo === "Receita")
     .reduce((acc, curr) => acc + curr.valor, 0);
