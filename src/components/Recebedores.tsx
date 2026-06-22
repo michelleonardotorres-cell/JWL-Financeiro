@@ -193,43 +193,60 @@ export default function Recebedores() {
     setShowOptions(false);
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws);
-      
-      let imported = 0;
-      for (const row of data as any[]) {
-        if (row['Nome / Razão Social']) {
-          await addRecebedor({
-            ...defaultFormData,
-            nome: row['Nome / Razão Social'],
-            nomeFantasia: row['Nome Fantasia'] || "",
-            tipoPessoa: row['Tipo'] === 'Pessoa Física' ? 'Pessoa Física' : 'Pessoa Jurídica',
-            cnpj: row['CNPJ/CPF'] || "",
-            segmento: row['Segmento'] || "",
-            telefone1: row['Telefone'] || "",
-            email: row['E-mail'] || "",
-            cidade: row['Cidade'] || "",
-            estado: row['Estado'] || "",
-            qualificacao: parseInt(row['Qualificação']) || 0,
-            ativo: row['Status'] === 'Inativo' ? false : true
-          });
-          imported++;
+    setShowOptions(false); // Close dropdown immediately
+    
+    // Feedback visual improvisado já que a importação pode demorar
+    const btnText = document.title;
+    document.title = "Importando... Aguarde!";
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+          
+          let imported = 0;
+          for (const row of data as any[]) {
+            if (row['Nome / Razão Social']) {
+              await addRecebedor({
+                ...defaultFormData,
+                nome: row['Nome / Razão Social'],
+                nomeFantasia: row['Nome Fantasia'] || "",
+                tipoPessoa: row['Tipo'] === 'Pessoa Física' ? 'Pessoa Física' : 'Pessoa Jurídica',
+                cnpj: row['CNPJ/CPF'] || "",
+                segmento: row['Segmento'] || "",
+                telefone1: row['Telefone'] || "",
+                email: row['E-mail'] || "",
+                cidade: row['Cidade'] || "",
+                estado: row['Estado'] || "",
+                qualificacao: parseInt(row['Qualificação']) || 0,
+                ativo: row['Status'] === 'Inativo' ? false : true
+              });
+              imported++;
+            }
+          }
+          alert(`${imported} recebedores importados com sucesso!`);
+        } catch (error: any) {
+          console.error("Erro na importação:", error);
+          alert(`Erro ao importar dados: ${error.message}`);
+        } finally {
+          document.title = btnText;
+          if (fileInputRef.current) fileInputRef.current.value = '';
         }
-      }
-      alert(`${imported} Recebedores importados com sucesso!`);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-    reader.readAsBinaryString(file);
-    setShowOptions(false);
+      };
+      reader.readAsBinaryString(file);
+    } catch (error: any) {
+      document.title = btnText;
+      alert(`Erro ao ler arquivo: ${error.message}`);
+    }
   };
 
   const renderStars = (rating: number = 0, interactive = false, onRate?: (r: number) => void) => {
