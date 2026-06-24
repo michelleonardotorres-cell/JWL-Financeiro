@@ -455,7 +455,7 @@ export default function Fornecedores() {
                   <th className="p-3">Segmento</th>
                   <th className="p-3">Cidade</th>
                   <th className="p-3">Qualificação</th>
-                  <th className="p-3 w-16"></th>
+
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 text-zinc-600">
@@ -478,16 +478,12 @@ export default function Fornecedores() {
                     <td className="p-3">{f.segmento}</td>
                     <td className="p-3">{f.cidade && f.estado ? `${f.cidade} - ${f.estado}` : f.cidade}</td>
                     <td className="p-3" onClick={e => e.stopPropagation()}>{renderStars(f.qualificacao)}</td>
-                    <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => openModal(f, false)} className="p-1 text-zinc-400 hover:text-[#2f88cc] transition-colors" title="Editar">
-                        <Edit size={14} />
-                      </button>
-                    </td>
+
                   </tr>
                 ))}
                 {paginatedData.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-zinc-500">
+                    <td colSpan={6} className="p-8 text-center text-zinc-500">
                       Nenhum fornecedor encontrado.
                     </td>
                   </tr>
