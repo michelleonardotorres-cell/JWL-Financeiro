@@ -29,3 +29,45 @@ export function normalizeString(str?: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
+
+export async function fetchCep(cep: string) {
+  const cleanCep = cep.replace(/\D/g, '');
+  if (cleanCep.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+    const data = await res.json();
+    if (data.erro) return null;
+    return {
+      endereco: data.logradouro || '',
+      bairro: data.bairro || '',
+      cidade: data.localidade || '',
+      estado: data.uf || ''
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function fetchCnpj(cnpj: string) {
+  const cleanCnpj = cnpj.replace(/\D/g, '');
+  if (cleanCnpj.length !== 14) return null;
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+    const data = await res.json();
+    if (data.message) return null;
+    return {
+      nome: data.razao_social || '',
+      nomeFantasia: data.nome_fantasia || '',
+      cep: data.cep || '',
+      endereco: data.logradouro || '',
+      numero: data.numero || '',
+      complemento: data.complemento || '',
+      bairro: data.bairro || '',
+      cidade: data.municipio || '',
+      estado: data.uf || '',
+      telefone1: data.ddd_telefone_1 || ''
+    };
+  } catch (e) {
+    return null;
+  }
+}

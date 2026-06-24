@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Users, Search, AlertCircle, Plus, Edit, Trash2, X, Save, Info, MoreVertical, Download, Upload, Star, ChevronLeft, Check } from "lucide-react";
-import { normalizeString } from "../utils";
+import { normalizeString, fetchCep, fetchCnpj } from "../utils";
 import { useData } from "../contexts/DataContext";
 import { Fornecedor } from "../types";
 import * as XLSX from "xlsx";
@@ -583,7 +583,15 @@ export default function Fornecedores() {
                   </div>
                   <div>
                     <label className="block mb-1 font-medium">CNPJ:</label>
-                    <input type="text" value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: e.target.value})} placeholder="__.___.___/____-__" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
+                    <input type="text" value={formData.cnpj} onChange={async e => {
+                      const val = e.target.value;
+                      setFormData({...formData, cnpj: val});
+                      const clean = val.replace(/\D/g, '');
+                      if (clean.length === 14) {
+                        const data = await fetchCnpj(clean);
+                        if (data) setFormData(prev => ({...prev, ...data, cnpj: val}));
+                      }
+                    }} placeholder="__.___.___/____-__" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -622,7 +630,15 @@ export default function Fornecedores() {
                   <div className="grid grid-cols-12 gap-4">
                     <div className="col-span-3">
                       <label className="block mb-1 font-medium">CEP:</label>
-                      <input type="text" value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} placeholder="_____-___" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
+                      <input type="text" value={formData.cep} onChange={async e => {
+                        const val = e.target.value;
+                        setFormData({...formData, cep: val});
+                        const clean = val.replace(/\D/g, '');
+                        if (clean.length === 8) {
+                          const data = await fetchCep(clean);
+                          if (data) setFormData(prev => ({...prev, ...data, cep: val}));
+                        }
+                      }} placeholder="_____-___" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
                     </div>
                     <div className="col-span-5">
                       <label className="block mb-1 font-medium">Endereço:</label>
