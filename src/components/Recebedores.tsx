@@ -554,10 +554,24 @@ export default function Recebedores() {
               <div className="flex gap-2">
                 {isViewing ? (
                   <>
-                    <button onClick={() => { if(editingId && window.confirm("Deseja realmente excluir este Recebedor?")) { deleteRecebedor(editingId); setIsModalOpen(false); } }} className="px-3 py-1.5 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white rounded shadow-sm text-xs font-semibold uppercase transition-colors">
+                    <button onClick={() => { 
+                      if(editingId) {
+                        const confirmText = window.prompt("Para confirmar a exclusão deste recebedor, digite a palavra 'confirmar':");
+                        if (confirmText && confirmText.toLowerCase() === 'confirmar') {
+                          deleteRecebedor(editingId); 
+                          setIsModalOpen(false); 
+                        } else if (confirmText !== null) {
+                          alert("Palavra incorreta. A exclusão foi cancelada.");
+                        }
+                      } 
+                    }} className="px-3 py-1.5 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white rounded shadow-sm text-xs font-semibold uppercase transition-colors">
                       <Trash2 size={14} /> Deletar
                     </button>
-                    <button onClick={() => setIsViewing(false)} className="px-3 py-1.5 flex items-center gap-2 bg-[#ff9800] hover:bg-[#f57c00] text-white rounded shadow-sm text-xs font-semibold uppercase transition-colors">
+                    <button onClick={() => {
+                      if (window.confirm("Deseja realmente alterar os dados deste recebedor?")) {
+                        setIsViewing(false);
+                      }
+                    }} className="px-3 py-1.5 flex items-center gap-2 bg-[#ff9800] hover:bg-[#f57c00] text-white rounded shadow-sm text-xs font-semibold uppercase transition-colors">
                       <Edit size={14} /> Alterar
                     </button>
                     <button onClick={() => setIsModalOpen(false)} className="px-3 py-1.5 flex items-center gap-2 bg-zinc-500 hover:bg-zinc-600 text-white rounded shadow-sm text-xs font-semibold uppercase transition-colors">
