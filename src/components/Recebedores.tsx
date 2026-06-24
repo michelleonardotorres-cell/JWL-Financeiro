@@ -556,12 +556,12 @@ export default function Recebedores() {
                   <>
                     <button onClick={() => { 
                       if(editingId) {
-                        const confirmText = window.prompt("Para confirmar a exclusão deste recebedor, digite a palavra 'confirmar':");
-                        if (confirmText && confirmText.toLowerCase() === 'confirmar') {
+                        const confirmText = window.prompt("Ação restrita. Digite a senha de administrador para excluir:");
+                        if (confirmText === '271987@Mi') {
                           deleteRecebedor(editingId); 
                           setIsModalOpen(false); 
                         } else if (confirmText !== null) {
-                          alert("Palavra incorreta. A exclusão foi cancelada.");
+                          alert("Senha incorreta. A exclusão foi cancelada.");
                         }
                       } 
                     }} className="px-3 py-1.5 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white rounded shadow-sm text-xs font-semibold uppercase transition-colors">
