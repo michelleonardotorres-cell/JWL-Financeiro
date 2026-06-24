@@ -651,18 +651,14 @@ export default function Recebedores() {
                       <label className="block mb-1 font-medium">Estado:</label>
                       <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})} className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3] bg-white">
                         <option value="">Selecione</option>
-                        <option value="AM">AM</option>
-                        <option value="SP">SP</option>
-                        <option value="MG">MG</option>
+                        {["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"].map(uf => (
+                          <option key={uf} value={uf}>{uf}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="col-span-4">
                       <label className="block mb-1 font-medium">Cidade:</label>
-                      <select value={formData.cidade} onChange={e => setFormData({...formData, cidade: e.target.value})} className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3] bg-white">
-                        <option value="">Selecione o estado</option>
-                        <option value="Manaus">Manaus</option>
-                        <option value="São Paulo">São Paulo</option>
-                      </select>
+                      <input type="text" value={formData.cidade} onChange={e => setFormData({...formData, cidade: e.target.value})} placeholder="Digite a cidade" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
                     </div>
                   </div>
                 </div>
