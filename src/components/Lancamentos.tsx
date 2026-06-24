@@ -357,8 +357,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
   };
 
   const handleConfirmDelete = async () => {
-    if (confirmDeleteText !== "271987@Mi") {
-      alert("Senha incorreta. A exclusão foi cancelada.");
+    if (confirmDeleteText.toLowerCase() !== "confirmar") {
+      alert("Você deve digitar 'confirmar' para prosseguir com a exclusão.");
       return;
     }
 
@@ -1345,14 +1345,14 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               <p className="text-sm text-zinc-600">
                 Tem certeza que deseja apagar o lançamento <strong>{deletingLancamento.descricao}</strong> de <strong>{formatCurrency(deletingLancamento.valor)}</strong>?
               </p>
-              <p className="text-sm text-zinc-600 mb-4 leading-relaxed">
-                Esta ação é irreversível. Para prosseguir, digite a <strong>senha de administrador</strong> no campo abaixo:
+              <p className="text-sm text-rose-600 font-semibold bg-rose-50 p-3 rounded-lg border border-rose-100 mb-4">
+                Esta ação é irreversível. Para prosseguir, digite a palavra <strong>confirmar</strong> no campo abaixo:
               </p>
               <input
-                type="password"
+                type="text"
                 value={confirmDeleteText}
                 onChange={(e) => setConfirmDeleteText(e.target.value)}
-                placeholder='Digite a senha'
+                placeholder='Digite "confirmar"'
                 className="w-full p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none font-medium"
               />
             </div>
