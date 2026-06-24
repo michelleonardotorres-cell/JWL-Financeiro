@@ -6,7 +6,7 @@ import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 
 export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarData }: { setActiveTab?: (tab: string) => void, efetivarData?: any, setEfetivarData?: (data: any) => void }) {
-    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+    const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
       const initialLancamentos = lancamentos;
       const initialContratos = contratos;
       const initialObras = obras;
@@ -327,7 +327,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       dataVencimento: editEntry.dataCompetencia || new Date().toISOString().split('T')[0],
       formaPagamento: editEntry.formaPagamento,
       nf: editEntry.nf,
-      recebedorFornecedor: editEntry.recebedorFornecedor,
+      fornecedorId: editEntry.recebedorFornecedor,
+      recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === editEntry.recebedorFornecedor)?.nome || editEntry.recebedorFornecedor || "",
       descricao: editEntry.descricao || "",
       valor: editEntry.valor || 0,
       tipo: isReceita ? "Receita" : "Despesa",
@@ -603,7 +604,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       dataPagamento: isBoletoOuPrazo ? undefined : (newEntry.dataPagamento || newEntry.dataCompetencia),
       formaPagamento: newEntry.formaPagamento,
       nf: newEntry.nf,
-      recebedorFornecedor: newEntry.recebedorFornecedor,
+      fornecedorId: newEntry.recebedorFornecedor,
+      recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newEntry.recebedorFornecedor)?.nome || newEntry.recebedorFornecedor || "",
       descricao: newEntry.descricao || "",
       valor: newEntry.valor || 0,
       tipo: isReceita ? "Receita" : "Despesa",
@@ -878,7 +880,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   </td>
                   <td className="p-2">
                     <Combobox
-                      options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
+                      options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
                       value={newEntry.recebedorFornecedor || ""}
                       onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
                       placeholder="Recebedor"
@@ -975,7 +977,9 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       {l.nf || "-"}
                     </td>
                     <td className="p-4 text-sm font-medium text-zinc-900 break-words whitespace-normal">
-                      {l.recebedorFornecedor || fornecedor?.nome || "-"}
+                      {(l.recebedorFornecedor?.startsWith("f_") || l.recebedorFornecedor?.startsWith("r_")) 
+                        ? ([...fornecedores, ...recebedores].find(f => f.id === l.recebedorFornecedor)?.nome || l.recebedorFornecedor) 
+                        : (l.recebedorFornecedor || fornecedor?.nome || "-")}
                     </td>
                     <td className="p-4 text-sm text-zinc-600 text-justify break-words whitespace-normal">
                       {l.descricao}
@@ -1268,7 +1272,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               <div>
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Fornecedor/Recebedor</label>
                 <Combobox
-                  options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
+                  options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
                   value={editEntry.recebedorFornecedor || ""}
                   onChange={(id) => setEditEntry({ ...editEntry, recebedorFornecedor: id })}
                   placeholder="Recebedor"

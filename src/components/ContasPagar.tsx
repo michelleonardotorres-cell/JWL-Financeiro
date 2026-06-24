@@ -6,7 +6,7 @@ import Combobox from "./Combobox";
 import { safeFormatDate } from "../utils";
 
 export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
-    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+    const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
       const initialLancamentos = lancamentos;
       const initialContratos = contratos;
       const initialObras = obras;
@@ -50,7 +50,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       dataPagamento: undefined,
       formaPagamento: "",
       nf: "",
-      recebedorFornecedor: fornecedores.find(f => f.id === newConta.fornecedorId)?.nome || "",
+      recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
       descricao: newConta.descricao,
       categoria: "Conta Fixa",
       tipoLancamento: "Conta Fixa",
@@ -315,7 +315,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   </td>
                   <td className="p-2">
                     <Combobox
-                      options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
+                      options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
                       value={newConta.fornecedorId || ""}
                       onChange={(id) => setNewConta({ ...newConta, fornecedorId: id })}
                       placeholder="Fornecedor"
@@ -356,8 +356,8 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                 </tr>
               )}
               {filtered.map((l) => {
-                const fornecedor = fornecedores.find(
-                  (f) => f.id === l.fornecedorId,
+                const fornecedor = [...fornecedores, ...recebedores].find(
+                  (f) => f.id === l.fornecedorId
                 );
                 const obra = obras.find(
                   (o) => o.id === l.obraId || o.nome === l.obraId

@@ -6,7 +6,7 @@ import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 
 export default function Contratos() {
-    const { obras, fornecedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+    const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
       const initialLancamentos = lancamentos;
       const initialContratos = contratos;
       const initialObras = obras;
@@ -77,7 +77,8 @@ export default function Contratos() {
             tipoLancamento: newEntry.tipoLancamento,
             subtipo: newEntry.subtipo,
             obraId: newEntry.obraId,
-            recebedorFornecedor: newEntry.recebedorFornecedor,
+            fornecedorId: newEntry.recebedorFornecedor,
+            recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newEntry.recebedorFornecedor)?.nome || newEntry.recebedorFornecedor || "",
             diaVencimento: newEntry.diaVencimento,
             ativo: true,
         };
@@ -171,7 +172,7 @@ export default function Contratos() {
                                     </td>
                                     <td className="p-2">
                                         <Combobox
-                                            options={fornecedores.map(f => ({ id: f.id, label: f.nome }))}
+                                            options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
                                             value={newEntry.recebedorFornecedor || ""}
                                             onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
                                             placeholder="Recebedor"
@@ -227,7 +228,7 @@ export default function Contratos() {
                             )}
                             {filtered.map((c) => {
                                 const obra = obras.find((o) => o.id === c.obraId || o.nome === c.obraId);
-                                const fornecedor = fornecedores.find((f) => f.id === c.fornecedorId);
+                                const fornecedor = [...fornecedores, ...recebedores].find((f) => f.id === c.fornecedorId);
 
                                 return (
                                     <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
@@ -235,7 +236,9 @@ export default function Contratos() {
                                             Dia {c.diaVencimento}
                                         </td>
                                         <td className="p-4 text-sm font-medium text-zinc-900 break-words whitespace-normal">
-                                            {c.recebedorFornecedor || fornecedor?.nome || "-"}
+                                            {(c.recebedorFornecedor?.startsWith("f_") || c.recebedorFornecedor?.startsWith("r_")) 
+                                              ? ([...fornecedores, ...recebedores].find(f => f.id === c.recebedorFornecedor)?.nome || c.recebedorFornecedor) 
+                                              : (c.recebedorFornecedor || fornecedor?.nome || "-")}
                                         </td>
                                         <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
                                             {c.descricao}
