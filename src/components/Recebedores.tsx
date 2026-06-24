@@ -11,7 +11,7 @@ export default function Recebedores() {
   const [filterSegmento, setFilterSegmento] = useState("Todos");
   const [filterCidade, setFilterCidade] = useState("Todos");
   const [filterQualificacao, setFilterQualificacao] = useState("Todos");
-  const [filterStatus, setFilterStatus] = useState<"Ativo" | "Inativo" | "Todos">("Todos");
+  const [filterStatus, setFilterStatus] = useState<"Ativo" | "Inativo" | "Todos">("Ativo");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   
