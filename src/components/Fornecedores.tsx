@@ -4,6 +4,7 @@ import { normalizeString, fetchCep, fetchCnpj } from "../utils";
 import { useData } from "../contexts/DataContext";
 import { Fornecedor } from "../types";
 import * as XLSX from "xlsx";
+import ImportErrorsModal, { ImportError } from "./ImportErrorsModal";
 
 export default function Fornecedores() {
   const { fornecedores, addFornecedor, updateFornecedor, deleteFornecedor } = useData();
@@ -20,6 +21,7 @@ export default function Fornecedores() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showOptions, setShowOptions] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
+  const [importErrors, setImportErrors] = useState<ImportError[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -193,13 +195,62 @@ export default function Fornecedores() {
     setShowOptions(false);
   };
 
+  const processImportData = async (data: any[], startIndex: number = 2) => {
+    let imported = 0;
+    const errors: ImportError[] = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowErrors: string[] = [];
+      const nome = row['Nome / Razão Social']?.toString().trim();
+      const tipo = row['Tipo']?.toString().trim();
+      const doc = row['CNPJ/CPF']?.toString().replace(/\D/g, '');
+
+      if (!nome) {
+        rowErrors.push("Nome / Razão Social é obrigatório.");
+      }
+      
+      if (tipo !== 'Pessoa Física' && tipo !== 'Pessoa Jurídica') {
+        rowErrors.push("Tipo deve ser 'Pessoa Física' ou 'Pessoa Jurídica'.");
+      }
+
+      if (doc) {
+        if (tipo === 'Pessoa Física' && doc.length !== 11) {
+          rowErrors.push(`CPF inválido (tem ${doc.length} digitos, esperado 11).`);
+        } else if (tipo === 'Pessoa Jurídica' && doc.length !== 14) {
+          rowErrors.push(`CNPJ inválido (tem ${doc.length} digitos, esperado 14).`);
+        }
+      }
+
+      if (rowErrors.length > 0) {
+        errors.push({ rowIndex: startIndex + i, data: row, errors: rowErrors });
+      } else {
+        await addFornecedor({
+          ...defaultFormData,
+          nome,
+          nomeFantasia: row['Nome Fantasia'] || "",
+          tipoPessoa: tipo as "Pessoa Física" | "Pessoa Jurídica",
+          cnpj: doc || "",
+          segmento: row['Segmento'] || "",
+          telefone1: row['Telefone'] || "",
+          email: row['E-mail'] || "",
+          cidade: row['Cidade'] || "",
+          estado: row['Estado'] || "",
+          qualificacao: parseInt(row['Qualificação']) || 0,
+          ativo: row['Status'] === 'Inativo' ? false : true
+        });
+        imported++;
+      }
+    }
+
+    return { imported, errors };
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setShowOptions(false); // Close dropdown immediately
-    
-    // Feedback visual improvisado já que a importação pode demorar
+    setShowOptions(false);
     const btnText = document.title;
     document.title = "Importando... Aguarde!";
     
@@ -213,27 +264,16 @@ export default function Fornecedores() {
           const ws = wb.Sheets[wsname];
           const data = XLSX.utils.sheet_to_json(ws);
           
-          let imported = 0;
-          for (const row of data as any[]) {
-            if (row['Nome / Razão Social']) {
-              await addFornecedor({
-                ...defaultFormData,
-                nome: row['Nome / Razão Social'],
-                nomeFantasia: row['Nome Fantasia'] || "",
-                tipoPessoa: row['Tipo'] === 'Pessoa Física' ? 'Pessoa Física' : 'Pessoa Jurídica',
-                cnpj: row['CNPJ/CPF'] || "",
-                segmento: row['Segmento'] || "",
-                telefone1: row['Telefone'] || "",
-                email: row['E-mail'] || "",
-                cidade: row['Cidade'] || "",
-                estado: row['Estado'] || "",
-                qualificacao: parseInt(row['Qualificação']) || 0,
-                ativo: row['Status'] === 'Inativo' ? false : true
-              });
-              imported++;
+          const result = await processImportData(data, 2);
+          
+          if (result.errors.length > 0) {
+            setImportErrors(result.errors);
+            if (result.imported > 0) {
+              alert(`${result.imported} fornecedores importados com sucesso! ${result.errors.length} apresentaram inconsistências.`);
             }
+          } else {
+            alert(`${result.imported} fornecedores importados com sucesso!`);
           }
-          alert(`${imported} fornecedores importados com sucesso!`);
         } catch (error: any) {
           console.error("Erro na importação:", error);
           alert(`Erro ao importar dados: ${error.message}`);
@@ -246,6 +286,18 @@ export default function Fornecedores() {
     } catch (error: any) {
       document.title = btnText;
       alert(`Erro ao ler arquivo: ${error.message}`);
+    }
+  };
+
+  const handleRetryImport = async (correctedData: any[]) => {
+    const result = await processImportData(correctedData, 2);
+    
+    if (result.errors.length > 0) {
+      setImportErrors(result.errors);
+      alert(`${result.imported} fornecedores corrigidos foram importados. ${result.errors.length} ainda apresentam erros.`);
+    } else {
+      setImportErrors([]);
+      alert(`${result.imported} fornecedores corrigidos importados com sucesso!`);
     }
   };
 
@@ -788,6 +840,15 @@ export default function Fornecedores() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Erros de Importação */}
+      {importErrors.length > 0 && (
+        <ImportErrorsModal
+          errors={importErrors}
+          onRetry={handleRetryImport}
+          onClose={() => setImportErrors([])}
+        />
       )}
     </div>
   );
