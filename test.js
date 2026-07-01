@@ -1,14 +1,8 @@
-import { getXataClient } from './src/xata.js';
-import dotenv from 'dotenv';
-dotenv.config();
-
 async function run() {
-  const xata = getXataClient();
   try {
-    const res = await xata.sql`SELECT 1 as result`;
-    console.log("SQL SUCCESS:", res);
-  } catch(e) {
-    console.error("SQL ERROR:", e);
-  }
+    const res = await fetch('http://localhost:3001/api/fornecedores');
+    const data = await res.json();
+    console.log("All IDs:", data.map(x => x.id));
+  } catch (e) { console.error(e); }
 }
 run();

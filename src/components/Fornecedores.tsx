@@ -635,26 +635,32 @@ export default function Fornecedores() {
 
                 {/* Bloco Identificação */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium">Nome Fantasia: <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.nomeFantasia} onChange={e => setFormData({...formData, nomeFantasia: e.target.value})} className="w-full p-1.5 border border-[#3db2e3] rounded shadow-sm focus:outline-none" />
+                  <div className="col-span-2">
+                    <label className="block mb-1 font-medium">Nome: <span className="text-red-500">*</span></label>
+                    <input type="text" value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full p-1.5 border border-[#3db2e3] rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
                   </div>
-                  <div>
-                    <label className="block mb-1 font-medium">Razão Social:</label>
-                    <input type="text" value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium">CNPJ:</label>
-                    <input type="text" value={formData.cnpj} onChange={async e => {
-                      const val = e.target.value;
-                      setFormData({...formData, cnpj: val});
-                      const clean = val.replace(/\D/g, '');
-                      if (clean.length === 14) {
-                        const data = await fetchCnpj(clean);
-                        if (data) setFormData(prev => ({...prev, ...data, cnpj: val}));
-                      }
-                    }} placeholder="__.___.___/____-__" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
-                  </div>
+                  {formData.tipoPessoa === "Pessoa Jurídica" ? (
+                    <div>
+                      <label className="block mb-1 font-medium">CNPJ:</label>
+                      <input type="text" value={formData.cnpj} onChange={async e => {
+                        const val = e.target.value;
+                        setFormData({...formData, cnpj: val});
+                        const clean = val.replace(/\D/g, '');
+                        if (clean.length === 14) {
+                          const data = await fetchCnpj(clean);
+                          if (data) setFormData(prev => ({...prev, ...data, cnpj: val}));
+                        }
+                      }} placeholder="__.___.___/____-__" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block mb-1 font-medium">CPF:</label>
+                      <input type="text" value={formData.cpf} onChange={e => {
+                        const val = e.target.value;
+                        setFormData({...formData, cpf: val});
+                      }} placeholder="___.___.___-__" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block mb-1 font-medium">Insc. Estadual:</label>

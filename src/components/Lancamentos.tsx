@@ -15,6 +15,10 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
   const [data, setData] = useState<Lancamento[]>(initialLancamentos);
   const [isAdding, setIsAdding] = useState(false);
 
+  // Parcelas state
+  const [parcelasCount, setParcelasCount] = useState<number>(1);
+  const [parcelasDates, setParcelasDates] = useState<string[]>([]);
+
   // State for the new lancamento form
   const [newEntry, setNewEntry] = useState<Partial<Lancamento>>({
     dataCompetencia: new Date().toISOString().split('T')[0],
@@ -441,6 +445,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         style: "currency",
         currency: "BRL",
       }).format(efetivarData.valor || 0));
+      setParcelasCount(1);
+      setParcelasDates([]);
 
       // Limpa para não disparar em loop
       if (setEfetivarData) setEfetivarData(null);
@@ -568,6 +574,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
   const handleAddRow = () => {
     setIsAdding(true);
     setValorInput("");
+    setParcelasCount(1);
+    setParcelasDates([]);
     setNewEntry({
       dataCompetencia: new Date().toISOString().split('T')[0],
       formaPagamento: "À VISTA",
@@ -598,31 +606,76 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       newEntry.tipoLancamento === "EMPRESTIMOS";
     const isBoletoOuPrazo = newEntry.formaPagamento === "BOLETO" || newEntry.formaPagamento === "A PRAZO";
 
-    const entry: Omit<Lancamento, "id"> = {
-      dataCompetencia: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
-      dataVencimento: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
-      dataPagamento: isBoletoOuPrazo ? undefined : (newEntry.dataPagamento || newEntry.dataCompetencia),
-      formaPagamento: newEntry.formaPagamento,
-      nf: newEntry.nf,
-      fornecedorId: newEntry.recebedorFornecedor,
-      recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newEntry.recebedorFornecedor)?.nome || newEntry.recebedorFornecedor || "",
-      descricao: newEntry.descricao || "",
-      valor: newEntry.valor || 0,
-      tipo: isReceita ? "Receita" : "Despesa",
-      categoria: newEntry.tipoLancamento || "Outros",
-      tipoLancamento: newEntry.tipoLancamento,
-      subtipo: newEntry.subtipo,
-      obraId: newEntry.obraId,
-      status: isBoletoOuPrazo ? "Aberto" : "Pago",
-      contratoId: newEntry.contratoId
-    };
+    if (newEntry.formaPagamento !== "À VISTA" && parcelasCount > 1) {
+      let totalAssigned = 0;
+      const createdItems = [];
+      const entryValue = newEntry.valor || 0;
+      
+      for (let i = 0; i < parcelasCount; i++) {
+        let parcelaValor = Number((entryValue / parcelasCount).toFixed(2));
+        if (i === parcelasCount - 1) {
+          parcelaValor = Number((entryValue - totalAssigned).toFixed(2));
+        } else {
+          totalAssigned += parcelaValor;
+        }
 
-    try {
-      const created = await addLancamento(entry);
-      setData([created, ...data]);
-    } catch (e) {
-      alert("Erro ao salvar lançamento");
-      return;
+        const date = parcelasDates[i] || (newEntry.dataCompetencia || new Date().toISOString().split('T')[0]);
+
+        const pEntry: Omit<Lancamento, "id"> = {
+          dataCompetencia: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
+          dataVencimento: date,
+          dataPagamento: isBoletoOuPrazo ? undefined : (newEntry.dataPagamento || date),
+          formaPagamento: newEntry.formaPagamento,
+          nf: newEntry.nf,
+          fornecedorId: newEntry.recebedorFornecedor,
+          recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newEntry.recebedorFornecedor)?.nome || newEntry.recebedorFornecedor || "",
+          descricao: `${newEntry.descricao} (${i + 1}/${parcelasCount})`,
+          valor: parcelaValor,
+          tipo: isReceita ? "Receita" : "Despesa",
+          categoria: newEntry.tipoLancamento || "Outros",
+          tipoLancamento: newEntry.tipoLancamento,
+          subtipo: newEntry.subtipo,
+          obraId: newEntry.obraId,
+          status: isBoletoOuPrazo ? "Aberto" : "Pago",
+          contratoId: newEntry.contratoId
+        };
+
+        try {
+          const created = await addLancamento(pEntry);
+          createdItems.push(created);
+        } catch (e) {
+          alert(`Erro ao salvar parcela ${i + 1}`);
+          return;
+        }
+      }
+      setData([...createdItems, ...data]);
+    } else {
+      const entry: Omit<Lancamento, "id"> = {
+        dataCompetencia: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
+        dataVencimento: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
+        dataPagamento: isBoletoOuPrazo ? undefined : (newEntry.dataPagamento || newEntry.dataCompetencia),
+        formaPagamento: newEntry.formaPagamento,
+        nf: newEntry.nf,
+        fornecedorId: newEntry.recebedorFornecedor,
+        recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newEntry.recebedorFornecedor)?.nome || newEntry.recebedorFornecedor || "",
+        descricao: newEntry.descricao || "",
+        valor: newEntry.valor || 0,
+        tipo: isReceita ? "Receita" : "Despesa",
+        categoria: newEntry.tipoLancamento || "Outros",
+        tipoLancamento: newEntry.tipoLancamento,
+        subtipo: newEntry.subtipo,
+        obraId: newEntry.obraId,
+        status: isBoletoOuPrazo ? "Aberto" : "Pago",
+        contratoId: newEntry.contratoId
+      };
+
+      try {
+        const created = await addLancamento(entry);
+        setData([created, ...data]);
+      } catch (e) {
+        alert("Erro ao salvar lançamento");
+        return;
+      }
     }
     setIsAdding(false);
 
@@ -955,6 +1008,55 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                           <X size={14} />
                         </button>
                       </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {isAdding && newEntry.formaPagamento !== "À VISTA" && (
+                <tr className="bg-indigo-50/10">
+                  <td colSpan={10} className="p-3 border-t border-indigo-100">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4">
+                        <label className="text-xs font-semibold text-zinc-600">Quantidade de Parcelas:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="72"
+                          value={parcelasCount}
+                          onChange={(e) => {
+                            const count = parseInt(e.target.value) || 1;
+                            setParcelasCount(count);
+                            const baseDate = new Date((newEntry.dataCompetencia || new Date().toISOString().split('T')[0]) + "T12:00:00");
+                            const newDates = [];
+                            for(let i = 0; i < count; i++) {
+                               const d = new Date(baseDate);
+                               d.setMonth(d.getMonth() + i);
+                               newDates.push(d.toISOString().split("T")[0]);
+                            }
+                            setParcelasDates(newDates);
+                          }}
+                          className="w-20 p-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                        />
+                      </div>
+                      {parcelasCount > 1 && (
+                        <div className="flex flex-wrap gap-4 mt-2 bg-white p-3 rounded border border-zinc-200">
+                          {Array.from({ length: parcelasCount }).map((_, i) => (
+                            <div key={i} className="flex flex-col gap-1">
+                              <span className="text-[10px] font-semibold text-zinc-500">{i + 1}ª Parcela</span>
+                              <input
+                                type="date"
+                                value={parcelasDates[i] || ""}
+                                onChange={(e) => {
+                                  const newDates = [...parcelasDates];
+                                  newDates[i] = e.target.value;
+                                  setParcelasDates(newDates);
+                                }}
+                                className="p-1 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none w-[110px]"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
