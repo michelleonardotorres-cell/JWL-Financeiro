@@ -23,7 +23,18 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     fornecedorId: "",
     obraId: "",
     valor: 0,
+    formaPagamento: "A PRAZO",
   });
+  
+  const [parcelasCount, setParcelasCount] = useState<number>(1);
+  const [parcelasDates, setParcelasDates] = useState<string[]>([]);
+
+  // States for Modals
+  const [pagandoContaId, setPagandoContaId] = useState<string | null>(null);
+  const [dataPagamentoInput, setDataPagamentoInput] = useState<string>(new Date().toISOString().split("T")[0]);
+  
+  const [deletandoContaId, setDeletandoContaId] = useState<string | null>(null);
+  const [confirmDeleteText, setConfirmDeleteText] = useState("");
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -44,48 +55,89 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       return;
     }
 
-    const newLancamento: Omit<Lancamento, "id"> = {
-      dataCompetencia: undefined,
-      dataVencimento: newConta.dataVencimento,
-      dataPagamento: undefined,
-      formaPagamento: "",
-      nf: "",
-      recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
-      descricao: newConta.descricao,
-      categoria: "Conta Fixa",
-      tipoLancamento: "Conta Fixa",
-      subtipo: "",
-      obraId: newConta.obraId || undefined,
-      valor: newConta.valor,
-      tipo: "Despesa" as const,
-      status: "Aberto" as const,
-      fornecedorId: newConta.fornecedorId || undefined,
-    };
-    try {
-      const created = await addLancamento(newLancamento);
-      setLancamentosBase([created, ...lancamentosBase]);
-      setIsAdding(false);
-      setNewConta({
-        dataVencimento: new Date().toISOString().split('T')[0],
-        descricao: "",
-        fornecedorId: "",
-        obraId: "",
-        valor: 0,
-      });
-      setValorInput("");
-      alert("Nova conta cadastrada com sucesso!");
-    } catch(e) {
-      alert("Erro ao salvar conta");
+    if (newConta.formaPagamento !== "À VISTA" && parcelasCount > 1) {
+      let totalAssigned = 0;
+      const createdItems = [];
+      const entryValue = newConta.valor || 0;
+      
+      for (let i = 0; i < parcelasCount; i++) {
+        let parcelaValor = Number((entryValue / parcelasCount).toFixed(2));
+        if (i === parcelasCount - 1) {
+          parcelaValor = Number((entryValue - totalAssigned).toFixed(2));
+        } else {
+          totalAssigned += parcelaValor;
+        }
+
+        const date = parcelasDates[i] || newConta.dataVencimento;
+
+        const newLancamento: Omit<Lancamento, "id"> = {
+          dataCompetencia: undefined,
+          dataVencimento: date,
+          dataPagamento: undefined,
+          formaPagamento: newConta.formaPagamento,
+          nf: "",
+          recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
+          descricao: `${newConta.descricao} (${i + 1}/${parcelasCount})`,
+          categoria: "Conta Fixa",
+          tipoLancamento: "Conta Fixa",
+          subtipo: "",
+          obraId: newConta.obraId || undefined,
+          valor: parcelaValor,
+          tipo: "Despesa" as const,
+          status: "Aberto" as const,
+          fornecedorId: newConta.fornecedorId || undefined,
+        };
+
+        try {
+          const created = await addLancamento(newLancamento);
+          createdItems.push(created);
+        } catch(e) {
+          alert(`Erro ao salvar parcela ${i + 1}`);
+          return;
+        }
+      }
+      setLancamentosBase([...createdItems, ...lancamentosBase]);
+      alert("Contas cadastradas com sucesso!");
+    } else {
+      const newLancamento: Omit<Lancamento, "id"> = {
+        dataCompetencia: undefined,
+        dataVencimento: newConta.dataVencimento,
+        dataPagamento: undefined,
+        formaPagamento: newConta.formaPagamento,
+        nf: "",
+        recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
+        descricao: newConta.descricao,
+        categoria: "Conta Fixa",
+        tipoLancamento: "Conta Fixa",
+        subtipo: "",
+        obraId: newConta.obraId || undefined,
+        valor: newConta.valor,
+        tipo: "Despesa" as const,
+        status: "Aberto" as const,
+        fornecedorId: newConta.fornecedorId || undefined,
+      };
+      try {
+        const created = await addLancamento(newLancamento);
+        setLancamentosBase([created, ...lancamentosBase]);
+        alert("Nova conta cadastrada com sucesso!");
+      } catch(e) {
+        alert("Erro ao salvar conta");
+        return;
+      }
     }
+
+    setIsAdding(false);
     setNewConta({
       dataVencimento: new Date().toISOString().split('T')[0],
       descricao: "",
-      fornecedorNome: "",
-      obraNome: "",
+      fornecedorId: "",
+      obraId: "",
       valor: 0,
+      formaPagamento: "A PRAZO",
     });
     setValorInput("");
-    alert("Nova conta cadastrada com sucesso!");
+    setParcelasCount(1);
+    setParcelasDates([]);
   };
 
   const handleCancelNewConta = () => {
@@ -93,29 +145,39 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     setNewConta({
       dataVencimento: new Date().toISOString().split('T')[0],
       descricao: "",
-      fornecedorNome: "",
-      obraNome: "",
+      fornecedorId: "",
+      obraId: "",
       valor: 0,
+      formaPagamento: "A PRAZO",
     });
     setValorInput("");
+    setParcelasCount(1);
+    setParcelasDates([]);
   };
 
   const handlePagar = async (id: string) => {
-    const item = lancamentosBase.find((l) => l.id === id);
+    setPagandoContaId(id);
+    setDataPagamentoInput(new Date().toISOString().split("T")[0]);
+  };
+
+  const handleConfirmarPagamento = async () => {
+    if (!pagandoContaId) return;
+    const item = lancamentosBase.find((l) => l.id === pagandoContaId);
     if (item) {
       const updated: Lancamento = {
         ...item,
         status: "Pago" as const,
-        dataPagamento: new Date().toISOString().split("T")[0],
+        dataPagamento: dataPagamentoInput,
       };
       try {
         await updateLancamento(updated);
-        setLancamentosBase(prev => prev.map(l => l.id === id ? updated : l));
+        setLancamentosBase(prev => prev.map(l => l.id === pagandoContaId ? updated : l));
         alert("Conta marcada como paga!");
       } catch(e) {
         alert("Erro ao marcar como pago");
       }
     }
+    setPagandoContaId(null);
   };
 
   const handleDesfazerPagamento = async (id: string) => {
@@ -134,6 +196,22 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
         alert("Erro ao desfazer pagamento");
       }
     }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletandoContaId) return;
+    if (confirmDeleteText.toLowerCase() !== "confirmar") {
+      alert("Digite 'confirmar' para prosseguir.");
+      return;
+    }
+    try {
+      await deleteLancamento(deletandoContaId);
+      setLancamentosBase(prev => prev.filter(l => l.id !== deletandoContaId));
+      alert("Conta excluída com sucesso!");
+    } catch(e) {
+      alert("Erro ao excluir conta");
+    }
+    setDeletandoContaId(null);
   };
 
   const currentMonth = new Date().getMonth();
@@ -354,6 +432,69 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     </div>
                   </td>
                 </tr>
+                <tr className="bg-indigo-50/10">
+                  <td colSpan={7} className="p-3 border-t border-indigo-100">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4">
+                        <label className="text-xs font-semibold text-zinc-600">Forma de Pagamento:</label>
+                        <select
+                          value={newConta.formaPagamento}
+                          onChange={(e) => setNewConta({ ...newConta, formaPagamento: e.target.value })}
+                          className="w-32 p-1.5 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                        >
+                          {["À VISTA", "CARTÃO", "BOLETO", "A PRAZO"].sort((a, b) => a.localeCompare(b)).map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+
+                        {newConta.formaPagamento !== "À VISTA" && (
+                          <>
+                            <label className="text-xs font-semibold text-zinc-600 ml-4">Quantidade de Parcelas:</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="72"
+                              value={parcelasCount}
+                              onChange={(e) => {
+                                const count = parseInt(e.target.value) || 1;
+                                setParcelasCount(count);
+                                const baseDate = new Date(newConta.dataVencimento + "T12:00:00");
+                                const newDates = [];
+                                for(let i = 0; i < count; i++) {
+                                   const d = new Date(baseDate);
+                                   d.setMonth(d.getMonth() + i);
+                                   newDates.push(d.toISOString().split("T")[0]);
+                                }
+                                setParcelasDates(newDates);
+                              }}
+                              className="w-20 p-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                            />
+                          </>
+                        )}
+                      </div>
+                      
+                      {newConta.formaPagamento !== "À VISTA" && parcelasCount > 1 && (
+                        <div className="flex flex-wrap gap-4 mt-2 bg-white p-3 rounded border border-zinc-200">
+                          {Array.from({ length: parcelasCount }).map((_, i) => (
+                            <div key={i} className="flex flex-col gap-1">
+                              <span className="text-[10px] font-semibold text-zinc-500">{i + 1}ª Parcela</span>
+                              <input
+                                type="date"
+                                value={parcelasDates[i] || ""}
+                                onChange={(e) => {
+                                  const newDates = [...parcelasDates];
+                                  newDates[i] = e.target.value;
+                                  setParcelasDates(newDates);
+                                }}
+                                className="p-1 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none w-[110px]"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
               )}
               {filtered.map((l) => {
                 const fornecedor = [...fornecedores, ...recebedores].find(
@@ -391,23 +532,30 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                       </span>
                     </td>
                     <td className="p-4 text-right whitespace-nowrap">
-                      {l.status !== "Pago" ? (
-                        (l as any).isPrevisao ? (
-                           <button onClick={() => handleEfetivar(l)} className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 font-medium hover:bg-emerald-100 transition-colors">
-                             Efetivar
-                           </button>
-                         ) : (
-                           <button onClick={() => handlePagar(l.id)} className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-200 font-medium hover:bg-indigo-100 transition-colors">
-                             Pagar
-                           </button>
-                         )
-                      ) : (
-                        !(l as any).isPrevisao && (
-                          <button onClick={() => handleDesfazerPagamento(l.id)} className="text-xs text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-200 font-medium hover:bg-rose-100 transition-colors">
-                            Desfazer
+                      <div className="flex items-center justify-end gap-2">
+                        {l.status !== "Pago" ? (
+                          (l as any).isPrevisao ? (
+                             <button onClick={() => handleEfetivar(l)} className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 font-medium hover:bg-emerald-100 transition-colors">
+                               Efetivar
+                             </button>
+                           ) : (
+                             <button onClick={() => handlePagar(l.id)} className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-200 font-medium hover:bg-indigo-100 transition-colors">
+                               Pagar
+                             </button>
+                           )
+                        ) : (
+                          !(l as any).isPrevisao && (
+                            <button onClick={() => handleDesfazerPagamento(l.id)} className="text-xs text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-200 font-medium hover:bg-rose-100 transition-colors">
+                              Desfazer
+                            </button>
+                          )
+                        )}
+                        {!(l as any).isPrevisao && (
+                          <button onClick={() => { setDeletandoContaId(l.id); setConfirmDeleteText(""); }} className="text-xs text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-200 font-medium hover:bg-rose-100 transition-colors">
+                            Excluir
                           </button>
-                        )
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -421,6 +569,92 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
           )}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {pagandoContaId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-6 relative">
+            <h3 className="text-xl font-semibold text-zinc-900 border-b border-zinc-100 pb-3">
+              Confirmar Pagamento
+            </h3>
+            <button
+              onClick={() => setPagandoContaId(null)}
+              className="absolute right-6 top-6 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="space-y-4">
+              <label className="block text-sm font-semibold text-zinc-700">Data do Pagamento</label>
+              <input
+                type="date"
+                value={dataPagamentoInput}
+                onChange={(e) => setDataPagamentoInput(e.target.value)}
+                className="w-full p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+              <button
+                onClick={handleConfirmarPagamento}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Confirmar
+              </button>
+              <button
+                onClick={() => setPagandoContaId(null)}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletandoContaId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-6 relative">
+            <h3 className="text-xl font-semibold text-zinc-900 border-b border-zinc-100 pb-3">
+              Confirmar Exclusão
+            </h3>
+            <button
+              onClick={() => setDeletandoContaId(null)}
+              className="absolute right-6 top-6 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="space-y-4">
+              <p className="text-sm text-zinc-600">
+                Tem certeza que deseja apagar esta conta?
+              </p>
+              <p className="text-sm text-rose-600 font-semibold bg-rose-50 p-3 rounded-lg border border-rose-100 mb-4">
+                Esta ação é irreversível. Para prosseguir, digite a palavra <strong>confirmar</strong> no campo abaixo:
+              </p>
+              <input
+                type="text"
+                value={confirmDeleteText}
+                onChange={(e) => setConfirmDeleteText(e.target.value)}
+                placeholder='Digite "confirmar"'
+                className="w-full p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none font-medium"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Deletar
+              </button>
+              <button
+                onClick={() => setDeletandoContaId(null)}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
