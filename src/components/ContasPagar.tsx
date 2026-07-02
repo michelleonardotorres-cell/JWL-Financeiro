@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Fornecedor, Lancamento } from "../types";
-import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye, MoreHorizontal } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 import { safeFormatDate } from "../utils";
@@ -12,6 +12,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       const initialObras = obras;
       const initialFornecedores = fornecedores;
 
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<
     "Todos" | "Aberto" | "Atrasado" | "Pago"
   >("Todos");
@@ -24,7 +25,13 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     obraId: "",
     valor: 0,
     formaPagamento: "A PRAZO",
+    dataCompetencia: "",
+    tipoLancamento: "Conta Fixa",
+    subtipo: "",
+    nf: "",
   });
+  
+  const [isCompletingConta, setIsCompletingConta] = useState(false);
   
   const [parcelasCount, setParcelasCount] = useState<number>(1);
   const [parcelasDates, setParcelasDates] = useState<string[]>([]);
@@ -32,6 +39,8 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   // States for Modals
   const [pagandoContaId, setPagandoContaId] = useState<string | null>(null);
   const [dataPagamentoInput, setDataPagamentoInput] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [valorPagoInput, setValorPagoInput] = useState<string>("");
+  const [jurosMultaInput, setJurosMultaInput] = useState<string>("");
   
   const [deletandoContaId, setDeletandoContaId] = useState<string | null>(null);
   const [confirmDeleteText, setConfirmDeleteText] = useState("");
@@ -42,6 +51,14 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       currency: "BRL",
     }).format(value);
 
+  const tiposOptions = [
+    "RECEITAS", "COMISSÕES SOBRE VENDAS", "IMPOSTOS", "CUSTO VARIÁVEL",
+    "CUSTO FIXO", "DESPESAS OPERACIONAIS", "DESPESAS ADMINISTRATIVAS",
+    "DESPESAS FINANCEIRAS", "OUTRAS RECEITAS", "OUTRAS DESPESAS", "PARCELA",
+    "RETIRADA VB", "ANTECIPAÇÃO DE RECEBÍVEIS", "AMORTIZAÇÃO",
+    "PATRIMÔNIO", "EMPRESTIMOS"
+  ];
+
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
     const numericValue = Number(value) / 100;
@@ -49,12 +66,19 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     setNewConta((prev) => ({ ...prev, valor: numericValue }));
   };
 
-  const handleSaveNewConta = async () => {
+  const handleOpenCompletionModal = () => {
     if (!newConta.descricao || !newConta.valor) {
       alert("Por favor, preencha a descrição e o valor.");
       return;
     }
+    setNewConta(prev => ({
+      ...prev,
+      dataCompetencia: prev.dataCompetencia || new Date().toISOString().split('T')[0]
+    }));
+    setIsCompletingConta(true);
+  };
 
+  const handleFinalizeNewConta = async () => {
     if (newConta.formaPagamento !== "À VISTA" && parcelasCount > 1) {
       let totalAssigned = 0;
       const createdItems = [];
@@ -71,16 +95,16 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
         const date = parcelasDates[i] || newConta.dataVencimento;
 
         const newLancamento: Omit<Lancamento, "id"> = {
-          dataCompetencia: undefined,
+          dataCompetencia: newConta.dataCompetencia || undefined,
           dataVencimento: date,
           dataPagamento: undefined,
           formaPagamento: newConta.formaPagamento,
-          nf: "",
+          nf: newConta.nf || "",
           recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
           descricao: `${newConta.descricao} (${i + 1}/${parcelasCount})`,
-          categoria: "Conta Fixa",
-          tipoLancamento: "Conta Fixa",
-          subtipo: "",
+          categoria: newConta.tipoLancamento || "Conta Fixa",
+          tipoLancamento: newConta.tipoLancamento || "Conta Fixa",
+          subtipo: newConta.subtipo || "",
           obraId: newConta.obraId || undefined,
           valor: parcelaValor,
           tipo: "Despesa" as const,
@@ -100,16 +124,16 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       alert("Contas cadastradas com sucesso!");
     } else {
       const newLancamento: Omit<Lancamento, "id"> = {
-        dataCompetencia: undefined,
+        dataCompetencia: newConta.dataCompetencia || undefined,
         dataVencimento: newConta.dataVencimento,
         dataPagamento: undefined,
         formaPagamento: newConta.formaPagamento,
-        nf: "",
+        nf: newConta.nf || "",
         recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
         descricao: newConta.descricao,
-        categoria: "Conta Fixa",
-        tipoLancamento: "Conta Fixa",
-        subtipo: "",
+        categoria: newConta.tipoLancamento || "Conta Fixa",
+        tipoLancamento: newConta.tipoLancamento || "Conta Fixa",
+        subtipo: newConta.subtipo || "",
         obraId: newConta.obraId || undefined,
         valor: newConta.valor,
         tipo: "Despesa" as const,
@@ -126,6 +150,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       }
     }
 
+    setIsCompletingConta(false);
     setIsAdding(false);
     setNewConta({
       dataVencimento: new Date().toISOString().split('T')[0],
@@ -134,6 +159,10 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       obraId: "",
       valor: 0,
       formaPagamento: "A PRAZO",
+      dataCompetencia: "",
+      tipoLancamento: "Conta Fixa",
+      subtipo: "",
+      nf: "",
     });
     setValorInput("");
     setParcelasCount(1);
@@ -149,6 +178,10 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       obraId: "",
       valor: 0,
       formaPagamento: "A PRAZO",
+      dataCompetencia: "",
+      tipoLancamento: "Conta Fixa",
+      subtipo: "",
+      nf: "",
     });
     setValorInput("");
     setParcelasCount(1);
@@ -158,16 +191,25 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   const handlePagar = async (id: string) => {
     setPagandoContaId(id);
     setDataPagamentoInput(new Date().toISOString().split("T")[0]);
+    const item = lancamentosBase.find((l) => l.id === id);
+    if (item) {
+      setValorPagoInput(formatCurrency(item.valor));
+      setJurosMultaInput(formatCurrency(0));
+    }
   };
 
   const handleConfirmarPagamento = async () => {
     if (!pagandoContaId) return;
     const item = lancamentosBase.find((l) => l.id === pagandoContaId);
     if (item) {
+      const valorPagoNum = Number(valorPagoInput.replace(/\D/g, "")) / 100;
+      const jurosMultaNum = Number(jurosMultaInput.replace(/\D/g, "")) / 100;
       const updated: Lancamento = {
         ...item,
         status: "Pago" as const,
         dataPagamento: dataPagamentoInput,
+        valorPago: valorPagoNum,
+        jurosMulta: jurosMultaNum,
       };
       try {
         await updateLancamento(updated);
@@ -187,6 +229,8 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
         ...item,
         status: "Aberto" as const,
         dataPagamento: undefined,
+        valorPago: undefined,
+        jurosMulta: undefined,
       };
       try {
         await updateLancamento(updated);
@@ -363,16 +407,18 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
               <tr className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500 font-semibold">
                 <th className="p-4 w-[120px]">Vencimento</th>
+                <th className="p-4 w-[120px]">Data Pgto</th>
                 <th className="p-4 w-[250px]">Descrição</th>
                 <th className="p-4 w-[150px]">Fornecedor</th>
                 <th className="p-4 w-[180px]">Centro de Custo</th>
                 <th className="p-4 text-right w-[120px]">Valor</th>
                 <th className="p-4 text-center w-[110px]">Status</th>
-                <th className="p-4 text-right w-[110px]">Ações</th>
+                <th className="p-4 text-center w-[80px]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
               {isAdding && (
+                <>
                 <tr className="bg-indigo-50/30">
                   <td className="p-2">
                     <input
@@ -382,6 +428,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                       className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </td>
+                  <td className="p-2"></td>
                   <td className="p-2">
                     <input
                       type="text"
@@ -423,7 +470,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   </td>
                   <td className="p-2 text-center">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={handleSaveNewConta} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">
+                      <button onClick={handleOpenCompletionModal} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">
                         <Check size={14} />
                       </button>
                       <button onClick={handleCancelNewConta} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors">
@@ -433,7 +480,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   </td>
                 </tr>
                 <tr className="bg-indigo-50/10">
-                  <td colSpan={7} className="p-3 border-t border-indigo-100">
+                  <td colSpan={8} className="p-3 border-t border-indigo-100">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-4">
                         <label className="text-xs font-semibold text-zinc-600">Forma de Pagamento:</label>
@@ -495,6 +542,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     </div>
                   </td>
                 </tr>
+                </>
               )}
               {filtered.map((l) => {
                 const fornecedor = [...fornecedores, ...recebedores].find(
@@ -507,6 +555,9 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   <tr key={l.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="p-4 text-sm font-medium text-zinc-900 whitespace-nowrap">
                       {safeFormatDate(l.dataVencimento)}
+                    </td>
+                    <td className="p-4 text-sm font-medium text-zinc-900 whitespace-nowrap">
+                      {l.dataPagamento ? safeFormatDate(l.dataPagamento) : "-"}
                     </td>
                     <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">{l.descricao}</td>
                     <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
@@ -531,29 +582,69 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                         {l.status} {(l as any).isPrevisao && <span className="ml-1 opacity-70 italic">- Previsão</span>}
                       </span>
                     </td>
-                    <td className="p-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2">
-                        {l.status !== "Pago" ? (
-                          (l as any).isPrevisao ? (
-                             <button onClick={() => handleEfetivar(l)} className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 font-medium hover:bg-emerald-100 transition-colors">
-                               Efetivar
-                             </button>
-                           ) : (
-                             <button onClick={() => handlePagar(l.id)} className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-200 font-medium hover:bg-indigo-100 transition-colors">
-                               Pagar
-                             </button>
-                           )
-                        ) : (
-                          !(l as any).isPrevisao && (
-                            <button onClick={() => handleDesfazerPagamento(l.id)} className="text-xs text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-200 font-medium hover:bg-rose-100 transition-colors">
-                              Desfazer
-                            </button>
-                          )
-                        )}
-                        {!(l as any).isPrevisao && (
-                          <button onClick={() => { setDeletandoContaId(l.id); setConfirmDeleteText(""); }} className="text-xs text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-200 font-medium hover:bg-rose-100 transition-colors">
-                            Excluir
-                          </button>
+                    <td className="p-4 text-center whitespace-nowrap">
+                      <div className="relative inline-block text-left">
+                        <button
+                          onClick={() => setActiveMenuId(activeMenuId === l.id ? null : l.id)}
+                          className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-zinc-700 transition-colors"
+                          title="Opções"
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+
+                        {activeMenuId === l.id && (
+                          <>
+                            <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
+                            <div className="absolute right-0 mt-1 w-32 bg-white border border-zinc-200 rounded-lg shadow-lg z-30 py-1 text-left">
+                              {l.status !== "Pago" ? (
+                                (l as any).isPrevisao ? (
+                                  <button
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      handleEfetivar(l);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 transition-colors block text-left font-medium"
+                                  >
+                                    Efetivar
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      handlePagar(l.id);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors block text-left font-medium"
+                                  >
+                                    Pagar
+                                  </button>
+                                )
+                              ) : (
+                                !(l as any).isPrevisao && (
+                                  <button
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      handleDesfazerPagamento(l.id);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
+                                  >
+                                    Desfazer
+                                  </button>
+                                )
+                              )}
+                              {!(l as any).isPrevisao && (
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    setDeletandoContaId(l.id);
+                                    setConfirmDeleteText("");
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
+                                >
+                                  Excluir
+                                </button>
+                              )}
+                            </div>
+                          </>
                         )}
                       </div>
                     </td>
@@ -584,13 +675,41 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
               <X size={20} />
             </button>
             <div className="space-y-4">
-              <label className="block text-sm font-semibold text-zinc-700">Data do Pagamento</label>
-              <input
-                type="date"
-                value={dataPagamentoInput}
-                onChange={(e) => setDataPagamentoInput(e.target.value)}
-                className="w-full p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-              />
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Data do Pagamento</label>
+                <input
+                  type="date"
+                  value={dataPagamentoInput}
+                  onChange={(e) => setDataPagamentoInput(e.target.value)}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Valor Pago</label>
+                <input
+                  type="text"
+                  value={valorPagoInput}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
+                    setValorPagoInput(formatCurrency(Number(value) / 100));
+                  }}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Juros / Multa</label>
+                <input
+                  type="text"
+                  value={jurosMultaInput}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
+                    setJurosMultaInput(formatCurrency(Number(value) / 100));
+                  }}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
               <button
@@ -647,6 +766,78 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
               </button>
               <button
                 onClick={() => setDeletandoContaId(null)}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Completar Conta Modal */}
+      {isCompletingConta && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-6 relative">
+            <h3 className="text-xl font-semibold text-zinc-900 border-b border-zinc-100 pb-3">
+              Completar Dados
+            </h3>
+            <button
+              onClick={() => setIsCompletingConta(false)}
+              className="absolute right-6 top-6 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Data de Competência</label>
+                <input
+                  type="date"
+                  value={newConta.dataCompetencia}
+                  onChange={(e) => setNewConta({ ...newConta, dataCompetencia: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Nota Fiscal (NF)</label>
+                <input
+                  type="text"
+                  value={newConta.nf}
+                  onChange={(e) => setNewConta({ ...newConta, nf: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                  placeholder="Ex: 123456"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Tipo de Lançamento</label>
+                <select
+                  value={newConta.tipoLancamento}
+                  onChange={(e) => setNewConta({ ...newConta, tipoLancamento: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
+                >
+                  <option value="" disabled>Selecione o Tipo</option>
+                  {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Subtipo</label>
+                <input
+                  type="text"
+                  value={newConta.subtipo}
+                  onChange={(e) => setNewConta({ ...newConta, subtipo: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+              <button
+                onClick={handleFinalizeNewConta}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Salvar Conta
+              </button>
+              <button
+                onClick={() => setIsCompletingConta(false)}
                 className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium transition-colors"
               >
                 Cancelar

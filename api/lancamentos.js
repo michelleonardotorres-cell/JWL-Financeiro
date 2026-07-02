@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const { rows } = await pool.query(
         `SELECT id, "dataCompetencia", "dataVencimento", "dataPagamento",
-                "formaPagamento", nf, descricao, valor, tipo, categoria,
+                "formaPagamento", nf, descricao, valor, "valorPago", "jurosMulta", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
                 "recebedorFornecedor", "contratoId", status
          FROM lancamentos ORDER BY "dataVencimento" DESC`
@@ -24,18 +24,19 @@ export default async function handler(req, res) {
       const { rows } = await pool.query(
         `INSERT INTO lancamentos
            (id, "dataCompetencia", "dataVencimento", "dataPagamento", "formaPagamento",
-            nf, descricao, valor, tipo, categoria, "tipoLancamento", subtipo,
+            nf, descricao, valor, "valorPago", "jurosMulta", tipo, categoria, "tipoLancamento", subtipo,
             "obraId", "fornecedorId", "recebedorFornecedor", "contratoId", status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
          ON CONFLICT (id) DO UPDATE SET
            "dataCompetencia"=$2, "dataVencimento"=$3, "dataPagamento"=$4, "formaPagamento"=$5,
-           nf=$6, descricao=$7, valor=$8, tipo=$9, categoria=$10, "tipoLancamento"=$11,
-           subtipo=$12, "obraId"=$13, "fornecedorId"=$14, "recebedorFornecedor"=$15,
-           "contratoId"=$16, status=$17
+           nf=$6, descricao=$7, valor=$8, "valorPago"=$9, "jurosMulta"=$10, tipo=$11, categoria=$12, "tipoLancamento"=$13,
+           subtipo=$14, "obraId"=$15, "fornecedorId"=$16, "recebedorFornecedor"=$17,
+           "contratoId"=$18, status=$19
          RETURNING *`,
         [
           d.id, d.dataCompetencia, d.dataVencimento, d.dataPagamento || null,
           d.formaPagamento || null, d.nf || null, d.descricao, d.valor || 0,
+          d.valorPago || null, d.jurosMulta || null,
           d.tipo || "Despesa", d.categoria || "", d.tipoLancamento || null,
           d.subtipo || null, d.obraId || null, d.fornecedorId || null,
           d.recebedorFornecedor || null, d.contratoId || null, d.status || "Aberto"
@@ -50,13 +51,14 @@ export default async function handler(req, res) {
       const { rows } = await pool.query(
         `UPDATE lancamentos SET
            "dataCompetencia"=$2, "dataVencimento"=$3, "dataPagamento"=$4, "formaPagamento"=$5,
-           nf=$6, descricao=$7, valor=$8, tipo=$9, categoria=$10, "tipoLancamento"=$11,
-           subtipo=$12, "obraId"=$13, "fornecedorId"=$14, "recebedorFornecedor"=$15,
-           "contratoId"=$16, status=$17
+           nf=$6, descricao=$7, valor=$8, "valorPago"=$9, "jurosMulta"=$10, tipo=$11, categoria=$12, "tipoLancamento"=$13,
+           subtipo=$14, "obraId"=$15, "fornecedorId"=$16, "recebedorFornecedor"=$17,
+           "contratoId"=$18, status=$19
          WHERE id=$1 RETURNING *`,
         [
           d.id, d.dataCompetencia, d.dataVencimento, d.dataPagamento || null,
           d.formaPagamento || null, d.nf || null, d.descricao, d.valor || 0,
+          d.valorPago || null, d.jurosMulta || null,
           d.tipo || "Despesa", d.categoria || "", d.tipoLancamento || null,
           d.subtipo || null, d.obraId || null, d.fornecedorId || null,
           d.recebedorFornecedor || null, d.contratoId || null, d.status || "Aberto"

@@ -30,6 +30,10 @@ function getPool() {
     pool.on("error", (err) => {
       console.error("Unexpected PostgreSQL pool error:", err);
     });
+    
+    // Adapt backend table if needed
+    pool.query(`ALTER TABLE lancamentos ADD COLUMN IF NOT EXISTS "valorPago" numeric, ADD COLUMN IF NOT EXISTS "jurosMulta" numeric;`)
+      .catch(e => console.log('Schema migration note:', e.message));
   }
   return pool;
 }

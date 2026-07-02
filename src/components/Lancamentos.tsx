@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { safeFormatDate, normalizeString } from "../utils";
-import { Search, Filter, Plus, Save, X, Check, MoreHorizontal } from "lucide-react";
+import { Search, Filter, Plus, Save, X, Check, MoreHorizontal, ChevronDown, Upload, Download, UploadCloud, AlertCircle } from "lucide-react";
 import { Lancamento } from "../types";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
+import * as XLSX from "xlsx";
+import ImportErrorsModal, { ImportError } from "./ImportErrorsModal";
 
 export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarData }: { setActiveTab?: (tab: string) => void, efetivarData?: any, setEfetivarData?: (data: any) => void }) {
     const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -14,6 +16,11 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
 
   const [data, setData] = useState<Lancamento[]>(initialLancamentos);
   const [isAdding, setIsAdding] = useState(false);
+  const [showMainActions, setShowMainActions] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importErrors, setImportErrors] = useState<ImportError[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Parcelas state
   const [parcelasCount, setParcelasCount] = useState<number>(1);
@@ -697,6 +704,244 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     setNewEntry({ ...newEntry, valor: numericValue });
   };
 
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      alert("Nenhum dado para exportar.");
+      return;
+    }
+
+    const dataToExport = filtered.map(l => ({
+      'ID': l.id,
+      'Data Competência': safeFormatDate(l.dataCompetencia),
+      'Data Vencimento': safeFormatDate(l.dataVencimento),
+      'Data Pagamento': l.dataPagamento ? safeFormatDate(l.dataPagamento) : "",
+      'Forma Pagamento': l.formaPagamento,
+      'NF': l.nf,
+      'Recebedor/Fornecedor': l.recebedorFornecedor,
+      'Descrição': l.descricao,
+      'Tipo de Lançamento (Categoria)': l.categoria || l.tipoLancamento,
+      'Subtipo': l.subtipo,
+      'Centro de Custo': l.obraId,
+      'Valor': l.valor,
+      'Tipo': l.tipo,
+      'Status': l.status
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Lancamentos");
+    XLSX.writeFile(wb, "lancamentos_export.xlsx");
+    setShowMainActions(false);
+  };
+
+  const downloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Aba principal de preenchimento
+    const templateData = [{
+      'Data Competência (AAAA-MM-DD)': '2026-07-01',
+      'Data Pagamento (AAAA-MM-DD)': '2026-07-01',
+      'Forma Pagamento': 'À VISTA',
+      'NF': '12345',
+      'Recebedor/Fornecedor': 'Nome do Fornecedor A',
+      'Descrição': 'Descrição do Lançamento',
+      'Tipo Lançamento': 'DESPESAS OPERACIONAIS',
+      'Subtipo': 'Material de Escritório',
+      'Centro de Custo': obras[0]?.nome || 'Obra A',
+      'Valor (Apenas números e vírgula)': 1500.50,
+      'Tipo (Despesa/Receita)': 'Despesa'
+    }];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
+
+    // Aba de Opções Válidas
+    const validOptionsData = [];
+    const maxLen = Math.max(obras.length, fornecedores.length, recebedores.length, tiposOptions.length);
+    for (let i = 0; i < maxLen; i++) {
+      validOptionsData.push({
+        'Centros de Custo (Obras)': obras[i]?.nome || '',
+        'Fornecedores (Despesas)': fornecedores[i]?.nome || '',
+        'Recebedores (Receitas)': recebedores[i]?.nome || '',
+        'Tipos de Lançamento': tiposOptions[i] || '',
+        'Formas de Pagamento': i === 0 ? 'À VISTA' : (i === 1 ? 'CARTÃO' : (i === 2 ? 'BOLETO' : (i === 3 ? 'A PRAZO' : '')))
+      });
+    }
+    const wsOptions = XLSX.utils.json_to_sheet(validOptionsData);
+    XLSX.utils.book_append_sheet(wb, wsOptions, "Opções Válidas");
+
+    XLSX.writeFile(wb, "modelo_importacao_lancamentos.xlsx");
+  };
+
+  const processImportData = async (importData: any[], startIndex: number = 2) => {
+    let importedCount = 0;
+    const errors: ImportError[] = [];
+    const allProviders = [...fornecedores, ...recebedores];
+
+    for (let i = 0; i < importData.length; i++) {
+      const row = importData[i];
+      const rowErrors: string[] = [];
+      
+      const dataCompRaw = row['Data Competência (AAAA-MM-DD)'];
+      const dataPagRaw = row['Data Pagamento (AAAA-MM-DD)'];
+      const formaPagamento = row['Forma Pagamento']?.toString().trim().toUpperCase() || 'À VISTA';
+      const descricao = row['Descrição']?.toString().trim();
+      const valorRaw = row['Valor (Apenas números e vírgula)'];
+      const tipo = row['Tipo (Despesa/Receita)']?.toString().trim() || 'Despesa';
+      const centroCustoName = row['Centro de Custo']?.toString().trim();
+      const recebedorName = row['Recebedor/Fornecedor']?.toString().trim();
+      
+      let dataComp = '';
+      if (dataCompRaw) {
+        if (typeof dataCompRaw === 'number') {
+          const d = new Date(Math.round((dataCompRaw - 25569) * 864e5));
+          dataComp = d.toISOString().split('T')[0];
+        } else {
+          dataComp = dataCompRaw.toString().trim();
+        }
+      }
+
+      let dataPag = '';
+      if (dataPagRaw) {
+        if (typeof dataPagRaw === 'number') {
+          const d = new Date(Math.round((dataPagRaw - 25569) * 864e5));
+          dataPag = d.toISOString().split('T')[0];
+        } else {
+          dataPag = dataPagRaw.toString().trim();
+        }
+      }
+
+      const valor = parseFloat(valorRaw?.toString().replace(',', '.') || '0');
+
+      if (!dataComp) rowErrors.push("Data Competência é obrigatória.");
+      if (formaPagamento !== 'À VISTA' && formaPagamento !== 'CARTÃO') {
+        rowErrors.push("Apenas lançamentos 'À VISTA' ou 'CARTÃO' podem ser importados por esta tela.");
+      }
+      if (!descricao) {
+        rowErrors.push("Descrição é obrigatória.");
+      } else if (descricao.length > 200) {
+        rowErrors.push("Descrição não pode conter mais de 200 caracteres.");
+      }
+      if (isNaN(valor) || valor <= 0) {
+        rowErrors.push("Valor inválido.");
+      }
+      if (tipo !== 'Despesa' && tipo !== 'Receita') {
+        rowErrors.push("Tipo deve ser 'Despesa' ou 'Receita'.");
+      }
+      
+      let obraIdFinal = "";
+      if (centroCustoName) {
+        const foundObra = obras.find(o => o.nome.toLowerCase() === centroCustoName.toLowerCase());
+        if (foundObra) obraIdFinal = foundObra.id;
+        else rowErrors.push(`Centro de Custo '${centroCustoName}' não encontrado.`);
+      }
+
+      let recebedorIdFinal = "";
+      let recebedorNomeFinal = recebedorName || "";
+      if (recebedorName) {
+        const foundProv = allProviders.find(p => p.nome.toLowerCase() === recebedorName.toLowerCase());
+        if (foundProv) {
+          recebedorIdFinal = foundProv.id;
+          recebedorNomeFinal = foundProv.nome;
+        }
+      }
+
+      if (rowErrors.length > 0) {
+        errors.push({ rowIndex: startIndex + i, data: row, errors: rowErrors });
+      } else {
+        const entry: Omit<Lancamento, "id"> = {
+          dataCompetencia: dataComp,
+          dataVencimento: dataComp,
+          dataPagamento: dataPag || dataComp,
+          formaPagamento: formaPagamento,
+          nf: row['NF']?.toString() || "",
+          fornecedorId: recebedorIdFinal,
+          recebedorFornecedor: recebedorNomeFinal,
+          descricao: descricao!,
+          valor: Number(valor.toFixed(2)),
+          tipo: tipo as 'Despesa' | 'Receita',
+          categoria: row['Tipo Lançamento']?.toString() || "Outros",
+          tipoLancamento: row['Tipo Lançamento']?.toString() || "Outros",
+          subtipo: row['Subtipo']?.toString() || "",
+          obraId: obraIdFinal,
+          status: "Pago",
+        };
+        try {
+          await addLancamento(entry);
+          importedCount++;
+        } catch(e) {
+          errors.push({ rowIndex: startIndex + i, data: row, errors: ["Erro ao salvar no banco de dados."] });
+        }
+      }
+    }
+
+    return { imported: importedCount, errors };
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const btnText = document.title;
+    document.title = "Importando... Aguarde!";
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const importData = XLSX.utils.sheet_to_json(ws);
+          
+          if (importData.length > 2000) {
+            alert("A planilha não poderá conter mais de 2000 registros.");
+            return;
+          }
+
+          const result = await processImportData(importData, 2);
+          
+          if (result.errors.length > 0) {
+            setImportErrors(result.errors);
+            if (result.imported > 0) {
+              alert(`${result.imported} lançamentos importados com sucesso! ${result.errors.length} apresentaram inconsistências.`);
+            }
+          } else {
+            alert(`${result.imported} lançamentos importados com sucesso!`);
+            setShowImportModal(false);
+          }
+        } catch (error: any) {
+          console.error("Erro na importação:", error);
+          alert(`Erro ao importar dados: ${error.message}`);
+        } finally {
+          document.title = btnText;
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          setIsImporting(false);
+        }
+      };
+      reader.readAsBinaryString(file);
+    } catch (error: any) {
+      document.title = btnText;
+      alert(`Erro ao ler arquivo: ${error.message}`);
+      setIsImporting(false);
+    }
+  };
+
+  const handleRetryImport = async (correctedData: any[]) => {
+    setIsImporting(true);
+    const result = await processImportData(correctedData, 2);
+    
+    if (result.errors.length > 0) {
+      setImportErrors(result.errors);
+      alert(`${result.imported} lançamentos corrigidos foram importados. ${result.errors.length} ainda apresentam erros.`);
+    } else {
+      setImportErrors([]);
+      alert(`${result.imported} lançamentos corrigidos importados com sucesso!`);
+    }
+    setIsImporting(false);
+  };
+
   const tiposOptions = [
     "RECEITAS", "COMISSÕES SOBRE VENDAS", "IMPOSTOS", "CUSTO VARIÁVEL",
     "CUSTO FIXO", "DESPESAS OPERACIONAIS", "DESPESAS ADMINISTRATIVAS",
@@ -716,14 +961,42 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
             Registro de todas as receitas e despesas.
           </p>
         </div>
-        <button
-          onClick={handleAddRow}
-          disabled={isAdding}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
-        >
-          <Plus size={16} />
-          Novo Lançamento
-        </button>
+        <div className="relative">
+          <div className="flex rounded-lg overflow-hidden shadow-sm border border-indigo-700">
+            <button
+              onClick={handleAddRow}
+              disabled={isAdding}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <Plus size={16} />
+              Novo Lançamento
+            </button>
+            <button
+              onClick={() => setShowMainActions(!showMainActions)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-2 border-l border-indigo-700/50 flex items-center justify-center transition-colors"
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
+          {showMainActions && (
+            <div className="absolute right-0 mt-1 w-56 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50">
+              <button 
+                onClick={() => { setShowMainActions(false); setShowImportModal(true); }}
+                className="w-full text-left px-4 py-2 hover:bg-zinc-100 flex items-center gap-2 text-zinc-700 text-sm font-medium"
+              >
+                <UploadCloud size={16} />
+                Importar Lançamentos
+              </button>
+              <button 
+                onClick={handleExport}
+                className="w-full text-left px-4 py-2 hover:bg-zinc-100 flex items-center gap-2 text-zinc-700 text-sm font-medium"
+              >
+                <Download size={16} />
+                Exportar Lançamentos
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="bg-white flex flex-col min-h-0 rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex-1">
@@ -839,17 +1112,14 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                 <th className="p-3 w-[130px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Tipo</span>
-                    <input
-                      type="text"
-                      list="col-filter-tipo-list"
-                      placeholder="Filtrar tipo..."
+                    <select
                       value={colFilters.tipoLancamento}
                       onChange={(e) => setColFilters({ ...colFilters, tipoLancamento: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
-                    />
-                    <datalist id="col-filter-tipo-list">
-                      {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt} />)}
-                    </datalist>
+                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case cursor-pointer"
+                    >
+                      <option value="">Filtrar tipo...</option>
+                      {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
                   </div>
                 </th>
                 <th className="p-3 w-[120px] align-top">
@@ -949,17 +1219,14 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     />
                   </td>
                   <td className="p-2">
-                    <input
-                      type="text"
-                      list="tipos-list"
-                      placeholder="Tipo"
+                    <select
                       value={newEntry.tipoLancamento}
                       onChange={(e) => setNewEntry({ ...newEntry, tipoLancamento: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                    />
-                    <datalist id="tipos-list">
-                      {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt} />)}
-                    </datalist>
+                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
+                    >
+                      <option value="" disabled>Tipo</option>
+                      {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
                   </td>
                   <td className="p-2">
                     <input
@@ -1382,16 +1649,14 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Tipo de Lançamento</label>
-                <input
-                  type="text"
-                  list="tipos-list-edit"
+                <select
                   value={editEntry.tipoLancamento || ""}
                   onChange={(e) => setEditEntry({ ...editEntry, tipoLancamento: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                />
-                <datalist id="tipos-list-edit">
-                  {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt} />)}
-                </datalist>
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
+                >
+                  <option value="" disabled>Selecione o Tipo</option>
+                  {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Subtipo</label>
@@ -1621,6 +1886,110 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
             </div>
           </div>
         </div>
+      )}
+      
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="bg-[#2f88cc] p-4 flex items-center justify-between text-white">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <UploadCloud size={20} />
+                Importação de Dados &gt; Pagamentos
+              </h2>
+              <button onClick={() => setShowImportModal(false)} className="hover:bg-white/20 p-1.5 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-8 overflow-y-auto bg-zinc-50 flex-1">
+              <div className="flex items-center justify-center mb-10 text-xs font-medium text-zinc-400">
+                <div className="flex flex-col items-center gap-2 text-[#2f88cc]">
+                  <div className="w-10 h-10 rounded-full bg-[#2f88cc] text-white flex items-center justify-center">
+                    <Upload size={18} />
+                  </div>
+                  <span>Envio da Planilha</span>
+                </div>
+                <div className="w-16 h-[2px] bg-zinc-200 mx-2 -mt-6"></div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-zinc-200 text-zinc-400 flex items-center justify-center">
+                    2
+                  </div>
+                  <span>Cadastros de dados</span>
+                </div>
+                <div className="w-16 h-[2px] bg-zinc-200 mx-2 -mt-6"></div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-zinc-200 text-zinc-400 flex items-center justify-center">
+                    3
+                  </div>
+                  <span>Análise dos dados</span>
+                </div>
+                <div className="w-16 h-[2px] bg-zinc-200 mx-2 -mt-6"></div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-zinc-200 text-zinc-400 flex items-center justify-center">
+                    <Check size={18} />
+                  </div>
+                  <span>Finalização</span>
+                </div>
+              </div>
+
+              <div className="bg-[#f0f7ff] border border-[#d6e8ff] p-4 rounded-lg mb-8 text-[#2b5a8e] text-sm">
+                <h3 className="font-semibold flex items-center gap-2 mb-2">
+                  <AlertCircle size={16} className="text-[#2f88cc]" />
+                  Regras importantes para importação
+                </h3>
+                <ul className="list-disc pl-6 space-y-1">
+                  <li>A planilha não poderá conter mais de 2000 registros.</li>
+                  <li>Apenas lançamentos à vista ou cartão (parcela única) podem ser importados.</li>
+                  <li>O campo descrição não poderá conter mais de 200 caracteres.</li>
+                  <li>Só é possível executar uma importação por vez. Aguarde a finalização antes de iniciar uma nova.</li>
+                  <li>Os valores não podem conter mais de duas casas decimais.</li>
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <button
+                  onClick={downloadTemplate}
+                  className="bg-white border-2 border-dashed border-zinc-300 hover:border-[#2f88cc] hover:bg-[#f8fbff] rounded-xl p-8 flex flex-col items-center justify-center gap-4 transition-all text-zinc-600 hover:text-[#2f88cc] group"
+                >
+                  <Download size={40} className="group-hover:scale-110 transition-transform text-[#2f88cc]" />
+                  <span className="font-semibold text-lg">Baixar Planilha Modelo</span>
+                </button>
+                
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    accept=".xlsx, .xls" 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    ref={fileInputRef} 
+                    onChange={handleImport}
+                    disabled={isImporting}
+                  />
+                  <div className={`bg-white border-2 border-dashed ${isImporting ? 'border-zinc-300 bg-zinc-50' : 'border-zinc-300 hover:border-emerald-500 hover:bg-emerald-50'} rounded-xl p-8 flex flex-col items-center justify-center gap-4 transition-all text-zinc-600 ${isImporting ? '' : 'group hover:text-emerald-600'} h-full`}>
+                    {isImporting ? (
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2f88cc]"></div>
+                    ) : (
+                      <UploadCloud size={40} className="group-hover:scale-110 transition-transform text-zinc-400 group-hover:text-emerald-500" />
+                    )}
+                    <div className="text-center">
+                      <span className="font-semibold text-lg block">{isImporting ? "Importando..." : "Selecionar Arquivo"}</span>
+                      <span className="text-xs text-zinc-400">Formatos aceitos: .xlsx</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importErrors.length > 0 && (
+        <ImportErrorsModal
+          isOpen={importErrors.length > 0}
+          errors={importErrors}
+          onClose={() => setImportErrors([])}
+          onRetry={handleRetryImport}
+          onCloseAndDiscard={() => setImportErrors([])}
+        />
       )}
     </div>
   );

@@ -72,6 +72,8 @@ export type Lancamento = {
   nf?: string;
   descricao: string;
   valor: number;
+  valorPago?: number;
+  jurosMulta?: number;
   tipo: "Receita" | "Despesa";
   categoria: Categoria | string;
   tipoLancamento?: string;
