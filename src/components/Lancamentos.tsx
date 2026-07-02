@@ -5,7 +5,7 @@ import { Lancamento } from "../types";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 import * as XLSX from "xlsx";
-import ImportErrorsModal, { ImportError } from "./ImportErrorsModal";
+import LancamentosImportErrorsModal, { ImportError } from "./LancamentosImportErrorsModal";
 
 export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarData }: { setActiveTab?: (tab: string) => void, efetivarData?: any, setEfetivarData?: (data: any) => void }) {
     const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -1983,12 +1983,13 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       )}
 
       {importErrors.length > 0 && (
-        <ImportErrorsModal
-          isOpen={importErrors.length > 0}
+        <LancamentosImportErrorsModal
           errors={importErrors}
+          obras={obras}
+          fornecedores={fornecedores}
+          recebedores={recebedores}
           onClose={() => setImportErrors([])}
           onRetry={handleRetryImport}
-          onCloseAndDiscard={() => setImportErrors([])}
         />
       )}
     </div>
