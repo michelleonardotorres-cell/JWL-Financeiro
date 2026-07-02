@@ -721,7 +721,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       'Descrição': l.descricao,
       'Tipo de Lançamento (Categoria)': l.categoria || l.tipoLancamento,
       'Subtipo': l.subtipo,
-      'Centro de Custo': l.obraId,
+      'Centro de Custo': obras.find(o => o.id === l.obraId)?.nome || l.obraId,
       'Valor': l.valor,
       'Tipo': l.tipo,
       'Status': l.status
@@ -830,7 +830,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       
       let obraIdFinal = "";
       if (centroCustoName) {
-        const foundObra = obras.find(o => o.nome.toLowerCase() === centroCustoName.toLowerCase());
+        const foundObra = obras.find(o => o.nome.toLowerCase() === centroCustoName.toLowerCase() || o.id === centroCustoName);
         if (foundObra) obraIdFinal = foundObra.id;
         else rowErrors.push(`Centro de Custo '${centroCustoName}' não encontrado.`);
       }
