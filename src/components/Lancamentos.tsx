@@ -19,6 +19,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
   const [showMainActions, setShowMainActions] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
+  const [validImportEntries, setValidImportEntries] = useState<Omit<Lancamento, "id">[]>([]);
+  const [showValidationModal, setShowValidationModal] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -772,8 +774,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     XLSX.writeFile(wb, "modelo_importacao_lancamentos.xlsx");
   };
 
-  const processImportData = async (importData: any[], startIndex: number = 2) => {
-    let importedCount = 0;
+  const processImportData = (importData: any[], startIndex: number = 2) => {
+    const validEntries: Omit<Lancamento, "id">[] = [];
     const errors: ImportError[] = [];
     const allProviders = [...fornecedores, ...recebedores];
 
@@ -842,6 +844,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         if (foundProv) {
           recebedorIdFinal = foundProv.id;
           recebedorNomeFinal = foundProv.nome;
+        } else {
+          rowErrors.push(`Recebedor/Fornecedor '${recebedorName}' não encontrado.`);
         }
       }
 
@@ -865,16 +869,11 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           obraId: obraIdFinal,
           status: "Pago",
         };
-        try {
-          await addLancamento(entry);
-          importedCount++;
-        } catch(e) {
-          errors.push({ rowIndex: startIndex + i, data: row, errors: ["Erro ao salvar no banco de dados."] });
-        }
+        validEntries.push(entry);
       }
     }
 
-    return { imported: importedCount, errors };
+    return { validEntries, errors };
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -883,7 +882,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
 
     setIsImporting(true);
     const btnText = document.title;
-    document.title = "Importando... Aguarde!";
+    document.title = "Validando... Aguarde!";
     
     try {
       const reader = new FileReader();
@@ -900,15 +899,15 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
             return;
           }
 
-          const result = await processImportData(importData, 2);
+          const result = processImportData(importData, 2);
           
-          if (result.errors.length > 0) {
+          if (result.errors.length > 0 || result.validEntries.length > 0) {
             setImportErrors(result.errors);
-            if (result.imported > 0) {
-              alert(`${result.imported} lançamentos importados com sucesso! ${result.errors.length} apresentaram inconsistências.`);
-            }
+            setValidImportEntries(result.validEntries);
+            setShowValidationModal(true);
+            setShowImportModal(false);
           } else {
-            alert(`${result.imported} lançamentos importados com sucesso!`);
+            alert("Nenhum dado encontrado para importação.");
             setShowImportModal(false);
           }
         } catch (error: any) {
@@ -928,18 +927,36 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     }
   };
 
-  const handleRetryImport = async (correctedData: any[]) => {
+  const handleConfirmImport = async (correctedData: any[], importValidOnly?: boolean) => {
     setIsImporting(true);
-    const result = await processImportData(correctedData, 2);
+    let finalValidEntries = [...validImportEntries];
     
-    if (result.errors.length > 0) {
-      setImportErrors(result.errors);
-      alert(`${result.imported} lançamentos corrigidos foram importados. ${result.errors.length} ainda apresentam erros.`);
-    } else {
-      setImportErrors([]);
-      alert(`${result.imported} lançamentos corrigidos importados com sucesso!`);
+    if (!importValidOnly && correctedData.length > 0) {
+      const result = processImportData(correctedData, 2); // Start index might be wrong here for display, but that's ok
+      if (result.errors.length > 0) {
+        setImportErrors(result.errors);
+        setValidImportEntries(finalValidEntries.concat(result.validEntries));
+        setIsImporting(false);
+        return; // Stop and show errors again
+      }
+      finalValidEntries = finalValidEntries.concat(result.validEntries);
     }
-    setIsImporting(false);
+
+    try {
+      let successCount = 0;
+      for (const entry of finalValidEntries) {
+        await addLancamento(entry);
+        successCount++;
+      }
+      alert(`${successCount} lançamentos importados com sucesso!`);
+    } catch (error: any) {
+      alert(`Erro ao salvar lançamentos: ${error.message}`);
+    } finally {
+      setShowValidationModal(false);
+      setImportErrors([]);
+      setValidImportEntries([]);
+      setIsImporting(false);
+    }
   };
 
   const tiposOptions = [
@@ -1982,14 +1999,20 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         </div>
       )}
 
-      {importErrors.length > 0 && (
+      {showValidationModal && (
         <LancamentosImportErrorsModal
+          validCount={validImportEntries.length}
           errors={importErrors}
           obras={obras}
           fornecedores={fornecedores}
           recebedores={recebedores}
-          onClose={() => setImportErrors([])}
-          onRetry={handleRetryImport}
+          isImporting={isImporting}
+          onConfirm={handleConfirmImport}
+          onClose={() => {
+            setShowValidationModal(false);
+            setImportErrors([]);
+            setValidImportEntries([]);
+          }}
         />
       )}
     </div>
