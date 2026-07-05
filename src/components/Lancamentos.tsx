@@ -1353,7 +1353,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                         {activeMenuId === l.id && (
                           <>
                             <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                            <div className="absolute right-0 mt-1 w-32 bg-white border border-zinc-200 rounded-lg shadow-lg z-30 py-1 text-left">
+                            <div className={`absolute right-0 w-32 bg-white border border-zinc-200 rounded-lg shadow-lg z-30 py-1 text-left ${i >= data.length - 2 && data.length > 3 ? "bottom-full mb-1" : "top-full mt-1"}`}>
                               <button
                                 onClick={() => {
                                   setActiveMenuId(null);

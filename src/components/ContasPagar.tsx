@@ -544,7 +544,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                 </tr>
                 </>
               )}
-              {filtered.map((l) => {
+              {filtered.map((l, i) => {
                 const fornecedor = [...fornecedores, ...recebedores].find(
                   (f) => f.id === l.fornecedorId
                 );
@@ -595,7 +595,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                         {activeMenuId === l.id && (
                           <>
                             <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                            <div className="absolute right-0 mt-1 w-32 bg-white border border-zinc-200 rounded-lg shadow-lg z-30 py-1 text-left">
+                            <div className={`absolute right-0 w-32 bg-white border border-zinc-200 rounded-lg shadow-lg z-30 py-1 text-left ${i >= filtered.length - 2 && filtered.length > 3 ? "bottom-full mb-1" : "top-full mt-1"}`}>
                               {l.status !== "Pago" ? (
                                 (l as any).isPrevisao ? (
                                   <button
