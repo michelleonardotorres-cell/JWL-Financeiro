@@ -3,6 +3,8 @@ import { Building2, TrendingDown, TrendingUp, AlertCircle, Edit2, X, Printer, Ph
 import { safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import { Lancamento } from "../types";
+import { usePeriodFilter } from "../hooks/usePeriodFilter";
+import { PeriodFilter } from "./PeriodFilter";
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
@@ -24,7 +26,8 @@ const formatCurrency = (value: number) =>
 export default function Dashboard() {
   const { obras, fornecedores, lancamentos: allLancamentos } = useData();
 
-  const [globalPeriod, setGlobalPeriod] = useState<string>("mes_atual");
+  const periodFilterState = usePeriodFilter();
+  const { activeFilter } = periodFilterState;
   const [globalObra, setGlobalObra] = useState<string>("all");
   const [filterPagamentos, setFilterPagamentos] = useState<string>("all");
   const [filterRecebimentos, setFilterRecebimentos] = useState<string>("all");
@@ -33,36 +36,17 @@ export default function Dashboard() {
   useEffect(() => {
     // TODO: Connect to backend API (Prisma/PostgreSQL)
     // This hook will trigger refetch whenever globalPeriod or globalObra changes.
-    console.log("Refetching dashboard data for:", { globalPeriod, globalObra });
-  }, [globalPeriod, globalObra]);
-
-  const isDateInPeriod = (dateStr: string | null | undefined, period: string) => {
-    if (!dateStr) return false;
-    const date = new Date(dateStr + "T00:00:00");
-    const now = new Date();
-    
-    if (period === "mes_atual") {
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    }
-    if (period === "ultimos_30") {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(now.getDate() - 30);
-      return date >= thirtyDaysAgo && date <= now;
-    }
-    if (period === "este_ano") {
-      return date.getFullYear() === now.getFullYear();
-    }
-    return true; 
-  };
+    console.log("Refetching dashboard data for:", { activeFilter, globalObra });
+  }, [activeFilter, globalObra]);
 
   const lancamentos = allLancamentos.filter(l => {
     if (globalObra !== "all") {
        const obra = obras.find(o => o.id === globalObra);
        if (l.obraId !== globalObra && l.obraId !== obra?.nome) return false;
     }
-    if (globalPeriod !== "personalizado") {
+    if (activeFilter && activeFilter.start && activeFilter.end) {
        const dateToUse = l.dataVencimento || l.dataCompetencia;
-       if (!isDateInPeriod(dateToUse, globalPeriod)) return false;
+       if (dateToUse < activeFilter.start || dateToUse > activeFilter.end) return false;
     }
     return true;
   });
@@ -289,16 +273,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <select
-            value={globalPeriod}
-            onChange={(e) => setGlobalPeriod(e.target.value)}
-            className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-          >
-            <option value="mes_atual">Mês Atual</option>
-            <option value="ultimos_30">Últimos 30 Dias</option>
-            <option value="este_ano">Este Ano</option>
-            <option value="personalizado">Personalizado</option>
-          </select>
+          <PeriodFilter filterState={periodFilterState} />
           
           <select
             value={globalObra}
