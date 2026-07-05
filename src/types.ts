@@ -90,7 +90,10 @@ export type Lancamento = {
 export type Contrato = {
   id: string;
   descricao: string;
-  valorPrevisto: number;
+  valorPrevisto: number; // mantido por compatibilidade
+  valorTotal?: number;
+  dataInicio?: string;
+  dataTermino?: string;
   tipo: "Receita" | "Despesa";
   categoria: Categoria | string;
   tipoLancamento?: string;
@@ -99,5 +102,16 @@ export type Contrato = {
   fornecedorId?: string;
   recebedorFornecedor?: string;
   diaVencimento: number;
-  ativo: boolean;
+  ativo: boolean; // mantido por compatibilidade
+  status?: string; // "Ativo", "Finalizado", "Cancelado"
+};
+
+export type ContratoParcela = {
+  id: string;
+  contratoId: string;
+  numeroParcela: number;
+  valor: number;
+  dataVencimento: string;
+  statusAprovacao: "Pendente" | "Aprovado" | "Rejeitado";
+  lancamentoId?: string;
 };
