@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Building2, TrendingDown, TrendingUp, AlertCircle, Edit2, X, Printer, Phone, CheckCircle } from "lucide-react";
 import { safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Lancamento } from "../types";
 
 const today = new Date();
@@ -73,53 +72,25 @@ export default function Dashboard() {
   const sumBucket = (items: Lancamento[]) => items.reduce((acc, curr) => acc + curr.valor, 0);
 
   const pagamentosData = [
-    { id: "vencidos", name: "Vencidos", value: sumBucket(pagamentos.vencidos), count: pagamentos.vencidos.length, color: "#E05A5B", items: pagamentos.vencidos, label: "Vencidos nos últimos 90 dias" },
-    { id: "hoje", name: "Hoje", value: sumBucket(pagamentos.hoje), count: pagamentos.hoje.length, color: "#F5A623", items: pagamentos.hoje, label: "A pagar hoje" },
-    { id: "dias7", name: "7 dias", value: sumBucket(pagamentos.dias7), count: pagamentos.dias7.length, color: "#4A90E2", items: pagamentos.dias7, label: "A pagar em 7 dias" },
-    { id: "dias30", name: "30 dias", value: sumBucket(pagamentos.dias30), count: pagamentos.dias30.length, color: "#9B9B9B", items: pagamentos.dias30, label: "A pagar em 30 dias" },
+    { id: "vencidos", name: "Vencidos", value: sumBucket(pagamentos.vencidos), count: pagamentos.vencidos.length, color: "#ef4444", bgClass: "bg-red-500", items: pagamentos.vencidos, label: "Vencidos nos últimos 90 dias" },
+    { id: "hoje", name: "Hoje", value: sumBucket(pagamentos.hoje), count: pagamentos.hoje.length, color: "#f59e0b", bgClass: "bg-amber-500", items: pagamentos.hoje, label: "A pagar hoje" },
+    { id: "dias7", name: "7 dias", value: sumBucket(pagamentos.dias7), count: pagamentos.dias7.length, color: "#3b82f6", bgClass: "bg-blue-500", items: pagamentos.dias7, label: "A pagar em 7 dias" },
+    { id: "dias30", name: "30 dias", value: sumBucket(pagamentos.dias30), count: pagamentos.dias30.length, color: "#9ca3af", bgClass: "bg-gray-400", items: pagamentos.dias30, label: "A pagar em 30 dias" },
   ];
 
   const recebimentosData = [
-    { id: "vencidos", name: "Vencidos", value: sumBucket(recebimentos.vencidos), count: recebimentos.vencidos.length, color: "#E05A5B", items: recebimentos.vencidos, label: "Vencidos nos últimos 90 dias" },
-    { id: "hoje", name: "Hoje", value: sumBucket(recebimentos.hoje), count: recebimentos.hoje.length, color: "#F5A623", items: recebimentos.hoje, label: "A receber hoje" },
-    { id: "dias7", name: "7 dias", value: sumBucket(recebimentos.dias7), count: recebimentos.dias7.length, color: "#4A90E2", items: recebimentos.dias7, label: "A receber em 7 dias" },
-    { id: "dias30", name: "30 dias", value: sumBucket(recebimentos.dias30), count: recebimentos.dias30.length, color: "#9B9B9B", items: recebimentos.dias30, label: "A receber em 30 dias" },
+    { id: "vencidos", name: "Vencidos", value: sumBucket(recebimentos.vencidos), count: recebimentos.vencidos.length, color: "#ef4444", bgClass: "bg-red-500", items: recebimentos.vencidos, label: "Vencidos nos últimos 90 dias" },
+    { id: "hoje", name: "Hoje", value: sumBucket(recebimentos.hoje), count: recebimentos.hoje.length, color: "#f59e0b", bgClass: "bg-amber-500", items: recebimentos.hoje, label: "A receber hoje" },
+    { id: "dias7", name: "7 dias", value: sumBucket(recebimentos.dias7), count: recebimentos.dias7.length, color: "#3b82f6", bgClass: "bg-blue-500", items: recebimentos.dias7, label: "A receber em 7 dias" },
+    { id: "dias30", name: "30 dias", value: sumBucket(recebimentos.dias30), count: recebimentos.dias30.length, color: "#9ca3af", bgClass: "bg-gray-400", items: recebimentos.dias30, label: "A receber em 30 dias" },
   ];
 
   const totalPagamentosCount = pagamentosData.reduce((acc, curr) => acc + curr.count, 0);
   const totalRecebimentosCount = recebimentosData.reduce((acc, curr) => acc + curr.count, 0);
 
-  const renderDonut = (data: any[], title: string, totalCount: number) => {
-    const activeData = data.filter(d => d.value > 0);
-    return (
-      <div className="relative w-48 h-48 flex-shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={activeData.length > 0 ? activeData : [{ value: 1, color: "#e5e7eb" }]}
-              innerRadius={55}
-              outerRadius={80}
-              paddingAngle={2}
-              dataKey="value"
-              stroke="none"
-              isAnimationActive={false}
-            >
-              {activeData.length > 0
-                ? activeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)
-                : <Cell fill="#e5e7eb" />}
-            </Pie>
-            <RechartsTooltip formatter={(value: number) => formatCurrency(value)} offset={45} wrapperStyle={{ zIndex: 1000 }} allowEscapeViewBox={{ x: true, y: true }} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-3xl font-light text-zinc-800">{totalCount}</span>
-          <span className="text-[10px] text-zinc-500 uppercase">{title}</span>
-        </div>
-      </div>
-    );
-  };
-
   const renderCard = (title: string, data: any[], filterVal: string, setFilter: (val: string) => void, donutLabel: string, totalCount: number) => {
+    const totalValue = data.reduce((acc, curr) => acc + curr.value, 0);
+
     return (
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6 flex flex-col h-full">
         <div className="flex justify-between items-center mb-6 pb-4 border-b border-zinc-100">
@@ -142,10 +113,32 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center md:items-stretch gap-8">
-          <div className="flex items-center justify-center">
-            {renderDonut(data, donutLabel, totalCount)}
+        <div className="flex flex-col gap-6">
+          <div className="w-full">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-zinc-500">{totalCount} registros</span>
+              <span className="font-semibold text-zinc-700">{formatCurrency(totalValue)}</span>
+            </div>
+            <div className="w-full h-4 rounded-full overflow-hidden flex bg-zinc-100">
+              {totalValue > 0 ? (
+                data.map((item) => {
+                  const percentage = (item.value / totalValue) * 100;
+                  if (percentage === 0) return null;
+                  return (
+                    <div
+                      key={item.id}
+                      style={{ width: `${percentage}%` }}
+                      className={`h-full ${item.bgClass} transition-all duration-500 hover:opacity-80 cursor-default`}
+                      title={`${item.label}: ${formatCurrency(item.value)}`}
+                    ></div>
+                  );
+                })
+              ) : (
+                <div className="w-full h-full bg-zinc-100"></div>
+              )}
+            </div>
           </div>
+
           <div className="flex-1 flex flex-col justify-center space-y-0">
             {data.map((item, idx) => (
               <button
@@ -153,11 +146,12 @@ export default function Dashboard() {
                 onClick={() => setModalData({ title: item.label, items: item.items })}
                 className={`flex items-center justify-between py-3 px-2 transition-colors hover:bg-zinc-50 rounded-lg ${idx !== data.length - 1 ? 'border-b border-zinc-100' : ''}`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold" style={{ color: item.color }}>{item.label}</span>
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${item.bgClass}`}></div>
+                  <span className="text-sm font-medium text-zinc-700">{item.label}</span>
                   <span className="text-xs text-zinc-400">({item.count})</span>
                 </div>
-                <span className="text-sm font-semibold text-zinc-600">{formatCurrency(item.value)}</span>
+                <span className="text-sm font-semibold text-zinc-700">{formatCurrency(item.value)}</span>
               </button>
             ))}
           </div>
