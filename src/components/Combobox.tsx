@@ -89,7 +89,8 @@ export default function Combobox({ options, value, onChange, placeholder = "Sele
             filteredOptions.map((option) => (
               <div
                 key={option.id}
-                onClick={() => {
+                onMouseDown={(e) => {
+                  e.preventDefault();
                   onChange(option.id);
                   setInputValue(option.label);
                   setIsOpen(false);

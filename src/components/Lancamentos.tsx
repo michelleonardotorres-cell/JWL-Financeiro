@@ -383,8 +383,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       dataVencimento: editEntry.dataCompetencia || new Date().toISOString().split('T')[0],
       formaPagamento: editEntry.formaPagamento,
       nf: editEntry.nf,
-      fornecedorId: editEntry.recebedorFornecedor,
-      recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === editEntry.recebedorFornecedor)?.nome || editEntry.recebedorFornecedor || "",
+      fornecedorId: editEntry.fornecedorId,
+      recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === editEntry.fornecedorId)?.nome || editEntry.recebedorFornecedor || "",
       descricao: editEntry.descricao || "",
       valor: editEntry.valor || 0,
       tipo: isReceita ? "Receita" : "Despesa",
@@ -1612,8 +1612,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Fornecedor/Recebedor</label>
                 <Combobox
                   options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
-                  value={editEntry.recebedorFornecedor || ""}
-                  onChange={(id) => setEditEntry({ ...editEntry, recebedorFornecedor: id })}
+                  value={editEntry.fornecedorId || ""}
+                  onChange={(id) => setEditEntry({ ...editEntry, fornecedorId: id })}
                   placeholder="Recebedor"
                 />
               </div>
