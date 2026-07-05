@@ -18,3 +18,8 @@ View your app in AI Studio: https://ai.studio/apps/007dba47-9ae6-45e7-aaca-9dce1
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Guidelines de Desenvolvimento
+
+### Diretriz de Layout Responsivo
+**Nota Importante:** O layout deste sistema foi refatorado para ser totalmente responsivo (adaptando-se a telas de desktop, split-screen e dispositivos móveis). Todas as alterações e adições posteriores de novos módulos ou componentes devem seguir estritamente este padrão de layout adaptativo e fluído. Não utilize larguras fixas que quebrem a visualização em resoluções menores.
