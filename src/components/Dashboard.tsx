@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Building2, TrendingDown, TrendingUp, AlertCircle, Edit2, X, Printer, Phone } from "lucide-react";
+import { Building2, TrendingDown, TrendingUp, AlertCircle, Edit2, X, Printer, Phone, CheckCircle } from "lucide-react";
 import { safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
@@ -108,7 +108,7 @@ export default function Dashboard() {
                 ? activeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)
                 : <Cell fill="#e5e7eb" />}
             </Pie>
-            <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+            <RechartsTooltip formatter={(value: number) => formatCurrency(value)} offset={45} wrapperStyle={{ zIndex: 1000 }} allowEscapeViewBox={{ x: true, y: true }} />
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -272,12 +272,16 @@ export default function Dashboard() {
             {formatCurrency(saldo)}
           </p>
         </div>
-        <div className="bg-rose-50 p-6 rounded-2xl border border-rose-100 shadow-sm">
+        <div className={`p-6 rounded-2xl border shadow-sm transition-colors ${atrasados > 0 ? "bg-rose-50 border-rose-100" : "bg-emerald-50 border-emerald-100"}`}>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-rose-700">Contas Atrasadas</h3>
-            <AlertCircle className="text-rose-600" size={20} />
+            <h3 className={`text-sm font-medium ${atrasados > 0 ? "text-rose-700" : "text-emerald-700"}`}>Contas Atrasadas</h3>
+            {atrasados > 0 ? (
+              <AlertCircle className="text-rose-600" size={20} />
+            ) : (
+              <CheckCircle className="text-emerald-600" size={20} />
+            )}
           </div>
-          <p className="text-3xl font-semibold text-rose-700 mt-4">{formatCurrency(atrasados)}</p>
+          <p className={`text-3xl font-semibold mt-4 ${atrasados > 0 ? "text-rose-700" : "text-emerald-700"}`}>{formatCurrency(atrasados)}</p>
         </div>
       </div>
 
