@@ -34,7 +34,7 @@ export default function Receitas() {
     }).format(value);
 
   // Gerar últimos 12 meses
-  const hoje = new Date("2024-03-31"); // Usando data fixa baseada no mockData
+  const hoje = new Date(); // Usando data dinâmica atual
   const meses = Array.from({ length: 12 }).map((_, i) => {
     const data = subMonths(hoje, 11 - i);
     return {

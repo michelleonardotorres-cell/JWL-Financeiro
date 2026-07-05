@@ -13,7 +13,10 @@ export interface ActiveFilter {
   endDate?: string;
 }
 
-export function usePeriodFilter(defaultMonth = 5, defaultYear = 2026) {
+export function usePeriodFilter(
+  defaultMonth = new Date().getMonth(), 
+  defaultYear = new Date().getFullYear()
+) {
   const monthNames = useMemo(
     () => ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
     []
