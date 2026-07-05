@@ -318,6 +318,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     setParcelasDates([]);
     setNewEntry({
       dataCompetencia: new Date().toISOString().split('T')[0],
+      dataVencimento: new Date().toISOString().split('T')[0],
       formaPagamento: "À VISTA",
       nf: "",
       recebedorFornecedor: "",
@@ -392,7 +393,9 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     } else {
       const entry: Omit<Lancamento, "id"> = {
         dataCompetencia: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
-        dataVencimento: newEntry.dataCompetencia || new Date().toISOString().split('T')[0],
+        dataVencimento: newEntry.formaPagamento === "À VISTA" 
+          ? (newEntry.dataCompetencia || new Date().toISOString().split('T')[0]) 
+          : (newEntry.dataVencimento || new Date().toISOString().split('T')[0]),
         dataPagamento: isBoletoOuPrazo ? undefined : (newEntry.dataPagamento || newEntry.dataCompetencia),
         formaPagamento: newEntry.formaPagamento,
         nf: newEntry.nf,
@@ -1008,6 +1011,30 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   <td colSpan={10} className="p-3 border-t border-indigo-100">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-semibold text-zinc-600">Data de Vencimento:</label>
+                          <input
+                            type="date"
+                            value={newEntry.dataVencimento || ""}
+                            onChange={(e) => {
+                              const newDate = e.target.value;
+                              setNewEntry({ ...newEntry, dataVencimento: newDate });
+                              if (parcelasCount > 1) {
+                                const baseDateObj = new Date(newDate + "T12:00:00");
+                                const newDates = [];
+                                for(let i = 0; i < parcelasCount; i++) {
+                                  const d = new Date(baseDateObj);
+                                  d.setMonth(d.getMonth() + i);
+                                  newDates.push(d.toISOString().split("T")[0]);
+                                }
+                                setParcelasDates(newDates);
+                              }
+                            }}
+                            className="w-[120px] p-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                            required
+                          />
+                        </div>
+                        <div className="h-6 w-px bg-zinc-200 mx-1"></div>
                         <label className="text-xs font-semibold text-zinc-600">Quantidade de Parcelas:</label>
                         <input
                           type="number"
@@ -1017,7 +1044,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                           onChange={(e) => {
                             const count = parseInt(e.target.value) || 1;
                             setParcelasCount(count);
-                            const baseDate = new Date((newEntry.dataCompetencia || new Date().toISOString().split('T')[0]) + "T12:00:00");
+                            const baseDate = new Date((newEntry.dataVencimento || new Date().toISOString().split('T')[0]) + "T12:00:00");
                             const newDates = [];
                             for(let i = 0; i < count; i++) {
                                const d = new Date(baseDate);
