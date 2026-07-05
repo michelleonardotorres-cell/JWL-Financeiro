@@ -8,14 +8,91 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
-      const { rows } = await pool.query(
-        `SELECT id, "dataCompetencia", "dataVencimento", "dataPagamento",
+      const { 
+        page, limit, 
+        dataCompetencia, formaPagamento, nf, recebedorFornecedor, descricao, tipoLancamento, subtipo, obraId, valor, tipo, startDate, endDate 
+      } = req.query;
+
+      let whereClause = "WHERE 1=1";
+      const params = [];
+      let paramCount = 1;
+
+      if (dataCompetencia) {
+        whereClause += ` AND "dataCompetencia"::text ILIKE $${paramCount}`;
+        params.push(`%${dataCompetencia}%`);
+        paramCount++;
+      }
+      if (formaPagamento) {
+        whereClause += ` AND "formaPagamento" ILIKE $${paramCount}`;
+        params.push(`%${formaPagamento}%`);
+        paramCount++;
+      }
+      if (nf) {
+        whereClause += ` AND nf ILIKE $${paramCount}`;
+        params.push(`%${nf}%`);
+        paramCount++;
+      }
+      if (recebedorFornecedor) {
+        whereClause += ` AND ("recebedorFornecedor" ILIKE $${paramCount} OR "fornecedorId" ILIKE $${paramCount})`;
+        params.push(`%${recebedorFornecedor}%`);
+        paramCount++;
+      }
+      if (descricao) {
+        whereClause += ` AND descricao ILIKE $${paramCount}`;
+        params.push(`%${descricao}%`);
+        paramCount++;
+      }
+      if (tipoLancamento) {
+        whereClause += ` AND (categoria ILIKE $${paramCount} OR "tipoLancamento" ILIKE $${paramCount})`;
+        params.push(`%${tipoLancamento}%`);
+        paramCount++;
+      }
+      if (subtipo) {
+        whereClause += ` AND subtipo ILIKE $${paramCount}`;
+        params.push(`%${subtipo}%`);
+        paramCount++;
+      }
+      if (obraId) {
+        whereClause += ` AND "obraId" ILIKE $${paramCount}`;
+        params.push(`%${obraId}%`);
+        paramCount++;
+      }
+      if (valor) {
+        whereClause += ` AND valor::text ILIKE $${paramCount}`;
+        params.push(`%${valor}%`);
+        paramCount++;
+      }
+      if (tipo) {
+        whereClause += ` AND tipo = $${paramCount}`;
+        params.push(tipo);
+        paramCount++;
+      }
+      if (startDate && endDate) {
+        whereClause += ` AND COALESCE("dataCompetencia", "dataVencimento") >= $${paramCount} AND COALESCE("dataCompetencia", "dataVencimento") <= $${paramCount + 1}`;
+        params.push(startDate, endDate);
+        paramCount += 2;
+      }
+
+      const baseQuery = `SELECT id, "dataCompetencia", "dataVencimento", "dataPagamento",
                 "formaPagamento", nf, descricao, valor, "valorPago", "jurosMulta", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
                 "recebedorFornecedor", "contratoId", status
-         FROM lancamentos ORDER BY "dataVencimento" DESC`
-      );
-      return res.status(200).json(rows);
+         FROM lancamentos ${whereClause}`;
+
+      if (!page || !limit) {
+        const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" DESC`, params);
+        return res.status(200).json(rows);
+      } else {
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        const offset = (pageNum - 1) * limitNum;
+
+        const countResult = await pool.query(`SELECT COUNT(*) FROM lancamentos ${whereClause}`, params);
+        const totalItems = parseInt(countResult.rows[0].count, 10);
+
+        const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`, [...params, limitNum, offset]);
+        return res.status(200).json({ data: rows, totalItems });
+      }
     }
 
     if (req.method === "POST") {

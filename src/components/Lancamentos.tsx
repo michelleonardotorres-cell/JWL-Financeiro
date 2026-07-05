@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { safeFormatDate, normalizeString } from "../utils";
 import { Search, Filter, Plus, Save, X, Check, MoreHorizontal, ChevronDown, Upload, Download, UploadCloud, AlertCircle } from "lucide-react";
 import { Lancamento } from "../types";
@@ -6,6 +6,7 @@ import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 import * as XLSX from "xlsx";
 import LancamentosImportErrorsModal, { ImportError } from "./LancamentosImportErrorsModal";
+import { lancamentosApi } from "../apiClient";
 
 export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarData }: { setActiveTab?: (tab: string) => void, efetivarData?: any, setEfetivarData?: (data: any) => void }) {
     const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -109,14 +110,56 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     valor: "",
   });
 
+  const [debouncedColFilters, setDebouncedColFilters] = useState(colFilters);
+  const [serverTotalItems, setServerTotalItems] = useState(0);
+  const [pageEntradasSum, setPageEntradasSum] = useState(0);
+  const [pageSaidasSum, setPageSaidasSum] = useState(0);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedColFilters(colFilters);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [colFilters]);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
   // Reset current page when filters change
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
-  }, [activeFilter, colFilters]);
+  }, [activeFilter, debouncedColFilters]);
+
+  const fetchTableData = async () => {
+    try {
+      const params: any = {
+        page: currentPage,
+        limit: pageSize,
+        ...debouncedColFilters
+      };
+      if (activeFilter && activeFilter.start && activeFilter.end) {
+        params.startDate = activeFilter.start;
+        params.endDate = activeFilter.end;
+      }
+      
+      const res = await lancamentosApi.getPaginated(params);
+      setData(res.data);
+      setServerTotalItems(res.totalItems);
+      
+      const entradas = res.data.filter((l: any) => l.tipo === "Receita").reduce((acc: number, curr: any) => acc + curr.valor, 0);
+      const saidas = res.data.filter((l: any) => l.tipo === "Despesa").reduce((acc: number, curr: any) => acc + curr.valor, 0);
+      setPageEntradasSum(entradas);
+      setPageSaidasSum(saidas);
+    } catch (err) {
+      console.error("Failed to fetch paginated data:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTableData();
+  }, [currentPage, pageSize, debouncedColFilters, activeFilter]);
+
 
   const handleNavigatePeriod = (direction: "prev" | "next") => {
     if (!activeFilter) return;
@@ -468,117 +511,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       currency: "BRL",
     }).format(value);
 
-  const filtered = useMemo(() => {
-    let result = [...data];
-
-    if (activeFilter) {
-      result = result.filter((l) => {
-        const dateStr = l.dataCompetencia || l.dataVencimento || "";
-        if (!dateStr) return false;
-        return dateStr >= activeFilter.start && dateStr <= activeFilter.end;
-      });
-    }
-
-    // Apply column filters (per-letter accent-insensitive, case-insensitive search)
-    if (colFilters.dataCompetencia) {
-      const colTerm = normalizeString(colFilters.dataCompetencia);
-      result = result.filter((l) => {
-        const formatted = normalizeString(safeFormatDate(l.dataCompetencia));
-        return formatted.includes(colTerm);
-      });
-    }
-    if (colFilters.formaPagamento) {
-      const colTerm = normalizeString(colFilters.formaPagamento);
-      result = result.filter((l) => {
-        const val = normalizeString(l.formaPagamento || "");
-        return val.includes(colTerm);
-      });
-    }
-    if (colFilters.nf) {
-      const colTerm = normalizeString(colFilters.nf);
-      result = result.filter((l) => {
-        const val = normalizeString(l.nf || "");
-        return val.includes(colTerm);
-      });
-    }
-    if (colFilters.recebedorFornecedor) {
-      const colTerm = normalizeString(colFilters.recebedorFornecedor);
-      result = result.filter((l) => {
-        const supplierName = fornecedores.find(f => f.id === l.fornecedorId)?.nome || "";
-        const val = normalizeString(l.recebedorFornecedor || supplierName);
-        return val.includes(colTerm);
-      });
-    }
-    if (colFilters.descricao) {
-      const colTerm = normalizeString(colFilters.descricao);
-      result = result.filter((l) => {
-        const val = normalizeString(l.descricao || "");
-        return val.includes(colTerm);
-      });
-    }
-    if (colFilters.tipoLancamento) {
-      const colTerm = normalizeString(colFilters.tipoLancamento);
-      result = result.filter((l) => {
-        const val = normalizeString(l.tipoLancamento || l.categoria || "");
-        return val.includes(colTerm);
-      });
-    }
-    if (colFilters.subtipo) {
-      const colTerm = normalizeString(colFilters.subtipo);
-      result = result.filter((l) => {
-        const val = normalizeString(l.subtipo || "");
-        return val.includes(colTerm);
-      });
-    }
-    if (colFilters.obraId) {
-      const colTerm = normalizeString(colFilters.obraId);
-      result = result.filter((l) => {
-        const obraName = obras.find(o => o.id === l.obraId || o.nome === l.obraId)?.nome || "";
-        const val = normalizeString(l.obraId || obraName);
-        return val.includes(colTerm);
-      });
-    }
-    if (colFilters.valor) {
-      const colTerm = normalizeString(colFilters.valor);
-      result = result.filter((l) => {
-        const formattedVal = normalizeString(formatCurrency(l.valor));
-        const sign = l.tipo === "Despesa" ? "-" : "+";
-        const valStr = normalizeString(`${sign}${l.valor.toFixed(2)} ${formattedVal}`);
-        return valStr.includes(colTerm);
-      });
-    }
-
-    return result.sort((a, b) => {
-      const dateA = a.dataCompetencia || "";
-      const dateB = b.dataCompetencia || "";
-      const dateCompare = dateB.localeCompare(dateA);
-      if (dateCompare !== 0) return dateCompare;
-      const idA = parseInt(a.id.replace(/\D/g, ""), 10) || 0;
-      const idB = parseInt(b.id.replace(/\D/g, ""), 10) || 0;
-      return idB - idA;
-    });
-  }, [data, activeFilter, colFilters]);
-
-  const totalItems = filtered.length;
+  const totalItems = serverTotalItems;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const sliceStart = (currentPage - 1) * pageSize;
   const sliceEnd = Math.min(totalItems, currentPage * pageSize);
 
-  const pageItems = useMemo(() => {
-    return filtered.slice(sliceStart, sliceEnd);
-  }, [filtered, sliceStart, sliceEnd]);
-
-  const pageEntradasSum = useMemo(() => {
-    return pageItems
-      .filter((l) => l.tipo === "Receita")
-      .reduce((acc, curr) => acc + curr.valor, 0);
-  }, [pageItems]);
-
-  const pageSaidasSum = useMemo(() => {
-    return pageItems
-      .filter((l) => l.tipo === "Despesa")
-      .reduce((acc, curr) => acc + curr.valor, 0);
-  }, [pageItems]);
+  const pageItems = data;
 
   const handleAddRow = () => {
     setIsAdding(true);
@@ -706,34 +644,48 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     setNewEntry({ ...newEntry, valor: numericValue });
   };
 
-  const handleExport = () => {
-    if (filtered.length === 0) {
-      alert("Nenhum dado para exportar.");
-      return;
+  const handleExport = async () => {
+    try {
+      const params: any = { ...debouncedColFilters };
+      if (activeFilter && activeFilter.start && activeFilter.end) {
+        params.startDate = activeFilter.start;
+        params.endDate = activeFilter.end;
+      }
+      
+      const exportData = await lancamentosApi.getPaginated(params) as any;
+      const recordsToExport = Array.isArray(exportData) ? exportData : exportData.data;
+
+      if (!recordsToExport || recordsToExport.length === 0) {
+        alert("Nenhum dado para exportar.");
+        return;
+      }
+
+      const dataToExport = recordsToExport.map((l: Lancamento) => ({
+        'ID': l.id,
+        'Data Competência': safeFormatDate(l.dataCompetencia),
+        'Data Vencimento': safeFormatDate(l.dataVencimento),
+        'Data Pagamento': l.dataPagamento ? safeFormatDate(l.dataPagamento) : "",
+        'Forma Pagamento': l.formaPagamento,
+        'NF': l.nf,
+        'Recebedor/Fornecedor': l.recebedorFornecedor,
+        'Descrição': l.descricao,
+        'Tipo de Lançamento (Categoria)': l.categoria || l.tipoLancamento,
+        'Subtipo': l.subtipo,
+        'Centro de Custo': obras.find(o => o.id === l.obraId)?.nome || l.obraId,
+        'Valor': l.valor,
+        'Tipo': l.tipo,
+        'Status': l.status
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Lancamentos");
+      XLSX.writeFile(wb, "lancamentos_export.xlsx");
+      setShowMainActions(false);
+    } catch (error) {
+      console.error("Erro na exportação", error);
+      alert("Erro ao exportar");
     }
-
-    const dataToExport = filtered.map(l => ({
-      'ID': l.id,
-      'Data Competência': safeFormatDate(l.dataCompetencia),
-      'Data Vencimento': safeFormatDate(l.dataVencimento),
-      'Data Pagamento': l.dataPagamento ? safeFormatDate(l.dataPagamento) : "",
-      'Forma Pagamento': l.formaPagamento,
-      'NF': l.nf,
-      'Recebedor/Fornecedor': l.recebedorFornecedor,
-      'Descrição': l.descricao,
-      'Tipo de Lançamento (Categoria)': l.categoria || l.tipoLancamento,
-      'Subtipo': l.subtipo,
-      'Centro de Custo': obras.find(o => o.id === l.obraId)?.nome || l.obraId,
-      'Valor': l.valor,
-      'Tipo': l.tipo,
-      'Status': l.status
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Lancamentos");
-    XLSX.writeFile(wb, "lancamentos_export.xlsx");
-    setShowMainActions(false);
   };
 
   const downloadTemplate = () => {

@@ -69,6 +69,15 @@ export const recebedoresApi = {
 // Lancamentos
 export const lancamentosApi = {
   getAll: () => apiFetch<Lancamento[]>("lancamentos"),
+  getPaginated: (params: Record<string, any>) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        searchParams.append(key, String(value));
+      }
+    });
+    return apiFetch<{ data: Lancamento[], totalItems: number }>(`lancamentos?${searchParams.toString()}`);
+  },
   create: (lancamento: Omit<Lancamento, "id">) => {
     const id = generateId("l");
     return apiFetch<Lancamento>("lancamentos", { method: "POST", body: JSON.stringify({ ...lancamento, id }) });
