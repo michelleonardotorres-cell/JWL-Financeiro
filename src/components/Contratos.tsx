@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Plus, Save, X, Check, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2 } from "lucide-react";
+import { Search, Plus, Save, X, Check, CheckCircle2, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2 } from "lucide-react";
 import { Contrato, ContratoParcela } from "../types";
 import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
@@ -84,6 +84,19 @@ export default function Contratos() {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={async () => {
+                            try {
+                                const res = await contratosApi.gerarCompetencias();
+                                alert(res.message);
+                            } catch (e) {
+                                alert("Erro ao gerar competências.");
+                            }
+                        }}
+                        className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    >
+                        Verificar Competências
+                    </button>
                     <PeriodFilter {...periodFilterState} />
                     <button
                         onClick={() => setShowModal(true)}
@@ -473,6 +486,18 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
         }
     };
 
+    const handleApprove = async () => {
+        if (!confirm(`Confirmar aprovação desta parcela? Um lançamento será gerado nas Contas a Pagar no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}.`)) return;
+        try {
+            const res = await contratoParcelasApi.approve(parcela.id);
+            onUpdate(res);
+            alert("Parcela aprovada e inserida no Contas a Pagar com sucesso!");
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao aprovar parcela.");
+        }
+    };
+
     if (isEditing) {
         return (
             <tr className="bg-indigo-50/30">
@@ -516,11 +541,16 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
                     {parcela.statusAprovacao}
                 </span>
             </td>
-            <td className="p-3 text-center">
+            <td className="p-3 text-center flex items-center justify-center gap-1">
                 {isPendente && (
-                    <button onClick={() => setIsEditing(true)} className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Editar Valores">
-                        <Edit2 size={16} />
-                    </button>
+                    <>
+                        <button onClick={handleApprove} className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Aprovar Parcela">
+                            <CheckCircle2 size={16} />
+                        </button>
+                        <button onClick={() => setIsEditing(true)} className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Editar Valores">
+                            <Edit2 size={16} />
+                        </button>
+                    </>
                 )}
             </td>
         </tr>

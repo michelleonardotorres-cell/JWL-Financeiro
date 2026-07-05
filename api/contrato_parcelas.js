@@ -23,6 +23,70 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
+      if (req.query.action === "aprovar") {
+        const { id } = req.body;
+        if (!id) return res.status(400).json({ error: "id é obrigatório" });
+        
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          
+          // 1. Fetch parcel and contract data
+          const { rows: pRows } = await client.query(
+            `SELECT p.*, c.descricao, c.categoria, c."tipoLancamento", c.subtipo, c."obraId", c."fornecedorId", c."recebedorFornecedor"
+             FROM contrato_parcelas p
+             JOIN contratos c ON c.id = p."contratoId"
+             WHERE p.id = $1 FOR UPDATE`, 
+            [id]
+          );
+          
+          if (pRows.length === 0) throw new Error("Parcela não encontrada");
+          const parcela = pRows[0];
+          
+          if (parcela.statusAprovacao !== 'Pendente') {
+            throw new Error("Parcela já foi aprovada ou não está pendente");
+          }
+          
+          // 2. Insert into Lancamentos
+          const lancId = "l_" + Math.random().toString(36).substring(2, 15);
+          await client.query(
+            `INSERT INTO lancamentos 
+               (id, descricao, valor, tipo, categoria, "tipoLancamento", subtipo, "obraId", "fornecedorId", "recebedorFornecedor", "dataVencimento", "dataCompetencia", status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+            [
+              lancId,
+              `${parcela.descricao} (Parc ${parcela.numeroParcela})`,
+              parcela.valor,
+              "Despesa",
+              parcela.categoria || "Outros",
+              parcela.tipoLancamento || null,
+              parcela.subtipo || null,
+              parcela.obraId || null,
+              parcela.fornecedorId || null,
+              parcela.recebedorFornecedor || null,
+              parcela.dataVencimento,
+              new Date().toISOString().substring(0, 7), // YYYY-MM
+              "Aberto"
+            ]
+          );
+          
+          // 3. Update contrato_parcelas
+          const { rows: updateRows } = await client.query(
+            `UPDATE contrato_parcelas SET "statusAprovacao" = 'Aprovado', "lancamentoId" = $1 WHERE id = $2 RETURNING *`,
+            [lancId, id]
+          );
+          
+          await client.query('COMMIT');
+          return res.status(200).json(updateRows[0]);
+        } catch (e) {
+          await client.query('ROLLBACK');
+          throw e;
+        } finally {
+          client.release();
+        }
+      }
+
+
       const d = req.body;
       if (!d.id || !d.contratoId) return res.status(400).json({ error: "id e contratoId são obrigatórios" });
       const { rows } = await pool.query(

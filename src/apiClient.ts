@@ -107,7 +107,8 @@ export const contratosApi = {
     return apiFetch<Contrato>("contratos", { method: "POST", body: JSON.stringify({ ...contrato, id }) });
   },
   update: (contrato: Contrato) => apiFetch<Contrato>("contratos", { method: "PUT", body: JSON.stringify(contrato) }),
-  delete: (id: string) => apiFetch<{ok: boolean}>(`contratos?id=${id}`, { method: "DELETE" })
+  delete: (id: string) => apiFetch<{ok: boolean}>(`contratos?id=${id}`, { method: "DELETE" }),
+  gerarCompetencias: () => apiFetch<{ok: boolean, count: number, message: string}>("contratos_gerar_competencias", { method: "POST", body: "{}" })
 };
 
 // Contrato Parcelas
@@ -118,5 +119,6 @@ export const contratoParcelasApi = {
     return apiFetch<ContratoParcela>("contrato_parcelas", { method: "POST", body: JSON.stringify({ ...parcela, id }) });
   },
   update: (parcela: ContratoParcela) => apiFetch<ContratoParcela>("contrato_parcelas", { method: "PUT", body: JSON.stringify(parcela) }),
+  approve: (id: string) => apiFetch<ContratoParcela>(`contrato_parcelas?action=aprovar`, { method: "POST", body: JSON.stringify({ id }) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`contrato_parcelas?id=${id}`, { method: "DELETE" })
 };
