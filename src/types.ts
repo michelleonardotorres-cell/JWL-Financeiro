@@ -83,6 +83,8 @@ export type Lancamento = {
   recebedorFornecedor?: string;
   contratoId?: string;
   status: "Aberto" | "Pago" | "Atrasado";
+  lancamentoPaiId?: string | null;
+  parcelas?: { id: string; status: string; dataVencimento: string }[];
 };
 
 export type Contrato = {

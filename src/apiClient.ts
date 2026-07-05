@@ -76,13 +76,14 @@ export const lancamentosApi = {
         searchParams.append(key, String(value));
       }
     });
-    return apiFetch<{ data: Lancamento[], totalItems: number }>(`lancamentos?${searchParams.toString()}`);
+    return apiFetch<{ data: Lancamento[], totalItems: number, totais?: { entradas: number, saidas: number } }>(`lancamentos?${searchParams.toString()}`);
   },
   create: (lancamento: Omit<Lancamento, "id">) => {
     const id = generateId("l");
     return apiFetch<Lancamento>("lancamentos", { method: "POST", body: JSON.stringify({ ...lancamento, id }) });
   },
   update: (lancamento: Lancamento) => apiFetch<Lancamento>("lancamentos", { method: "PUT", body: JSON.stringify(lancamento) }),
+  batchPay: (ids: string[]) => apiFetch<{success: boolean, count: number}>("lancamentos", { method: "PATCH", body: JSON.stringify({ ids }) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`lancamentos?id=${id}`, { method: "DELETE" })
 };
 

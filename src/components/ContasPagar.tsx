@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Fornecedor, Lancamento } from "../types";
 import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye, MoreHorizontal } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 import { safeFormatDate } from "../utils";
+import { lancamentosApi } from "../apiClient";
 
 export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
     const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -13,6 +14,9 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       const initialFornecedores = fornecedores;
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [periodoVencimento, setPeriodoVencimento] = useState<string>("Todos os Períodos");
+  const [contasSelecionadas, setContasSelecionadas] = useState<string[]>([]);
+  const [serverLancamentos, setServerLancamentos] = useState<Lancamento[]>([]);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [filterStatus, setFilterStatus] = useState<
     "Todos" | "Aberto" | "Atrasado" | "Pago"
@@ -264,6 +268,65 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
 
   const [lancamentosBase, setLancamentosBase] = useState(initialLancamentos);
 
+  useEffect(() => {
+    let start: string | undefined;
+    let end: string | undefined;
+    const today = new Date();
+    const tzOffset = today.getTimezoneOffset() * 60000;
+    const localToday = new Date(Date.now() - tzOffset);
+    
+    if (periodoVencimento === "Vence Hoje") {
+      start = localToday.toISOString().split('T')[0];
+      end = start;
+    } else if (periodoVencimento === "Próximos 7 Dias") {
+      start = localToday.toISOString().split('T')[0];
+      const nextWeek = new Date(localToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+      end = nextWeek.toISOString().split('T')[0];
+    } else if (periodoVencimento === "Este Mês") {
+      const firstDay = new Date(localToday.getFullYear(), localToday.getMonth(), 1);
+      const lastDay = new Date(localToday.getFullYear(), localToday.getMonth() + 1, 0);
+      start = firstDay.toISOString().split('T')[0];
+      end = lastDay.toISOString().split('T')[0];
+    } else if (periodoVencimento === "Mês Anterior") {
+      const firstDay = new Date(localToday.getFullYear(), localToday.getMonth() - 1, 1);
+      const lastDay = new Date(localToday.getFullYear(), localToday.getMonth(), 0);
+      start = firstDay.toISOString().split('T')[0];
+      end = lastDay.toISOString().split('T')[0];
+    }
+
+    const fetchServer = async () => {
+      try {
+        const params: any = { tipo: "Despesa" };
+        if (start && end) {
+          params.vencimentoStart = start;
+          params.vencimentoEnd = end;
+        }
+        const res = await lancamentosApi.getPaginated(params);
+        setServerLancamentos(res.data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchServer();
+  }, [periodoVencimento, lancamentosBase]);
+
+  const handleBaixarLote = async () => {
+    if (contasSelecionadas.length === 0) return;
+    try {
+      await lancamentosApi.batchPay(contasSelecionadas);
+      setContasSelecionadas([]);
+      const today = new Date().toISOString().split('T')[0];
+      setLancamentosBase(prev => prev.map(l => 
+        contasSelecionadas.includes(l.id) 
+          ? { ...l, status: "Pago", dataPagamento: today, valorPago: l.valor } 
+          : l
+      ));
+      alert("Contas baixadas com sucesso!");
+    } catch (e) {
+      alert("Erro ao baixar contas em lote");
+    }
+  };
+
   const previsoes = useMemo(() => {
     return contratos
       .filter((c) => c.ativo)
@@ -297,8 +360,31 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   }, [contratos, lancamentosBase, currentMonth, currentYear]);
 
   const despesas = [
-    ...lancamentosBase.filter((l) => l.tipo === "Despesa"),
-    ...previsoes
+    ...serverLancamentos,
+    ...previsoes.filter(p => {
+      if (periodoVencimento === "Todos os Períodos") return true;
+      const today = new Date();
+      const tzOffset = today.getTimezoneOffset() * 60000;
+      const localToday = new Date(Date.now() - tzOffset);
+      const startOfToday = localToday.toISOString().split('T')[0];
+      
+      if (periodoVencimento === "Vence Hoje") return p.dataVencimento === startOfToday;
+      if (periodoVencimento === "Próximos 7 Dias") {
+        const nextWeek = new Date(localToday.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        return p.dataVencimento >= startOfToday && p.dataVencimento <= nextWeek;
+      }
+      if (periodoVencimento === "Este Mês") {
+        const firstDay = new Date(localToday.getFullYear(), localToday.getMonth(), 1).toISOString().split('T')[0];
+        const lastDay = new Date(localToday.getFullYear(), localToday.getMonth() + 1, 0).toISOString().split('T')[0];
+        return p.dataVencimento >= firstDay && p.dataVencimento <= lastDay;
+      }
+      if (periodoVencimento === "Mês Anterior") {
+        const firstDay = new Date(localToday.getFullYear(), localToday.getMonth() - 1, 1).toISOString().split('T')[0];
+        const lastDay = new Date(localToday.getFullYear(), localToday.getMonth(), 0).toISOString().split('T')[0];
+        return p.dataVencimento >= firstDay && p.dataVencimento <= lastDay;
+      }
+      return true;
+    })
   ];
 
   const filtered = despesas
@@ -388,25 +474,62 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col">
-        <div className="p-4 border-b border-zinc-200 flex items-center gap-2 bg-zinc-50/50 shrink-0">
-          {["Todos", "Aberto", "Atrasado", "Pago"].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status as any)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filterStatus === status
-                ? "bg-zinc-900 text-white"
-                : "bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50"
-                }`}
+        <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-50/50 shrink-0">
+          <div className="flex items-center gap-2">
+            {["Todos", "Aberto", "Atrasado", "Pago"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status as any)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filterStatus === status
+                  ? "bg-zinc-900 text-white"
+                  : "bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+                  }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-4">
+            <select
+              value={periodoVencimento}
+              onChange={(e) => setPeriodoVencimento(e.target.value)}
+              className="bg-white border border-zinc-300 text-zinc-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2"
             >
-              {status}
-            </button>
-          ))}
-        </div>
+              <option value="Todos os Períodos">Todos os Períodos</option>
+              <option value="Vence Hoje">Vence Hoje</option>
+              <option value="Próximos 7 Dias">Próximos 7 Dias</option>
+              <option value="Este Mês">Este Mês</option>
+              <option value="Mês Anterior">Mês Anterior</option>
+            </select>
 
+            {contasSelecionadas.length > 0 && (
+              <button
+                onClick={handleBaixarLote}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-sm"
+              >
+                Baixar Selecionados ({contasSelecionadas.length})
+              </button>
+            )}
+          </div>
+        </div>
         <div className="overflow-x-auto overflow-y-auto flex-1">
           <table className="min-w-[1040px] w-full table-fixed text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
               <tr className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500 font-semibold">
+                <th className="p-4 w-[50px] text-center">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && contasSelecionadas.length === filtered.filter(l => !(l as any).isPrevisao && l.status !== "Pago").length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setContasSelecionadas(filtered.filter(l => !(l as any).isPrevisao && l.status !== "Pago").map(l => l.id));
+                      } else {
+                        setContasSelecionadas([]);
+                      }
+                    }}
+                    className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                  />
+                </th>
                 <th className="p-4 w-[120px]">Vencimento</th>
                 <th className="p-4 w-[120px]">Data Pgto</th>
                 <th className="p-4 w-[250px]">Descrição</th>
@@ -421,6 +544,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
               {isAdding && (
                 <>
                 <tr className="bg-indigo-50/30">
+                  <td className="p-2"></td>
                   <td className="p-2">
                     <input
                       type="date"
@@ -481,7 +605,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   </td>
                 </tr>
                 <tr className="bg-indigo-50/10">
-                  <td colSpan={8} className="p-3 border-t border-indigo-100">
+                  <td colSpan={9} className="p-3 border-t border-indigo-100">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-4">
                         <label className="text-xs font-semibold text-zinc-600">Forma de Pagamento:</label>
@@ -554,8 +678,38 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                 );
                 return (
                   <tr key={`${l.id}-${i}`} className="hover:bg-zinc-50 transition-colors">
-                    <td className="p-4 text-sm font-medium text-zinc-900 whitespace-nowrap">
-                      {safeFormatDate(l.dataVencimento)}
+                    <td className="p-4 text-center">
+                      {!(l as any).isPrevisao && l.status !== "Pago" && (
+                        <input
+                          type="checkbox"
+                          checked={contasSelecionadas.includes(l.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setContasSelecionadas([...contasSelecionadas, l.id]);
+                            } else {
+                              setContasSelecionadas(contasSelecionadas.filter(id => id !== l.id));
+                            }
+                          }}
+                          className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                        />
+                      )}
+                    </td>
+                    <td className="p-4 text-sm font-medium whitespace-nowrap">
+                      {(() => {
+                        const today = new Date();
+                        const tzOffset = today.getTimezoneOffset() * 60000;
+                        const localTodayStr = new Date(Date.now() - tzOffset).toISOString().split('T')[0];
+                        const tomorrowStr = new Date(Date.now() - tzOffset + 24*60*60*1000).toISOString().split('T')[0];
+                        
+                        const isUrgent = l.status !== "Pago" && (l.dataVencimento === localTodayStr || l.dataVencimento === tomorrowStr);
+                        
+                        return (
+                          <div className={`flex items-center gap-1.5 ${isUrgent ? 'text-orange-600 font-bold' : 'text-zinc-900'}`}>
+                            {isUrgent && <Clock size={14} className="text-orange-600" />}
+                            {safeFormatDate(l.dataVencimento)}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="p-4 text-sm font-medium text-zinc-900 whitespace-nowrap">
                       {l.dataPagamento ? safeFormatDate(l.dataPagamento) : "-"}

@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const { 
         page, limit, 
-        dataCompetencia, formaPagamento, nf, recebedorFornecedor, descricao, tipoLancamento, subtipo, obraId, valor, tipo, startDate, endDate 
+        dataCompetencia, formaPagamento, nf, recebedorFornecedor, descricao, tipoLancamento, subtipo, obraId, valor, tipo, startDate, endDate, vencimentoStart, vencimentoEnd
       } = req.query;
 
       let whereClause = "WHERE 1=1";
@@ -72,26 +72,57 @@ export default async function handler(req, res) {
         params.push(startDate, endDate);
         paramCount += 2;
       }
+      if (vencimentoStart && vencimentoEnd) {
+        whereClause += ` AND "dataVencimento" >= $${paramCount} AND "dataVencimento" <= $${paramCount + 1}`;
+        params.push(vencimentoStart, vencimentoEnd);
+        paramCount += 2;
+      }
 
       const baseQuery = `SELECT id, "dataCompetencia", "dataVencimento", "dataPagamento",
                 "formaPagamento", nf, descricao, valor, "valorPago", "jurosMulta", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
-                "recebedorFornecedor", "contratoId", status
+                "recebedorFornecedor", "contratoId", status, "lancamentoPaiId",
+                (
+                  SELECT COALESCE(json_agg(
+                    json_build_object('id', child.id, 'status', child.status, 'dataVencimento', child."dataVencimento")
+                  ), '[]'::json)
+                  FROM lancamentos child
+                  WHERE child."lancamentoPaiId" = lancamentos.id
+                ) AS parcelas
          FROM lancamentos ${whereClause}`;
 
       if (!page || !limit) {
         const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" DESC`, params);
-        return res.status(200).json(rows);
+        
+        // Also compute totals for the unpaginated call
+        const countResult = await pool.query(`SELECT 
+          SUM(valor) FILTER (WHERE tipo = 'Receita') as entradas, 
+          SUM(valor) FILTER (WHERE tipo = 'Despesa') as saidas 
+          FROM lancamentos ${whereClause}`, params);
+          
+        const totais = {
+          entradas: parseFloat(countResult.rows[0].entradas || 0),
+          saidas: parseFloat(countResult.rows[0].saidas || 0)
+        };
+        
+        return res.status(200).json({ data: rows, totais, totalItems: rows.length });
       } else {
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
 
-        const countResult = await pool.query(`SELECT COUNT(*) FROM lancamentos ${whereClause}`, params);
+        const countResult = await pool.query(`SELECT COUNT(*),
+          SUM(valor) FILTER (WHERE tipo = 'Receita') as entradas, 
+          SUM(valor) FILTER (WHERE tipo = 'Despesa') as saidas 
+          FROM lancamentos ${whereClause}`, params);
         const totalItems = parseInt(countResult.rows[0].count, 10);
+        const totais = {
+          entradas: parseFloat(countResult.rows[0].entradas || 0),
+          saidas: parseFloat(countResult.rows[0].saidas || 0)
+        };
 
         const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`, [...params, limitNum, offset]);
-        return res.status(200).json({ data: rows, totalItems });
+        return res.status(200).json({ data: rows, totalItems, totais });
       }
     }
 
@@ -102,13 +133,13 @@ export default async function handler(req, res) {
         `INSERT INTO lancamentos
            (id, "dataCompetencia", "dataVencimento", "dataPagamento", "formaPagamento",
             nf, descricao, valor, "valorPago", "jurosMulta", tipo, categoria, "tipoLancamento", subtipo,
-            "obraId", "fornecedorId", "recebedorFornecedor", "contratoId", status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+            "obraId", "fornecedorId", "recebedorFornecedor", "contratoId", status, "lancamentoPaiId")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
          ON CONFLICT (id) DO UPDATE SET
            "dataCompetencia"=$2, "dataVencimento"=$3, "dataPagamento"=$4, "formaPagamento"=$5,
            nf=$6, descricao=$7, valor=$8, "valorPago"=$9, "jurosMulta"=$10, tipo=$11, categoria=$12, "tipoLancamento"=$13,
            subtipo=$14, "obraId"=$15, "fornecedorId"=$16, "recebedorFornecedor"=$17,
-           "contratoId"=$18, status=$19
+           "contratoId"=$18, status=$19, "lancamentoPaiId"=$20
          RETURNING *`,
         [
           d.id, d.dataCompetencia, d.dataVencimento, d.dataPagamento || null,
@@ -116,7 +147,7 @@ export default async function handler(req, res) {
           d.valorPago || null, d.jurosMulta || null,
           d.tipo || "Despesa", d.categoria || "", d.tipoLancamento || null,
           d.subtipo || null, d.obraId || null, d.fornecedorId || null,
-          d.recebedorFornecedor || null, d.contratoId || null, d.status || "Aberto"
+          d.recebedorFornecedor || null, d.contratoId || null, d.status || "Aberto", d.lancamentoPaiId || null
         ]
       );
       return res.status(200).json(rows[0]);
@@ -130,7 +161,7 @@ export default async function handler(req, res) {
            "dataCompetencia"=$2, "dataVencimento"=$3, "dataPagamento"=$4, "formaPagamento"=$5,
            nf=$6, descricao=$7, valor=$8, "valorPago"=$9, "jurosMulta"=$10, tipo=$11, categoria=$12, "tipoLancamento"=$13,
            subtipo=$14, "obraId"=$15, "fornecedorId"=$16, "recebedorFornecedor"=$17,
-           "contratoId"=$18, status=$19
+           "contratoId"=$18, status=$19, "lancamentoPaiId"=$20
          WHERE id=$1 RETURNING *`,
         [
           d.id, d.dataCompetencia, d.dataVencimento, d.dataPagamento || null,
@@ -138,10 +169,28 @@ export default async function handler(req, res) {
           d.valorPago || null, d.jurosMulta || null,
           d.tipo || "Despesa", d.categoria || "", d.tipoLancamento || null,
           d.subtipo || null, d.obraId || null, d.fornecedorId || null,
-          d.recebedorFornecedor || null, d.contratoId || null, d.status || "Aberto"
+          d.recebedorFornecedor || null, d.contratoId || null, d.status || "Aberto", d.lancamentoPaiId || null
         ]
       );
       return res.status(200).json(rows[0]);
+    }
+
+    if (req.method === "PATCH") {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "array de ids é obrigatório" });
+      }
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      const placeholders = ids.map((_, idx) => `$${idx + 2}`).join(',');
+      const { rowCount } = await pool.query(
+        `UPDATE lancamentos 
+         SET status = 'Pago', "dataPagamento" = $1, "valorPago" = valor 
+         WHERE id IN (${placeholders})`,
+        [today, ...ids]
+      );
+      return res.status(200).json({ success: true, count: rowCount });
     }
 
     if (req.method === "DELETE") {

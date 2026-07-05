@@ -111,8 +111,8 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       setData(res.data);
       setServerTotalItems(res.totalItems);
       
-      const entradas = res.data.filter((l: any) => l.tipo === "Receita").reduce((acc: number, curr: any) => acc + curr.valor, 0);
-      const saidas = res.data.filter((l: any) => l.tipo === "Despesa").reduce((acc: number, curr: any) => acc + curr.valor, 0);
+      const entradas = res.totais?.entradas || 0;
+      const saidas = res.totais?.saidas || 0;
       setPageEntradasSum(entradas);
       setPageSaidasSum(saidas);
     } catch (err) {
@@ -123,6 +123,18 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
   useEffect(() => {
     fetchTableData();
   }, [currentPage, pageSize, debouncedColFilters, activeFilter]);
+
+  const calcularStatusLancamento = (lancamento: Lancamento) => {
+    if (lancamento.formaPagamento === "À VISTA") return "Pago";
+    if (lancamento.parcelas && lancamento.parcelas.length > 0) {
+      const allPaid = lancamento.parcelas.every(p => p.status === "Pago");
+      if (allPaid) return "Pago";
+      const anyLate = lancamento.parcelas.some(p => p.status === "Atrasado");
+      if (anyLate) return "Atrasado";
+      return "Pendente";
+    }
+    return lancamento.status || "Aberto";
+  };
 
   const checkDependency = (l: Lancamento) => {
     if (l.tipo === "Despesa" && l.status === "Pago") {
@@ -1052,7 +1064,15 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       {safeFormatDate(l.dataCompetencia)}
                     </td>
                     <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
-                      {l.formaPagamento || "-"}
+                      <div className="flex flex-col gap-1 items-start justify-center">
+                        <span>{l.formaPagamento || "-"}</span>
+                        {(() => {
+                          const st = calcularStatusLancamento(l);
+                          if (st === "Pago") return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">Pago</span>;
+                          if (st === "Atrasado") return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 border border-red-200">Atrasado</span>;
+                          return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">Pendente</span>;
+                        })()}
+                      </div>
                     </td>
                     <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
                       {l.nf || "-"}

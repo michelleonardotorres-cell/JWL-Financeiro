@@ -32,7 +32,10 @@ function getPool() {
     });
     
     // Adapt backend table if needed
-    pool.query(`ALTER TABLE lancamentos ADD COLUMN IF NOT EXISTS "valorPago" numeric, ADD COLUMN IF NOT EXISTS "jurosMulta" numeric;`)
+    pool.query(`ALTER TABLE lancamentos 
+      ADD COLUMN IF NOT EXISTS "valorPago" numeric, 
+      ADD COLUMN IF NOT EXISTS "jurosMulta" numeric,
+      ADD COLUMN IF NOT EXISTS "lancamentoPaiId" text;`)
       .catch(e => console.log('Schema migration note:', e.message));
   }
   return pool;
