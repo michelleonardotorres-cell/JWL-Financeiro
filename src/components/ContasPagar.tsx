@@ -13,6 +13,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       const initialFornecedores = fornecedores;
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [filterStatus, setFilterStatus] = useState<
     "Todos" | "Aberto" | "Atrasado" | "Pago"
   >("Todos");
@@ -585,7 +586,15 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     <td className="p-4 text-center whitespace-nowrap">
                       <div className="relative inline-block text-left">
                         <button
-                          onClick={() => setActiveMenuId(activeMenuId === l.id ? null : l.id)}
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const isNearBottom = rect.bottom > window.innerHeight - 150;
+                            setMenuPos({ 
+                              top: isNearBottom ? rect.top - 110 : rect.bottom + 5, 
+                              right: window.innerWidth - rect.right 
+                            });
+                            setActiveMenuId(activeMenuId === l.id ? null : l.id);
+                          }}
                           className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-zinc-700 transition-colors"
                           title="Opções"
                         >
@@ -595,7 +604,10 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                         {activeMenuId === l.id && (
                           <>
                             <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                            <div className={`absolute right-0 w-32 bg-white border border-zinc-200 rounded-lg shadow-lg z-30 py-1 text-left ${i >= filtered.length - 2 && filtered.length > 3 ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                            <div 
+                               className="fixed bg-white border border-zinc-200 rounded-lg shadow-lg z-[99] py-1 text-left w-32"
+                               style={{ top: menuPos.top, right: menuPos.right }}
+                            >
                               {l.status !== "Pago" ? (
                                 (l as any).isPrevisao ? (
                                   <button
