@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         paramCount++;
       }
       if (obraId) {
-        whereClause += ` AND "obraId" ILIKE $${paramCount}`;
+        whereClause += ` AND ("obraId" ILIKE $${paramCount} OR "obraId" IN (SELECT id FROM obras WHERE nome ILIKE $${paramCount}))`;
         params.push(`%${obraId}%`);
         paramCount++;
       }

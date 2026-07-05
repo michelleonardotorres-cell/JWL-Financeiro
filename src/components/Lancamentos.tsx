@@ -1112,6 +1112,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar centro..."
                       value={colFilters.obraId}
                       onChange={(e) => setColFilters({ ...colFilters, obraId: e.target.value })}
+                      onClick={() => setColFilters({ ...colFilters, obraId: "" })}
                       className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                     <datalist id="col-filter-centro-list">
