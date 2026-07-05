@@ -69,6 +69,11 @@ export default function Combobox({ options, value, onChange, placeholder = "Sele
             const exactMatch = options.find(o => normalizeString(o.label) === normalizeString(e.target.value));
             if (exactMatch) onChange(exactMatch.id);
           }}
+          onClick={() => {
+            setInputValue("");
+            onChange("");
+            setIsOpen(true);
+          }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           className="w-full p-2.5 pr-10 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"

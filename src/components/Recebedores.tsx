@@ -767,6 +767,7 @@ export default function Recebedores() {
                         list="segmento-options-recebedores"
                         value={formData.segmento} 
                         onChange={e => setFormData({...formData, segmento: e.target.value})} 
+                        onClick={e => setFormData({...formData, segmento: ""})}
                         className="w-full p-1.5 border border-zinc-300 rounded focus:outline-none focus:border-[#3db2e3] text-zinc-600 bg-white"
                         placeholder="Digite ou selecione..."
                       />

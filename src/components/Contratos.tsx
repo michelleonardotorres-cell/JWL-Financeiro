@@ -194,6 +194,7 @@ export default function Contratos() {
                                             placeholder="Tipo"
                                             value={newEntry.tipoLancamento}
                                             onChange={(e) => setNewEntry({ ...newEntry, tipoLancamento: e.target.value })}
+                                            onClick={(e) => setNewEntry({ ...newEntry, tipoLancamento: "" })}
                                             className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                                         />
                                     </td>
