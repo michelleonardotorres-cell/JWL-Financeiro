@@ -552,7 +552,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   (o) => o.id === l.obraId || o.nome === l.obraId
                 );
                 return (
-                  <tr key={l.id} className="hover:bg-zinc-50 transition-colors">
+                  <tr key={`${l.id}-${i}`} className="hover:bg-zinc-50 transition-colors">
                     <td className="p-4 text-sm font-medium text-zinc-900 whitespace-nowrap">
                       {safeFormatDate(l.dataVencimento)}
                     </td>

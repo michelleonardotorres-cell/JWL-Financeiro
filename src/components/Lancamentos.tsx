@@ -1305,7 +1305,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                 );
 
                 return (
-                  <tr key={l.id} className="hover:bg-zinc-50 transition-colors">
+                  <tr key={`${l.id}-${i}`} className="hover:bg-zinc-50 transition-colors">
                     <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
                       {safeFormatDate(l.dataCompetencia)}
                     </td>
