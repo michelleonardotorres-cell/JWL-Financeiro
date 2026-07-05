@@ -22,11 +22,44 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 export default function Dashboard() {
-  const { obras, fornecedores, lancamentos } = useData();
+  const { obras, fornecedores, lancamentos: allLancamentos } = useData();
 
+  const [globalPeriod, setGlobalPeriod] = useState<string>("mes_atual");
+  const [globalObra, setGlobalObra] = useState<string>("all");
   const [filterPagamentos, setFilterPagamentos] = useState<string>("all");
   const [filterRecebimentos, setFilterRecebimentos] = useState<string>("all");
   const [modalData, setModalData] = useState<{ title: string; items: Lancamento[] } | null>(null);
+
+  const isDateInPeriod = (dateStr: string | null | undefined, period: string) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr + "T00:00:00");
+    const now = new Date();
+    
+    if (period === "mes_atual") {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }
+    if (period === "ultimos_30") {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+      return date >= thirtyDaysAgo && date <= now;
+    }
+    if (period === "este_ano") {
+      return date.getFullYear() === now.getFullYear();
+    }
+    return true; 
+  };
+
+  const lancamentos = allLancamentos.filter(l => {
+    if (globalObra !== "all") {
+       const obra = obras.find(o => o.id === globalObra);
+       if (l.obraId !== globalObra && l.obraId !== obra?.nome) return false;
+    }
+    if (globalPeriod !== "personalizado") {
+       const dateToUse = l.dataVencimento || l.dataCompetencia;
+       if (!isDateInPeriod(dateToUse, globalPeriod)) return false;
+    }
+    return true;
+  });
 
   const receitas = lancamentos.filter((l) => l.tipo === "Receita").reduce((acc, curr) => acc + curr.valor, 0);
   const despesas = lancamentos.filter((l) => l.tipo === "Despesa").reduce((acc, curr) => acc + curr.valor, 0);
@@ -233,13 +266,40 @@ export default function Dashboard() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 pb-20">
-      <header>
-        <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">
-          Visão Geral Financeira
-        </h1>
-        <p className="text-zinc-500 mt-1">
-          Resumo consolidado de todas as obras e contas.
-        </p>
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">
+            Visão Geral Financeira
+          </h1>
+          <p className="text-zinc-500 mt-1">
+            {globalObra === "all" 
+              ? "Resumo consolidado de todas as obras e contas." 
+              : `Resumo da obra: ${obras.find(o => o.id === globalObra)?.nome || globalObra}`}
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <select
+            value={globalPeriod}
+            onChange={(e) => setGlobalPeriod(e.target.value)}
+            className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+          >
+            <option value="mes_atual">Mês Atual</option>
+            <option value="ultimos_30">Últimos 30 Dias</option>
+            <option value="este_ano">Este Ano</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+          
+          <select
+            value={globalObra}
+            onChange={(e) => setGlobalObra(e.target.value)}
+            className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+          >
+            <option value="all">Todas as Obras</option>
+            {obras.map(o => (
+              <option key={o.id} value={o.id}>{o.nome}</option>
+            ))}
+          </select>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
