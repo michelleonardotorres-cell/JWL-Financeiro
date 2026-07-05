@@ -1,4 +1,4 @@
-import { Obra, Fornecedor, Lancamento, Contrato } from "./types";
+import { Obra, Fornecedor, Lancamento, Contrato, ContratoParcela } from "./types";
 
 // Polyfill for randomUUID if not available in older browsers
 function generateId(prefix: string) {
@@ -108,4 +108,15 @@ export const contratosApi = {
   },
   update: (contrato: Contrato) => apiFetch<Contrato>("contratos", { method: "PUT", body: JSON.stringify(contrato) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`contratos?id=${id}`, { method: "DELETE" })
+};
+
+// Contrato Parcelas
+export const contratoParcelasApi = {
+  getByContratoId: (contratoId: string) => apiFetch<ContratoParcela[]>(`contrato_parcelas?contratoId=${contratoId}`),
+  create: (parcela: Omit<ContratoParcela, "id">) => {
+    const id = generateId("cp");
+    return apiFetch<ContratoParcela>("contrato_parcelas", { method: "POST", body: JSON.stringify({ ...parcela, id }) });
+  },
+  update: (parcela: ContratoParcela) => apiFetch<ContratoParcela>("contrato_parcelas", { method: "PUT", body: JSON.stringify(parcela) }),
+  delete: (id: string) => apiFetch<{ok: boolean}>(`contrato_parcelas?id=${id}`, { method: "DELETE" })
 };

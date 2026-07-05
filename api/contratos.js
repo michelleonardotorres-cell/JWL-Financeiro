@@ -11,7 +11,8 @@ export default async function handler(req, res) {
       const { rows } = await pool.query(
         `SELECT id, descricao, "valorPrevisto", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
-                "recebedorFornecedor", "diaVencimento", ativo
+                "recebedorFornecedor", "diaVencimento", ativo,
+                "dataInicio", "dataTermino", status, "valorTotal"
          FROM contratos ORDER BY descricao ASC`
       );
       // Parse boolean ativo field
@@ -24,18 +25,20 @@ export default async function handler(req, res) {
       const { rows } = await pool.query(
         `INSERT INTO contratos
            (id, descricao, "valorPrevisto", tipo, categoria, "tipoLancamento",
-            subtipo, "obraId", "fornecedorId", "recebedorFornecedor", "diaVencimento", ativo)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            subtipo, "obraId", "fornecedorId", "recebedorFornecedor", "diaVencimento", ativo,
+            "dataInicio", "dataTermino", status, "valorTotal")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
          ON CONFLICT (id) DO UPDATE SET
            descricao=$2, "valorPrevisto"=$3, tipo=$4, categoria=$5, "tipoLancamento"=$6,
            subtipo=$7, "obraId"=$8, "fornecedorId"=$9, "recebedorFornecedor"=$10,
-           "diaVencimento"=$11, ativo=$12
+           "diaVencimento"=$11, ativo=$12, "dataInicio"=$13, "dataTermino"=$14, status=$15, "valorTotal"=$16
          RETURNING *`,
         [
           d.id, d.descricao, d.valorPrevisto || 0, d.tipo || "Despesa",
           d.categoria || "", d.tipoLancamento || null, d.subtipo || null,
           d.obraId || null, d.fornecedorId || null, d.recebedorFornecedor || null,
-          d.diaVencimento || 1, d.ativo !== undefined ? d.ativo : true
+          d.diaVencimento || 1, d.ativo !== undefined ? d.ativo : true,
+          d.dataInicio || null, d.dataTermino || null, d.status || 'Ativo', d.valorTotal || null
         ]
       );
       return res.status(200).json(rows[0]);
@@ -48,13 +51,14 @@ export default async function handler(req, res) {
         `UPDATE contratos SET
            descricao=$2, "valorPrevisto"=$3, tipo=$4, categoria=$5, "tipoLancamento"=$6,
            subtipo=$7, "obraId"=$8, "fornecedorId"=$9, "recebedorFornecedor"=$10,
-           "diaVencimento"=$11, ativo=$12
+           "diaVencimento"=$11, ativo=$12, "dataInicio"=$13, "dataTermino"=$14, status=$15, "valorTotal"=$16
          WHERE id=$1 RETURNING *`,
         [
           d.id, d.descricao, d.valorPrevisto || 0, d.tipo || "Despesa",
           d.categoria || "", d.tipoLancamento || null, d.subtipo || null,
           d.obraId || null, d.fornecedorId || null, d.recebedorFornecedor || null,
-          d.diaVencimento || 1, d.ativo !== undefined ? d.ativo : true
+          d.diaVencimento || 1, d.ativo !== undefined ? d.ativo : true,
+          d.dataInicio || null, d.dataTermino || null, d.status || 'Ativo', d.valorTotal || null
         ]
       );
       return res.status(200).json(rows[0]);
