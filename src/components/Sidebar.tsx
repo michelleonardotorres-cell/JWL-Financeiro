@@ -10,7 +10,9 @@ import {
   CalendarDays,
   RotateCcw,
   BookUser,
-  ChevronRight
+  ChevronRight,
+  Menu,
+  X as XIcon
 } from "lucide-react";
 
 type SidebarProps = {
@@ -22,6 +24,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const showText = isExpanded || mobileMenuOpen;
 
   const menuItems = [
     { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
@@ -42,19 +47,34 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   ];
 
   return (
-    <aside
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => {
-        setIsExpanded(false);
-        setActiveDropdown(null);
-      }}
-      className={`${isExpanded ? "w-64" : "w-20"} bg-zinc-950 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 transition-all duration-300 ease-in-out z-50 relative`}
-    >
-      <div className={`p-4 border-b border-zinc-800 flex items-center ${isExpanded ? "justify-start" : "justify-center"}`}>
+    <>
+      <button 
+        className="md:hidden fixed bottom-6 right-6 z-[70] bg-emerald-500 text-white p-4 rounded-full shadow-lg"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+      >
+        {mobileMenuOpen ? <XIcon size={24} /> : <Menu size={24} />}
+      </button>
+
+      {mobileMenuOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-[60]" 
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => {
+          setIsExpanded(false);
+          setActiveDropdown(null);
+        }}
+        className={`fixed md:relative ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} w-64 ${isExpanded ? "md:w-64" : "md:w-20"} bg-zinc-950 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 transition-all duration-300 ease-in-out z-[65]`}
+      >
+      <div className={`p-4 border-b border-zinc-800 flex items-center ${showText ? "justify-start" : "justify-center"}`}>
         <div className="flex items-center justify-center min-w-[24px]">
           <Building2 className="text-emerald-500" size={24} />
         </div>
-        <div className={`flex items-center gap-2 duration-300 whitespace-nowrap overflow-hidden ${isExpanded ? "opacity-100 ml-2 w-auto" : "opacity-0 w-0 ml-0"}`}>
+        <div className={`flex items-center gap-2 duration-300 whitespace-nowrap overflow-hidden ${showText ? "opacity-100 ml-2 w-auto" : "opacity-0 w-0 ml-0"}`}>
           <div>
             <h1 className="text-xl font-bold text-white">
               ConstruFin
@@ -85,8 +105,8 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                 className={`w-full flex items-center justify-between py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
                   ? "bg-emerald-500/10 text-emerald-400"
                   : "hover:bg-zinc-900 hover:text-white"
-                  } ${isExpanded ? "px-3" : "px-0 justify-center"}`}
-                title={!isExpanded ? item.label : undefined}
+                  } ${showText ? "px-3" : "px-0 justify-center"}`}
+                title={!showText ? item.label : undefined}
               >
                 <div className="flex items-center">
                   <div className="flex items-center justify-center min-w-[20px]">
@@ -95,12 +115,12 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                       className={isActive ? "text-emerald-500" : "text-zinc-500"}
                     />
                   </div>
-                  <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 ml-3 w-auto" : "opacity-0 w-0 ml-0"}`}>
+                  <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${showText ? "opacity-100 ml-3 w-auto" : "opacity-0 w-0 ml-0"}`}>
                     {item.label}
                   </span>
                 </div>
                 {item.subItems && (
-                  <ChevronRight size={16} className={`transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 w-0"} ${isDropdownOpen ? 'rotate-90' : ''}`} />
+                  <ChevronRight size={16} className={`transition-all duration-300 ${showText ? "opacity-100" : "opacity-0 w-0"} ${isDropdownOpen ? 'rotate-90' : ''}`} />
                 )}
               </button>
 
@@ -125,12 +145,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         })}
       </nav>
       <div className="p-4 border-t border-zinc-800 space-y-2 shrink-0">
-        <div className={`text-[10px] text-zinc-600 transition-all duration-300 ${isExpanded ? "opacity-100 text-center" : "opacity-0"}`}>
+        <div className={`text-[10px] text-zinc-600 transition-all duration-300 ${showText ? "opacity-100 text-center" : "opacity-0"}`}>
           <span className="whitespace-nowrap overflow-hidden block">
             &copy; 2024 ConstruFin
           </span>
         </div>
       </div>
     </aside>
+    </>
   );
 }
