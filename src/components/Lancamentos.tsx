@@ -1390,7 +1390,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               })}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {data.length === 0 && (
             <div className="p-8 text-center text-zinc-500">
               Nenhum lançamento encontrado.
             </div>
