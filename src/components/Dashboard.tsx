@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Building2, TrendingDown, TrendingUp, AlertCircle, Edit2, X, Printer, Phone, CheckCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Building2, TrendingDown, TrendingUp, AlertCircle, Edit2, X, Printer, Phone, CheckCircle, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import { Lancamento } from "../types";
@@ -29,6 +29,12 @@ export default function Dashboard() {
   const [filterPagamentos, setFilterPagamentos] = useState<string>("all");
   const [filterRecebimentos, setFilterRecebimentos] = useState<string>("all");
   const [modalData, setModalData] = useState<{ title: string; items: Lancamento[] } | null>(null);
+
+  useEffect(() => {
+    // TODO: Connect to backend API (Prisma/PostgreSQL)
+    // This hook will trigger refetch whenever globalPeriod or globalObra changes.
+    console.log("Refetching dashboard data for:", { globalPeriod, globalObra });
+  }, [globalPeriod, globalObra]);
 
   const isDateInPeriod = (dateStr: string | null | undefined, period: string) => {
     if (!dateStr) return false;
@@ -120,6 +126,11 @@ export default function Dashboard() {
 
   const totalPagamentosCount = pagamentosData.reduce((acc, curr) => acc + curr.count, 0);
   const totalRecebimentosCount = recebimentosData.reduce((acc, curr) => acc + curr.count, 0);
+
+  const projecaoRecebimentos = recebimentosData.reduce((acc, curr) => acc + curr.value, 0);
+  const projecaoPagamentos = pagamentosData.reduce((acc, curr) => acc + curr.value, 0);
+  const saldoProjetado = saldo + projecaoRecebimentos - projecaoPagamentos;
+  const isPositivo = saldoProjetado >= 0;
 
   const renderCard = (title: string, data: any[], filterVal: string, setFilter: (val: string) => void, donutLabel: string, totalCount: number) => {
     const totalValue = data.reduce((acc, curr) => acc + curr.value, 0);
@@ -302,31 +313,31 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-zinc-500">Receitas Totais</h3>
             <TrendingUp className="text-emerald-500" size={20} />
           </div>
-          <p className="text-3xl font-semibold text-zinc-900 mt-4">{formatCurrency(receitas)}</p>
+          <p className="text-2xl font-semibold text-zinc-900 mt-4">{formatCurrency(receitas)}</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-zinc-500">Despesas Totais</h3>
             <TrendingDown className="text-rose-500" size={20} />
           </div>
-          <p className="text-3xl font-semibold text-zinc-900 mt-4">{formatCurrency(despesas)}</p>
+          <p className="text-2xl font-semibold text-zinc-900 mt-4">{formatCurrency(despesas)}</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-zinc-500">Saldo Consolidado</h3>
             <Building2 className="text-indigo-500" size={20} />
           </div>
-          <p className={`text-3xl font-semibold mt-4 ${saldo >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+          <p className={`text-2xl font-semibold mt-4 ${saldo >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
             {formatCurrency(saldo)}
           </p>
         </div>
-        <div className={`p-6 rounded-2xl border shadow-sm transition-colors ${atrasados > 0 ? "bg-rose-50 border-rose-100" : "bg-emerald-50 border-emerald-100"}`}>
+        <div className={`p-6 rounded-2xl border shadow-sm transition-colors flex flex-col justify-between ${atrasados > 0 ? "bg-rose-50 border-rose-100" : "bg-emerald-50 border-emerald-100"}`}>
           <div className="flex items-center justify-between">
             <h3 className={`text-sm font-medium ${atrasados > 0 ? "text-rose-700" : "text-emerald-700"}`}>Contas Atrasadas</h3>
             {atrasados > 0 ? (
@@ -335,7 +346,15 @@ export default function Dashboard() {
               <CheckCircle className="text-emerald-600" size={20} />
             )}
           </div>
-          <p className={`text-3xl font-semibold mt-4 ${atrasados > 0 ? "text-rose-700" : "text-emerald-700"}`}>{formatCurrency(atrasados)}</p>
+          <p className={`text-2xl font-semibold mt-4 ${atrasados > 0 ? "text-rose-700" : "text-emerald-700"}`}>{formatCurrency(atrasados)}</p>
+        </div>
+        
+        <div className={`p-6 rounded-2xl border shadow-sm flex flex-col justify-between ${isPositivo ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"}`}>
+          <div className="flex items-center justify-between">
+            <h3 className={`text-sm font-medium ${isPositivo ? "text-emerald-700" : "text-rose-700"}`}>Projeção (30d)</h3>
+            {isPositivo ? <ArrowUpRight className="text-emerald-600" size={20} /> : <ArrowDownRight className="text-rose-600" size={20} />}
+          </div>
+          <p className={`text-2xl font-semibold mt-4 ${isPositivo ? "text-emerald-700" : "text-rose-700"}`}>{formatCurrency(saldoProjetado)}</p>
         </div>
       </div>
 
@@ -377,20 +396,42 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-zinc-900">Obras Ativas</h2>
           </div>
           <div className="divide-y divide-zinc-100">
-            {obras.map((o) => (
-              <div key={o.id} className="p-4 flex items-center justify-between hover:bg-zinc-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
-                    <Building2 className="text-indigo-600" size={18} />
+            {obras.map((o) => {
+              const custoRealizado = allLancamentos.filter(l => l.tipo === "Despesa" && (l.obraId === o.id || l.obraId === o.nome)).reduce((acc, curr) => acc + curr.valor, 0);
+              const orcamentoPrevisto = (o.valorContrato || 0) + (o.aditivo || 0) + (o.reajusteContrato || 0) || Math.max(custoRealizado * 1.5, 100000);
+              const consumedPercent = Math.min((custoRealizado / orcamentoPrevisto) * 100, 100);
+              
+              let barColor = "bg-emerald-500";
+              if (consumedPercent > 70) barColor = "bg-amber-500";
+              if (consumedPercent > 90) barColor = "bg-rose-500";
+
+              return (
+                <div key={o.id} className="p-4 hover:bg-zinc-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                        <Building2 className="text-indigo-600" size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900">{o.nome}</p>
+                        <p className="text-xs text-zinc-500">{o.status}</p>
+                      </div>
+                    </div>
+                    <button className="text-sm text-indigo-600 font-medium hover:underline">Ver Detalhes</button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-zinc-900">{o.nome}</p>
-                    <p className="text-xs text-zinc-500">{o.status}</p>
+                  
+                  <div className="mt-3 ml-[52px]">
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-zinc-500">Orçamento consumido</span>
+                      <span className="font-semibold text-zinc-700">{consumedPercent.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                      <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${consumedPercent}%` }}></div>
+                    </div>
                   </div>
                 </div>
-                <button className="text-sm text-indigo-600 font-medium hover:underline">Ver Detalhes</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
