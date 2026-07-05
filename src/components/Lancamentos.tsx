@@ -969,21 +969,21 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
 
   return (
     <div className="p-8 w-full h-full flex flex-col space-y-6">
-      <header className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 shrink-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight truncate">
             Lançamentos
           </h1>
-          <p className="text-zinc-500 mt-1">
+          <p className="text-zinc-500 mt-1 truncate">
             Registro de todas as receitas e despesas.
           </p>
         </div>
-        <div className="relative">
-          <div className="flex rounded-lg overflow-hidden shadow-sm border border-indigo-700">
+        <div className="relative w-full sm:w-auto">
+          <div className="flex w-full sm:w-auto rounded-lg overflow-hidden shadow-sm border border-indigo-700">
             <button
               onClick={handleAddRow}
               disabled={isAdding}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
             >
               <Plus size={16} />
               Novo Lançamento
@@ -1016,9 +1016,9 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         </div>
       </header>
 
-      <div className="bg-white flex flex-col min-h-0 rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex-1">
-        <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/50 gap-4">
-          <div className="flex items-center gap-4">
+      <div className="bg-white flex flex-col min-h-0 min-w-0 rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex-1">
+        <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-zinc-50/50 gap-4">
+          <div className="flex flex-wrap items-center gap-4 w-full">
             {/* Button group [ < ] [ período ] [ > ] */}
             <div className="flex items-stretch rounded-lg border border-zinc-350 bg-white overflow-hidden shadow-sm shrink-0">
               <button
@@ -1062,7 +1062,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           </div>
         </div>
 
-        <div className="overflow-x-auto overflow-y-auto flex-1">
+        <div className="w-full overflow-x-auto overflow-y-auto flex-1 min-h-0">
           <table className="min-w-[1300px] w-full table-fixed text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
               <tr className="bg-zinc-50 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
@@ -1074,7 +1074,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar data..."
                       value={colFilters.dataCompetencia}
                       onChange={(e) => setColFilters({ ...colFilters, dataCompetencia: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
@@ -1086,7 +1086,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar..."
                       value={colFilters.formaPagamento}
                       onChange={(e) => setColFilters({ ...colFilters, formaPagamento: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
@@ -1098,7 +1098,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar..."
                       value={colFilters.nf}
                       onChange={(e) => setColFilters({ ...colFilters, nf: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[60px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
@@ -1110,7 +1110,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar recebedor..."
                       value={colFilters.recebedorFornecedor}
                       onChange={(e) => setColFilters({ ...colFilters, recebedorFornecedor: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
@@ -1122,7 +1122,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar descrição..."
                       value={colFilters.descricao}
                       onChange={(e) => setColFilters({ ...colFilters, descricao: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[150px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
@@ -1132,7 +1132,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     <select
                       value={colFilters.tipoLancamento}
                       onChange={(e) => setColFilters({ ...colFilters, tipoLancamento: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case cursor-pointer"
+                      className="w-full min-w-[110px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case cursor-pointer"
                     >
                       <option value="">Filtrar tipo...</option>
                       {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -1147,7 +1147,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar subtipo..."
                       value={colFilters.subtipo}
                       onChange={(e) => setColFilters({ ...colFilters, subtipo: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[100px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
@@ -1160,7 +1160,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar centro..."
                       value={colFilters.obraId}
                       onChange={(e) => setColFilters({ ...colFilters, obraId: e.target.value })}
-                      className="w-full px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                     <datalist id="col-filter-centro-list">
                       {[...obras].sort((a, b) => a.nome.localeCompare(b.nome)).map(o => <option key={o.id} value={o.nome} />)}
@@ -1175,7 +1175,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar..."
                       value={colFilters.valor}
                       onChange={(e) => setColFilters({ ...colFilters, valor: e.target.value })}
-                      className="w-full max-w-[100px] px-2 py-1 text-[10px] font-normal text-right border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[80px] max-w-[100px] px-2 py-1 text-[10px] font-normal text-right border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
