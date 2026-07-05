@@ -68,7 +68,11 @@ export const recebedoresApi = {
 
 // Lancamentos
 export const lancamentosApi = {
-  getAll: () => apiFetch<Lancamento[]>("lancamentos"),
+  getAll: async () => {
+    const res = await apiFetch<any>("lancamentos");
+    if (Array.isArray(res)) return res;
+    return res?.data || [];
+  },
   getPaginated: async (params: Record<string, any>) => {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
