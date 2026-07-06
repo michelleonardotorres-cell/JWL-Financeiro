@@ -20,7 +20,15 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [filterStatus, setFilterStatus] = useState<
     "Todos" | "Aberto" | "Atrasado" | "Pago"
-  >("Todos");
+  >("Aberto");
+  const [colFilters, setColFilters] = useState({
+    dataVencimento: "",
+    descricao: "",
+    recebedorFornecedor: "",
+    obraId: "",
+  });
+  const [debouncedColFilters, setDebouncedColFilters] = useState(colFilters);
+
   const [isAdding, setIsAdding] = useState(false);
   const [valorInput, setValorInput] = useState("");
   const [newConta, setNewConta] = useState({
@@ -274,6 +282,13 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   const [lancamentosBase, setLancamentosBase] = useState(initialLancamentos);
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedColFilters(colFilters);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [colFilters]);
+
+  useEffect(() => {
     let start: string | undefined;
     let end: string | undefined;
     const today = new Date();
@@ -301,7 +316,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
 
     const fetchServer = async () => {
       try {
-        const params: any = { tipo: "Despesa" };
+        const params: any = { tipo: "Despesa", sortOrder: "ASC", ...debouncedColFilters };
         if (start && end) {
           params.vencimentoStart = start;
           params.vencimentoEnd = end;
@@ -313,7 +328,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       }
     };
     fetchServer();
-  }, [periodoVencimento, lancamentosBase]);
+  }, [periodoVencimento, lancamentosBase, debouncedColFilters]);
 
   const handleBaixarLote = async () => {
     if (contasSelecionadas.length === 0) return;
@@ -425,7 +440,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   };
 
   return (
-    <div className="p-8 w-full h-full flex flex-col space-y-6 overflow-hidden max-w-7xl mx-auto">
+    <div className="p-8 w-full h-full flex flex-col space-y-6 overflow-hidden mx-auto">
       <header className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">
@@ -528,24 +543,103 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   <input
                     type="checkbox"
                     checked={filtered.length > 0 && contasSelecionadas.length === filtered.filter(l => !(l as any).isPrevisao && l.status !== "Pago").length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setContasSelecionadas(filtered.filter(l => !(l as any).isPrevisao && l.status !== "Pago").map(l => l.id));
-                      } else {
-                        setContasSelecionadas([]);
-                      }
-                    }}
-                    className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
-                  />
+              <tr className="bg-zinc-50 border-b border-zinc-200 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <th className="p-3 w-10 text-center align-top">
+                  <div className="flex flex-col gap-1.5 items-center justify-start h-full">
+                    <span>
+                      <input
+                        type="checkbox"
+                        checked={contasSelecionadas.length > 0 && contasSelecionadas.length === filtered.filter(l => l.status !== "Pago" && !(l as any).isPrevisao).length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setContasSelecionadas(filtered.filter(l => !(l as any).isPrevisao && l.status !== "Pago").map(l => l.id));
+                          } else {
+                            setContasSelecionadas([]);
+                          }
+                        }}
+                        className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                      />
+                    </span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
                 </th>
-                <th className="p-4 w-[120px]">Vencimento</th>
-                <th className="p-4 w-[120px]">Data Pgto</th>
-                <th className="p-4 w-[250px]">Descrição</th>
-                <th className="p-4 w-[150px]">Fornecedor</th>
-                <th className="p-4 w-[180px]">Centro de Custo</th>
-                <th className="p-4 text-right w-[120px]">Valor</th>
-                <th className="p-4 text-center w-[110px]">Status</th>
-                <th className="p-4 text-center w-[80px]">Ações</th>
+                <th className="p-3 align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Vencimento</span>
+                    <input
+                      type="text"
+                      placeholder="Filtrar data..."
+                      value={colFilters.dataVencimento}
+                      onChange={(e) => setColFilters({ ...colFilters, dataVencimento: e.target.value })}
+                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                  </div>
+                </th>
+                <th className="p-3 align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Data Pgto</span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
+                <th className="p-3 align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Descrição</span>
+                    <input
+                      type="text"
+                      placeholder="Filtrar descrição..."
+                      value={colFilters.descricao}
+                      onChange={(e) => setColFilters({ ...colFilters, descricao: e.target.value })}
+                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                  </div>
+                </th>
+                <th className="p-3 align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Fornecedor</span>
+                    <input
+                      type="text"
+                      placeholder="Filtrar fornecedor..."
+                      value={colFilters.recebedorFornecedor}
+                      onChange={(e) => setColFilters({ ...colFilters, recebedorFornecedor: e.target.value })}
+                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                  </div>
+                </th>
+                <th className="p-3 align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Centro de Custo</span>
+                    <input
+                      type="text"
+                      list="col-filter-centro-list-cp"
+                      placeholder="Filtrar centro..."
+                      value={colFilters.obraId}
+                      onChange={(e) => setColFilters({ ...colFilters, obraId: e.target.value })}
+                      onClick={() => setColFilters({ ...colFilters, obraId: "" })}
+                      className="w-full min-w-[110px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                    <datalist id="col-filter-centro-list-cp">
+                      {[...obras].sort((a, b) => a.nome.localeCompare(b.nome)).map(o => <option key={o.id} value={o.nome} />)}
+                    </datalist>
+                  </div>
+                </th>
+                <th className="p-3 text-right align-top">
+                  <div className="flex flex-col gap-1.5 items-end">
+                    <span>Valor</span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
+                <th className="p-3 text-center align-top">
+                  <div className="flex flex-col gap-1.5 items-center">
+                    <span>Status</span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
+                <th className="p-3 text-center align-top">
+                  <div className="flex flex-col gap-1.5 items-center">
+                    <span>Ações</span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
@@ -685,7 +779,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   (o) => o.id === l.obraId || o.nome === l.obraId
                 );
                 return (
-                  <tr key={`${l.id}-${i}`} className="hover:bg-zinc-50 transition-colors">
+                  <tr key={`${l.id}-${i}`} className={`transition-colors ${l.status === 'Atrasado' ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-zinc-50'}`}>
                     <td className="p-4 text-center">
                       {!(l as any).isPrevisao && l.status !== "Pago" && (
                         <input

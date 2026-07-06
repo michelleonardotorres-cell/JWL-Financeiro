@@ -22,6 +22,11 @@ export default async function handler(req, res) {
         params.push(`%${dataCompetencia}%`);
         paramCount++;
       }
+      if (req.query.dataVencimento) {
+        whereClause += ` AND "dataVencimento"::text ILIKE $${paramCount}`;
+        params.push(`%${req.query.dataVencimento}%`);
+        paramCount++;
+      }
       if (formaPagamento) {
         whereClause += ` AND "formaPagamento" ILIKE $${paramCount}`;
         params.push(`%${formaPagamento}%`);
@@ -78,6 +83,8 @@ export default async function handler(req, res) {
         paramCount += 2;
       }
 
+      const sortOrderParam = req.query.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
       const baseQuery = `SELECT id, "dataCompetencia", "dataVencimento", "dataPagamento",
                 "formaPagamento", nf, descricao, valor, "valorPago", "jurosMulta", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
@@ -92,7 +99,7 @@ export default async function handler(req, res) {
          FROM lancamentos ${whereClause}`;
 
       if (!page || !limit) {
-        const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" DESC`, params);
+        const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" ${sortOrderParam}`, params);
         
         // Also compute totals for the unpaginated call
         const countResult = await pool.query(`SELECT 
@@ -121,7 +128,7 @@ export default async function handler(req, res) {
           saidas: parseFloat(countResult.rows[0].saidas || 0)
         };
 
-        const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`, [...params, limitNum, offset]);
+        const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" ${sortOrderParam} LIMIT $${paramCount} OFFSET $${paramCount + 1}`, [...params, limitNum, offset]);
         return res.status(200).json({ data: rows, totalItems, totais });
       }
     }
