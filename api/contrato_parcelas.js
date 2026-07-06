@@ -77,7 +77,7 @@ export default async function handler(req, res) {
              JOIN contratos c ON c.id = p."contratoId"
              LEFT JOIN fornecedores f ON f.id = c."fornecedorId"
              LEFT JOIN recebedores r ON r.id = c."fornecedorId"
-             WHERE p.id = $1 FOR UPDATE`, 
+             WHERE p.id = $1 FOR UPDATE OF p`, 
             [id]
           );
           
