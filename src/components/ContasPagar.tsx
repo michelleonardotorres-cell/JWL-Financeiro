@@ -125,6 +125,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
           return;
         }
       }
+      setServerLancamentos([...createdItems, ...serverLancamentos]);
       setLancamentosBase([...createdItems, ...lancamentosBase]);
       alert("Contas cadastradas com sucesso!");
     } else {
@@ -147,6 +148,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       };
       try {
         const created = await addLancamento(newLancamento);
+        setServerLancamentos([created, ...serverLancamentos]);
         setLancamentosBase([created, ...lancamentosBase]);
         alert("Nova conta cadastrada com sucesso!");
       } catch(e) {
@@ -196,7 +198,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   const handlePagar = async (id: string) => {
     setPagandoContaId(id);
     setDataPagamentoInput(new Date().toISOString().split("T")[0]);
-    const item = lancamentosBase.find((l) => l.id === id);
+    const item = serverLancamentos.find((l) => l.id === id);
     if (item) {
       setValorPagoInput(formatCurrency(item.valor));
       setJurosMultaInput(formatCurrency(0));
@@ -205,7 +207,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
 
   const handleConfirmarPagamento = async () => {
     if (!pagandoContaId) return;
-    const item = lancamentosBase.find((l) => l.id === pagandoContaId);
+    const item = serverLancamentos.find((l) => l.id === pagandoContaId);
     if (item) {
       const valorPagoNum = Number(valorPagoInput.replace(/\D/g, "")) / 100;
       const jurosMultaNum = Number(jurosMultaInput.replace(/\D/g, "")) / 100;
@@ -218,6 +220,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       };
       try {
         await updateLancamento(updated);
+        setServerLancamentos(prev => prev.map(l => l.id === pagandoContaId ? updated : l));
         setLancamentosBase(prev => prev.map(l => l.id === pagandoContaId ? updated : l));
         alert("Conta marcada como paga!");
       } catch(e) {
@@ -228,7 +231,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   };
 
   const handleDesfazerPagamento = async (id: string) => {
-    const item = lancamentosBase.find((l) => l.id === id);
+    const item = serverLancamentos.find((l) => l.id === id);
     if (item) {
       const updated: Lancamento = {
         ...item,
@@ -239,6 +242,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       };
       try {
         await updateLancamento(updated);
+        setServerLancamentos(prev => prev.map(l => l.id === id ? updated : l));
         setLancamentosBase(prev => prev.map(l => l.id === id ? updated : l));
         alert("Pagamento desfeito com sucesso! A conta voltou para o estado em aberto.");
       } catch(e) {
@@ -255,6 +259,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     }
     try {
       await deleteLancamento(deletandoContaId);
+      setServerLancamentos(prev => prev.filter(l => l.id !== deletandoContaId));
       setLancamentosBase(prev => prev.filter(l => l.id !== deletandoContaId));
       alert("Conta excluída com sucesso!");
     } catch(e) {
@@ -316,11 +321,13 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       await lancamentosApi.batchPay(contasSelecionadas);
       setContasSelecionadas([]);
       const today = new Date().toISOString().split('T')[0];
-      setLancamentosBase(prev => prev.map(l => 
+      const updateFn = (prev: Lancamento[]) => prev.map(l => 
         contasSelecionadas.includes(l.id) 
-          ? { ...l, status: "Pago", dataPagamento: today, valorPago: l.valor } 
+          ? { ...l, status: "Pago" as const, dataPagamento: today, valorPago: l.valor } 
           : l
-      ));
+      );
+      setServerLancamentos(updateFn);
+      setLancamentosBase(updateFn);
       alert("Contas baixadas com sucesso!");
     } catch (e) {
       alert("Erro ao baixar contas em lote");

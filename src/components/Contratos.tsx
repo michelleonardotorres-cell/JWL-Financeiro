@@ -618,9 +618,10 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">Pendente</span>
                 </td>
                 <td className="p-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                        <button onClick={handleSave} className="p-1 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors"><Check size={14}/></button>
-                        <button onClick={() => { setIsEditing(false); setEditData(parcela.dataVencimento); setEditValor(parcela.valor); }} className="p-1 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors"><X size={14}/></button>
+                    <div className="flex items-center justify-center gap-2">
+                        <button onClick={handleSave} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors" title="Salvar"><Check size={14}/></button>
+                        <button onClick={() => { setIsEditing(false); setEditData(parcela.dataVencimento); setEditValor(parcela.valor); }} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors" title="Cancelar Edição"><X size={14}/></button>
+                        <button onClick={handleDelete} className="p-1.5 bg-zinc-200 text-zinc-600 rounded hover:bg-rose-100 hover:text-rose-600 transition-colors" title="Excluir Medição"><Trash2 size={14} /></button>
                     </div>
                 </td>
             </tr>
@@ -641,16 +642,16 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     {parcela.statusAprovacao}
                 </span>
             </td>
-            <td className="p-3 text-center flex items-center justify-center gap-1">
+            <td className="p-3 text-center flex items-center justify-center gap-2">
                 {isPendente && (
                     <>
-                        <button onClick={handleApprove} className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Aprovar Medição">
+                        <button onClick={handleApprove} className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors" title="Aprovar Medição">
                             <CheckCircle2 size={16} />
                         </button>
-                        <button onClick={() => setIsEditing(true)} className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Editar Valores">
+                        <button onClick={() => setIsEditing(true)} className="p-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Editar Valores">
                             <Edit2 size={16} />
                         </button>
-                        <button onClick={handleDelete} className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Excluir Medição">
+                        <button onClick={handleDelete} className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded transition-colors" title="Excluir Medição">
                             <Trash2 size={16} />
                         </button>
                     </>
