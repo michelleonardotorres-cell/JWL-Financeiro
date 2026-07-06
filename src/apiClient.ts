@@ -118,6 +118,7 @@ export const contratoParcelasApi = {
     return apiFetch<ContratoParcela>("contrato_parcelas", { method: "POST", body: JSON.stringify({ ...parcela, id }) });
   },
   update: (parcela: ContratoParcela) => apiFetch<ContratoParcela>("contrato_parcelas", { method: "PUT", body: JSON.stringify(parcela) }),
-  approve: (id: string) => apiFetch<ContratoParcela>(`contrato_parcelas?action=aprovar`, { method: "POST", body: JSON.stringify({ id }) }),
+  approve: (id: string) => apiFetch<ContratoParcela>("contrato_parcelas?action=aprovar", { method: "POST", body: JSON.stringify({ id }) }),
+  revertApprove: (id: string) => apiFetch<ContratoParcela>("contrato_parcelas?action=reverter", { method: "POST", body: JSON.stringify({ id }) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`contrato_parcelas?id=${id}`, { method: "DELETE" })
 };

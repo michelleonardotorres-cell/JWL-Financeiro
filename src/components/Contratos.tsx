@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Plus, Save, X, Check, CheckCircle2, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, Save, X, Check, CheckCircle2, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2, Trash2, MoreHorizontal, RotateCcw } from "lucide-react";
 import { Contrato, ContratoParcela } from "../types";
 import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
@@ -559,6 +559,8 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
 function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela: ContratoParcela, onUpdate: (p: ContratoParcela) => void, onDelete: (id: string) => void, onApproveMedicao: () => Promise<void> }) {
     const isPendente = parcela.statusAprovacao === "Pendente";
     const [isEditing, setIsEditing] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
     
     const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
     const [editValor, setEditValor] = useState<number | "">(parcela.valor);
@@ -584,6 +586,19 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
         } catch (e: any) {
             console.error(e);
             alert("Erro ao aprovar medição. " + (e.response?.data?.error || ""));
+        }
+    };
+
+    const handleRevertApprove = async () => {
+        if (!confirm(`Deseja reverter a aprovação desta medição? O lançamento no Contas a Pagar será removido caso não esteja pago.`)) return;
+        try {
+            const res = await contratoParcelasApi.revertApprove(parcela.id);
+            onUpdate(res);
+            await onApproveMedicao();
+            alert("Aprovação revertida com sucesso! O lançamento correspondente foi removido.");
+        } catch (e: any) {
+            console.error(e);
+            alert("Erro ao reverter aprovação. " + (e.response?.data?.error || ""));
         }
     };
 
@@ -642,20 +657,62 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     {parcela.statusAprovacao}
                 </span>
             </td>
-            <td className="p-3 text-center flex items-center justify-center gap-2">
-                {isPendente && (
-                    <>
-                        <button onClick={handleApprove} className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors" title="Aprovar Medição">
-                            <CheckCircle2 size={16} />
-                        </button>
-                        <button onClick={() => setIsEditing(true)} className="p-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Editar Valores">
-                            <Edit2 size={16} />
-                        </button>
-                        <button onClick={handleDelete} className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded transition-colors" title="Excluir Medição">
-                            <Trash2 size={16} />
-                        </button>
-                    </>
-                )}
+            <td className="p-3 text-center">
+                <div className="relative inline-block text-left">
+                    <button
+                        onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setMenuPos({ top: rect.bottom + 5, right: window.innerWidth - rect.right });
+                            setShowMenu(!showMenu);
+                        }}
+                        className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-zinc-700 transition-colors"
+                        title="Opções"
+                    >
+                        <MoreHorizontal size={16} />
+                    </button>
+
+                    {showMenu && (
+                        <>
+                            <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
+                            <div 
+                                className="fixed bg-white border border-zinc-200 rounded-lg shadow-lg z-[99] py-1 w-36 text-left"
+                                style={{ top: menuPos.top, right: menuPos.right }}
+                            >
+                                {isPendente ? (
+                                    <>
+                                        <button
+                                            onClick={() => { setShowMenu(false); handleApprove(); }}
+                                            className="w-full px-3 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-2 font-medium"
+                                        >
+                                            <CheckCircle2 size={14} /> Aprovar
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowMenu(false); setIsEditing(true); }}
+                                            className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-2 font-medium"
+                                        >
+                                            <Edit2 size={14} /> Editar Valores
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowMenu(false); handleDelete(); }}
+                                            className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2 font-medium"
+                                        >
+                                            <Trash2 size={14} /> Excluir
+                                        </button>
+                                    </>
+                                ) : parcela.statusAprovacao === 'Aprovado' ? (
+                                    <button
+                                        onClick={() => { setShowMenu(false); handleRevertApprove(); }}
+                                        className="w-full px-3 py-1.5 text-xs text-orange-600 hover:bg-orange-50 transition-colors flex items-center gap-2 font-medium"
+                                    >
+                                        <RotateCcw size={14} /> Reverter Aprovação
+                                    </button>
+                                ) : (
+                                    <div className="px-3 py-1.5 text-xs text-zinc-400">Nenhuma ação disponível</div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
             </td>
         </tr>
     );

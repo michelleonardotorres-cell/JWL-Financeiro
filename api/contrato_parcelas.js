@@ -60,9 +60,12 @@ export default async function handler(req, res) {
           await client.query('BEGIN');
           
           const { rows: pRows } = await client.query(
-            `SELECT p.*, c.descricao, c.categoria, c."tipoLancamento", c.subtipo, c."obraId", c."fornecedorId", c."recebedorFornecedor"
+            `SELECT p.*, c.descricao, c.categoria, c."tipoLancamento", c.subtipo, c."obraId", c."fornecedorId", 
+               COALESCE(f.nome, r.nome, c."recebedorFornecedor") as "nomeFornecedor"
              FROM contrato_parcelas p
              JOIN contratos c ON c.id = p."contratoId"
+             LEFT JOIN fornecedores f ON f.id = c."fornecedorId"
+             LEFT JOIN recebedores r ON r.id = c."fornecedorId"
              WHERE p.id = $1 FOR UPDATE`, 
             [id]
           );
@@ -91,9 +94,9 @@ export default async function handler(req, res) {
               parcela.subtipo || null,
               parcela.obraId || null,
               parcela.fornecedorId || null,
-              parcela.recebedorFornecedor || null,
+              parcela.nomeFornecedor || null,
               parcela.dataVencimento,
-              new Date().toISOString().substring(0, 7), // YYYY-MM
+              parcela.dataVencimento, // USING dataVencimento AS dataCompetencia INSTEAD OF YYYY-MM
               "Aberto"
             ]
           );
@@ -101,6 +104,53 @@ export default async function handler(req, res) {
           const { rows: updateRows } = await client.query(
             `UPDATE contrato_parcelas SET "statusAprovacao" = 'Aprovado', "lancamentoId" = $1 WHERE id = $2 RETURNING *`,
             [lancId, id]
+          );
+          
+          await client.query('COMMIT');
+          return res.status(200).json(updateRows[0]);
+        } catch (e) {
+          await client.query('ROLLBACK');
+          throw e;
+        } finally {
+          client.release();
+        }
+      }
+
+      if (req.query.action === "reverter") {
+        const { id } = req.body;
+        if (!id) return res.status(400).json({ error: "id é obrigatório" });
+        
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          
+          const { rows: pRows } = await client.query(
+            `SELECT * FROM contrato_parcelas WHERE id = $1 FOR UPDATE`, 
+            [id]
+          );
+          if (pRows.length === 0) throw new Error("Medição não encontrada");
+          const parcela = pRows[0];
+          
+          if (parcela.statusAprovacao !== 'Aprovado') {
+            throw new Error("A medição não está aprovada.");
+          }
+
+          if (parcela.lancamentoId) {
+            const { rows: lRows } = await client.query(
+              `SELECT status FROM lancamentos WHERE id = $1`,
+              [parcela.lancamentoId]
+            );
+            if (lRows.length > 0) {
+              if (lRows[0].status === 'Pago') {
+                throw new Error("Não é possível reverter a aprovação: o lançamento já consta como PAGO no Contas a Pagar.");
+              }
+              await client.query(`DELETE FROM lancamentos WHERE id = $1`, [parcela.lancamentoId]);
+            }
+          }
+
+          const { rows: updateRows } = await client.query(
+            `UPDATE contrato_parcelas SET "statusAprovacao" = 'Pendente', "lancamentoId" = NULL WHERE id = $1 RETURNING *`,
+            [id]
           );
           
           await client.query('COMMIT');
