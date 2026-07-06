@@ -40,6 +40,17 @@ export default async function handler(req, res) {
       if (!contratoId) {
         return res.status(400).json({ error: "contratoId é obrigatório" });
       }
+
+      // Auto-revert phantom approvals (where lancamento was deleted directly in the database or before cascade delete was implemented)
+      await pool.query(`
+        UPDATE contrato_parcelas cp
+        SET "statusAprovacao" = 'Pendente', "lancamentoId" = NULL
+        WHERE cp."contratoId" = $1 
+          AND cp."statusAprovacao" = 'Aprovado' 
+          AND cp."lancamentoId" IS NOT NULL 
+          AND NOT EXISTS (SELECT 1 FROM lancamentos l WHERE l.id = cp."lancamentoId")
+      `, [contratoId]);
+
       const { rows } = await pool.query(
         `SELECT id, "contratoId", "numeroParcela", valor, "dataVencimento", "statusAprovacao", "lancamentoId"
          FROM contrato_parcelas
@@ -80,6 +91,10 @@ export default async function handler(req, res) {
           await validateSaldoRestante(client, parcela.contratoId, parcela.valor, parcela.id);
           
           const lancId = "l_" + Math.random().toString(36).substring(2, 15);
+          const formattedDate = parcela.dataVencimento instanceof Date 
+            ? parcela.dataVencimento.toISOString().split('T')[0] 
+            : (typeof parcela.dataVencimento === 'string' ? parcela.dataVencimento.split('T')[0] : parcela.dataVencimento);
+            
           await client.query(
             `INSERT INTO lancamentos 
                (id, descricao, valor, tipo, categoria, "tipoLancamento", subtipo, "obraId", "fornecedorId", "recebedorFornecedor", "dataVencimento", "dataCompetencia", status)
@@ -95,8 +110,8 @@ export default async function handler(req, res) {
               parcela.obraId || null,
               parcela.fornecedorId || null,
               parcela.nomeFornecedor || null,
-              parcela.dataVencimento,
-              parcela.dataVencimento, // USING dataVencimento AS dataCompetencia INSTEAD OF YYYY-MM
+              formattedDate,
+              formattedDate, // USING formattedDate AS dataCompetencia
               "Aberto"
             ]
           );
