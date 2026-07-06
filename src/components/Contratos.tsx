@@ -84,19 +84,6 @@ export default function Contratos() {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={async () => {
-                            try {
-                                const res = await contratosApi.gerarCompetencias();
-                                alert(res.message);
-                            } catch (e) {
-                                alert("Erro ao gerar competências.");
-                            }
-                        }}
-                        className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-                    >
-                        Verificar Competências
-                    </button>
                     <PeriodFilter {...periodFilterState} />
                     <button
                         onClick={() => setShowModal(true)}
@@ -380,11 +367,27 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores }: { contrato: 
     // Calcula o consumido (apenas de parcelas aprovadas ou todas geradas? Vamos usar todas geradas para mostrar comprometimento)
     const totalConsumido = parcelas.reduce((acc, p) => acc + Number(p.valor), 0);
     const valorReferencia = isConsumo ? (contrato.valorTotal || contrato.valorPrevisto || 0) : (contrato.valorTotal || contrato.valorPrevisto || 0);
-    
-    // Se for consumo (infinito), o "progress bar" mostra a media ou do mes, mas como temos as parcelas, faremos um fallback visual
-    const percent = isConsumo ? 0 : Math.min(100, Math.round((totalConsumido / (valorReferencia || 1)) * 100));
+    const saldoRestante = isConsumo ? 0 : Math.max(0, valorReferencia - totalConsumido);
     
     const fornecedorNome = fornecedores.find(f => f.id === contrato.fornecedorId || f.id === contrato.recebedorFornecedor)?.nome || contrato.recebedorFornecedor;
+
+    const handleRegistrarMedicao = async () => {
+        try {
+            const nextNum = parcelas.length > 0 ? Math.max(...parcelas.map(p => p.numeroParcela)) + 1 : 1;
+            const res = await contratoParcelasApi.create({
+                id: "",
+                contratoId: contrato.id,
+                numeroParcela: nextNum,
+                valor: 0,
+                dataVencimento: new Date().toISOString().split('T')[0],
+                statusAprovacao: "Pendente"
+            });
+            setParcelas(prev => [...prev, res]);
+        } catch (e: any) {
+            console.error(e);
+            alert("Erro ao registrar medição. " + (e.response?.data?.error || ""));
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -411,21 +414,19 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores }: { contrato: 
                 
                 <div className="p-6 overflow-y-auto flex-1">
                     {!isConsumo && (
-                        <div className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm mb-6">
-                            <div className="flex justify-between items-end mb-2">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-zinc-700">Consumo do Contrato</h3>
-                                    <p className="text-xs text-zinc-500">Valor gerado em parcelas vs Valor Total</p>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-lg font-bold text-zinc-900">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalConsumido)}</span>
-                                    <span className="text-xs text-zinc-500 ml-1">/ {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorReferencia)}</span>
-                                </div>
+                        <div className="grid grid-cols-3 gap-4 mb-6">
+                            <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex flex-col justify-center">
+                                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-1">Valor Global</p>
+                                <p className="text-lg font-bold text-zinc-900">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorReferencia)}</p>
                             </div>
-                            <div className="w-full bg-zinc-100 rounded-full h-2.5 overflow-hidden">
-                                <div className={`h-2.5 rounded-full ${percent > 90 ? 'bg-rose-500' : 'bg-indigo-600'}`} style={{ width: `${percent}%` }}></div>
+                            <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex flex-col justify-center">
+                                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-1">Valor Medido</p>
+                                <p className="text-lg font-bold text-zinc-900">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalConsumido)}</p>
                             </div>
-                            <div className="mt-1 text-xs text-right font-medium text-zinc-500">{percent}% comprometido</div>
+                            <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-sm flex flex-col justify-center">
+                                <p className="text-xs text-emerald-600 font-medium uppercase tracking-wider mb-1">Saldo Restante</p>
+                                <p className="text-xl font-bold text-emerald-700">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(saldoRestante)}</p>
+                            </div>
                         </div>
                     )}
 
@@ -433,10 +434,10 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores }: { contrato: 
                         <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
                             <h3 className="font-semibold text-zinc-800 flex items-center gap-2">
                                 <CalendarDays size={18} className="text-indigo-600" />
-                                Ocorrências / Parcelas Geradas
+                                Fila de Medições
                             </h3>
-                            <button className="text-xs bg-white border border-zinc-300 hover:bg-zinc-50 px-3 py-1.5 rounded-md font-medium text-zinc-700 transition-colors shadow-sm">
-                                Gerar Próxima
+                            <button onClick={handleRegistrarMedicao} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm flex items-center gap-1">
+                                <Plus size={14} /> Registrar Medição
                             </button>
                         </div>
                         <div className="overflow-x-auto">
@@ -452,9 +453,9 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores }: { contrato: 
                                 </thead>
                                 <tbody className="divide-y divide-zinc-100">
                                     {loading ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-zinc-400">Carregando parcelas...</td></tr>
+                                        <tr><td colSpan={5} className="p-8 text-center text-zinc-400">Carregando medições...</td></tr>
                                     ) : parcelas.length === 0 ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-zinc-400">Nenhuma parcela gerada para este contrato.</td></tr>
+                                        <tr><td colSpan={5} className="p-8 text-center text-zinc-400">Nenhuma medição gerada para este contrato.</td></tr>
                                     ) : parcelas.map((p) => (
                                         <ParcelaRow key={p.id} parcela={p} onUpdate={(updated) => setParcelas(prev => prev.map(x => x.id === updated.id ? updated : x))} />
                                     ))}
@@ -480,21 +481,21 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
             const res = await contratoParcelasApi.update({ ...parcela, valor: editValor, dataVencimento: editData });
             onUpdate(res);
             setIsEditing(false);
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Erro ao salvar parcela.");
+            alert("Erro ao salvar medição. " + (e.response?.data?.error || ""));
         }
     };
 
     const handleApprove = async () => {
-        if (!confirm(`Confirmar aprovação desta parcela? Um lançamento será gerado nas Contas a Pagar no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}.`)) return;
+        if (!confirm(`Confirmar aprovação desta medição? Um lançamento será gerado nas Contas a Pagar no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}.`)) return;
         try {
             const res = await contratoParcelasApi.approve(parcela.id);
             onUpdate(res);
-            alert("Parcela aprovada e inserida no Contas a Pagar com sucesso!");
-        } catch (e) {
+            alert("Medição aprovada e inserida no Contas a Pagar com sucesso!");
+        } catch (e: any) {
             console.error(e);
-            alert("Erro ao aprovar parcela.");
+            alert("Erro ao aprovar medição. " + (e.response?.data?.error || ""));
         }
     };
 
@@ -544,7 +545,7 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
             <td className="p-3 text-center flex items-center justify-center gap-1">
                 {isPendente && (
                     <>
-                        <button onClick={handleApprove} className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Aprovar Parcela">
+                        <button onClick={handleApprove} className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Aprovar Medição">
                             <CheckCircle2 size={16} />
                         </button>
                         <button onClick={() => setIsEditing(true)} className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Editar Valores">

@@ -1,5 +1,33 @@
 import { getPool, setCors } from "./_db.js";
 
+async function validateSaldoRestante(client, contratoId, novaMedicaoValor, excludeParcelaId = null) {
+  const { rows: cRows } = await client.query('SELECT * FROM contratos WHERE id = $1', [contratoId]);
+  if (cRows.length === 0) throw new Error("Contrato não encontrado");
+  const contrato = cRows[0];
+  
+  if (contrato.tipoLancamento === 'Conta de Consumo') {
+    return true;
+  }
+  
+  const global = Number(contrato.valorTotal || contrato.valorPrevisto || 0);
+  
+  let sumQuery = 'SELECT SUM(valor) as total FROM contrato_parcelas WHERE "contratoId" = $1';
+  const params = [contratoId];
+  if (excludeParcelaId) {
+    sumQuery += ' AND id != $2';
+    params.push(excludeParcelaId);
+  }
+  const { rows: sumRows } = await client.query(sumQuery, params);
+  const totalMedido = Number(sumRows[0].total || 0);
+  
+  const saldoRestante = global - totalMedido;
+  // Use a small epsilon for floating point comparison
+  if (Number(novaMedicaoValor) > saldoRestante + 0.01) {
+    throw new Error(`Saldo Insuficiente. Saldo restante: R$ ${saldoRestante.toFixed(2)}`);
+  }
+  return true;
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -31,7 +59,6 @@ export default async function handler(req, res) {
         try {
           await client.query('BEGIN');
           
-          // 1. Fetch parcel and contract data
           const { rows: pRows } = await client.query(
             `SELECT p.*, c.descricao, c.categoria, c."tipoLancamento", c.subtipo, c."obraId", c."fornecedorId", c."recebedorFornecedor"
              FROM contrato_parcelas p
@@ -40,14 +67,15 @@ export default async function handler(req, res) {
             [id]
           );
           
-          if (pRows.length === 0) throw new Error("Parcela não encontrada");
+          if (pRows.length === 0) throw new Error("Medição não encontrada");
           const parcela = pRows[0];
           
           if (parcela.statusAprovacao !== 'Pendente') {
-            throw new Error("Parcela já foi aprovada ou não está pendente");
+            throw new Error("Medição já foi aprovada ou não está pendente");
           }
+
+          await validateSaldoRestante(client, parcela.contratoId, parcela.valor, parcela.id);
           
-          // 2. Insert into Lancamentos
           const lancId = "l_" + Math.random().toString(36).substring(2, 15);
           await client.query(
             `INSERT INTO lancamentos 
@@ -55,7 +83,7 @@ export default async function handler(req, res) {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
             [
               lancId,
-              `${parcela.descricao} (Parc ${parcela.numeroParcela})`,
+              `${parcela.descricao} (Medição ${parcela.numeroParcela})`,
               parcela.valor,
               "Despesa",
               parcela.categoria || "Outros",
@@ -70,7 +98,6 @@ export default async function handler(req, res) {
             ]
           );
           
-          // 3. Update contrato_parcelas
           const { rows: updateRows } = await client.query(
             `UPDATE contrato_parcelas SET "statusAprovacao" = 'Aprovado', "lancamentoId" = $1 WHERE id = $2 RETURNING *`,
             [lancId, id]
@@ -86,42 +113,70 @@ export default async function handler(req, res) {
         }
       }
 
-
+      // POST Create Measurement
       const d = req.body;
       if (!d.id || !d.contratoId) return res.status(400).json({ error: "id e contratoId são obrigatórios" });
-      const { rows } = await pool.query(
-        `INSERT INTO contrato_parcelas
-           (id, "contratoId", "numeroParcela", valor, "dataVencimento", "statusAprovacao", "lancamentoId")
-         VALUES ($1,$2,$3,$4,$5,$6,$7)
-         ON CONFLICT (id) DO UPDATE SET
-           "numeroParcela"=$3, valor=$4, "dataVencimento"=$5, "statusAprovacao"=$6, "lancamentoId"=$7
-         RETURNING *`,
-        [
-          d.id, d.contratoId, d.numeroParcela || 1, d.valor || 0, d.dataVencimento,
-          d.statusAprovacao || 'Pendente', d.lancamentoId || null
-        ]
-      );
-      return res.status(200).json(rows[0]);
+      
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await validateSaldoRestante(client, d.contratoId, d.valor || 0);
+
+        const { rows } = await client.query(
+          `INSERT INTO contrato_parcelas
+             (id, "contratoId", "numeroParcela", valor, "dataVencimento", "statusAprovacao", "lancamentoId")
+           VALUES ($1,$2,$3,$4,$5,$6,$7)
+           ON CONFLICT (id) DO UPDATE SET
+             "numeroParcela"=$3, valor=$4, "dataVencimento"=$5, "statusAprovacao"=$6, "lancamentoId"=$7
+           RETURNING *`,
+          [
+            d.id, d.contratoId, d.numeroParcela || 1, d.valor || 0, d.dataVencimento,
+            d.statusAprovacao || 'Pendente', d.lancamentoId || null
+          ]
+        );
+        await client.query('COMMIT');
+        return res.status(200).json(rows[0]);
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
     }
 
     if (req.method === "PUT") {
       const d = req.body;
       if (!d.id) return res.status(400).json({ error: "id é obrigatório" });
       
-      // We only allow updating valor and dataVencimento if it's Pendente
-      const { rows } = await pool.query(
-        `UPDATE contrato_parcelas SET
-           valor = $2,
-           "dataVencimento" = $3
-         WHERE id = $1 AND "statusAprovacao" = 'Pendente'
-         RETURNING *`,
-        [d.id, d.valor, d.dataVencimento]
-      );
-      
-      if (rows.length === 0) {
-        return res.status(400).json({ error: "Parcela não encontrada ou já aprovada/rejeitada." });
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        const { rows: pRows } = await client.query('SELECT "contratoId" FROM contrato_parcelas WHERE id = $1', [d.id]);
+        if (pRows.length === 0) throw new Error("Medição não encontrada");
+
+        await validateSaldoRestante(client, pRows[0].contratoId, d.valor, d.id);
+
+        const { rows } = await client.query(
+          `UPDATE contrato_parcelas SET
+             valor = $2,
+             "dataVencimento" = $3
+           WHERE id = $1 AND "statusAprovacao" = 'Pendente'
+           RETURNING *`,
+          [d.id, d.valor, d.dataVencimento]
+        );
+        
+        if (rows.length === 0) {
+          throw new Error("Medição não encontrada ou já aprovada/rejeitada.");
+        }
+        await client.query('COMMIT');
+        return res.status(200).json(rows[0]);
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
       }
-      return res.status(200).json(rows[0]);
     }
 
     if (req.method === "DELETE") {
