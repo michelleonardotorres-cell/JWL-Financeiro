@@ -4,7 +4,7 @@ import { Contrato, ContratoParcela } from "../types";
 import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
-import PeriodFilter from "./PeriodFilter";
+import { PeriodFilter } from "./PeriodFilter";
 import { usePeriodFilter } from "../hooks/usePeriodFilter";
 import { contratoParcelasApi, contratosApi } from "../apiClient";
 
