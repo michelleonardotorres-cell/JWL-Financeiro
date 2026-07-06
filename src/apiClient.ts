@@ -66,12 +66,25 @@ export const recebedoresApi = {
   delete: (id: string) => apiFetch<{ok: boolean}>(`recebedores?id=${id}`, { method: "DELETE" })
 };
 
+const processLancamento = (l: any) => {
+  if (l.status === 'Aberto' && l.dataVencimento) {
+    const today = new Date();
+    const tzOffset = today.getTimezoneOffset() * 60000;
+    const localTodayStr = new Date(today.getTime() - tzOffset).toISOString().split('T')[0];
+    const itemDate = l.dataVencimento.split('T')[0];
+    if (itemDate < localTodayStr) {
+      return { ...l, status: 'Atrasado' };
+    }
+  }
+  return l;
+};
+
 // Lancamentos
 export const lancamentosApi = {
   getAll: async () => {
     const res = await apiFetch<any>("lancamentos");
-    if (Array.isArray(res)) return res;
-    return res?.data || [];
+    const arr = Array.isArray(res) ? res : (res?.data || []);
+    return arr.map(processLancamento);
   },
   getPaginated: async (params: Record<string, any>) => {
     const searchParams = new URLSearchParams();
@@ -82,19 +95,23 @@ export const lancamentosApi = {
     });
     const res = await apiFetch<any>(`lancamentos?${searchParams.toString()}`);
     if (Array.isArray(res)) {
-      return { data: res, totalItems: res.length, totais: { entradas: 0, saidas: 0 } };
+      return { data: res.map(processLancamento), totalItems: res.length, totais: { entradas: 0, saidas: 0 } };
     }
     return {
-      data: res?.data || [],
+      data: (res?.data || []).map(processLancamento),
       totalItems: res?.totalItems || 0,
       totais: res?.totais || { entradas: 0, saidas: 0 }
     };
   },
-  create: (lancamento: Omit<Lancamento, "id">) => {
+  create: async (lancamento: Omit<Lancamento, "id">) => {
     const id = generateId("l");
-    return apiFetch<Lancamento>("lancamentos", { method: "POST", body: JSON.stringify({ ...lancamento, id }) });
+    const res = await apiFetch<Lancamento>("lancamentos", { method: "POST", body: JSON.stringify({ ...lancamento, id }) });
+    return processLancamento(res);
   },
-  update: (lancamento: Lancamento) => apiFetch<Lancamento>("lancamentos", { method: "PUT", body: JSON.stringify(lancamento) }),
+  update: async (lancamento: Lancamento) => {
+    const res = await apiFetch<Lancamento>("lancamentos", { method: "PUT", body: JSON.stringify(lancamento) });
+    return processLancamento(res);
+  },
   batchPay: (ids: string[]) => apiFetch<{success: boolean, count: number}>("lancamentos", { method: "PATCH", body: JSON.stringify({ ids }) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`lancamentos?id=${id}`, { method: "DELETE" })
 };
