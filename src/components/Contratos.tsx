@@ -9,7 +9,7 @@ import { usePeriodFilter } from "../hooks/usePeriodFilter";
 import { contratoParcelasApi, contratosApi } from "../apiClient";
 
 export default function Contratos() {
-    const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato, deleteContrato } = useData();
+    const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato, deleteContrato, refreshData } = useData();
     const periodFilterState = usePeriodFilter();
     const { activeFilter } = periodFilterState;
 
@@ -227,6 +227,7 @@ export default function Contratos() {
                     fornecedores={[...fornecedores, ...recebedores]}
                     onEdit={(c) => setEditingContrato(c)}
                     onDelete={(c) => { setDeletingContrato(c); setConfirmDeleteText(""); }}
+                    onApproveMedicao={refreshData}
                 />
             )}
 
@@ -420,7 +421,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
     );
 }
 
-function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDelete }: { contrato: Contrato, onClose: () => void, fornecedores: any[], onEdit: (c: Contrato) => void, onDelete: (c: Contrato) => void }) {
+function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDelete, onApproveMedicao }: { contrato: Contrato, onClose: () => void, fornecedores: any[], onEdit: (c: Contrato) => void, onDelete: (c: Contrato) => void, onApproveMedicao: () => Promise<void> }) {
     const [parcelas, setParcelas] = useState<ContratoParcela[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -537,7 +538,13 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
                                     ) : parcelas.length === 0 ? (
                                         <tr><td colSpan={5} className="p-8 text-center text-zinc-400">Nenhuma medição gerada para este contrato.</td></tr>
                                     ) : parcelas.map((p) => (
-                                        <ParcelaRow key={p.id} parcela={p} onUpdate={(updated) => setParcelas(prev => prev.map(x => x.id === updated.id ? updated : x))} />
+                                        <ParcelaRow 
+                                            key={p.id} 
+                                            parcela={p} 
+                                            onUpdate={(updated) => setParcelas(prev => prev.map(x => x.id === updated.id ? updated : x))} 
+                                            onDelete={(id) => setParcelas(prev => prev.filter(x => x.id !== id))}
+                                            onApproveMedicao={onApproveMedicao}
+                                        />
                                     ))}
                                 </tbody>
                             </table>
@@ -549,11 +556,11 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
     );
 }
 
-function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate: (p: ContratoParcela) => void }) {
+function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela: ContratoParcela, onUpdate: (p: ContratoParcela) => void, onDelete: (id: string) => void, onApproveMedicao: () => Promise<void> }) {
     const isPendente = parcela.statusAprovacao === "Pendente";
     const [isEditing, setIsEditing] = useState(false);
     
-    const [editData, setEditData] = useState(parcela.dataVencimento);
+    const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
     const [editValor, setEditValor] = useState<number | "">(parcela.valor);
 
     const handleSave = async () => {
@@ -572,10 +579,22 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
         try {
             const res = await contratoParcelasApi.approve(parcela.id);
             onUpdate(res);
+            await onApproveMedicao();
             alert("Medição aprovada e inserida no Contas a Pagar com sucesso!");
         } catch (e: any) {
             console.error(e);
             alert("Erro ao aprovar medição. " + (e.response?.data?.error || ""));
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm(`Tem certeza que deseja excluir a medição Nº ${parcela.numeroParcela}?`)) return;
+        try {
+            await contratoParcelasApi.delete(parcela.id);
+            onDelete(parcela.id);
+        } catch (e: any) {
+            console.error(e);
+            alert("Erro ao excluir medição. " + (e.response?.data?.error || ""));
         }
     };
 
@@ -630,6 +649,9 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
                         </button>
                         <button onClick={() => setIsEditing(true)} className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Editar Valores">
                             <Edit2 size={16} />
+                        </button>
+                        <button onClick={handleDelete} className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Excluir Medição">
+                            <Trash2 size={16} />
                         </button>
                     </>
                 )}

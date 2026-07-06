@@ -3,6 +3,13 @@ import { format, parseISO } from "date-fns";
 export function safeFormatDate(dateStr?: string, formatStr = "dd/MM/yyyy", fallback = "-"): string {
   if (!dateStr) return fallback;
   try {
+    // Evitar shift de timezone caso venha como ISO string da meia noite UTC
+    const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const [year, month, day] = datePart.split('-');
+    if (year && month && day) {
+        const parsed = new Date(Number(year), Number(month) - 1, Number(day), 12, 0, 0);
+        return format(parsed, formatStr);
+    }
     const parsed = parseISO(dateStr);
     if (isNaN(parsed.getTime())) return dateStr;
     return format(parsed, formatStr);
