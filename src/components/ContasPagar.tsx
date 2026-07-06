@@ -538,11 +538,6 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
         <div className="overflow-x-auto overflow-y-auto flex-1">
           <table className="min-w-[1040px] w-full table-fixed text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
-              <tr className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500 font-semibold">
-                <th className="p-4 w-[50px] text-center">
-                  <input
-                    type="checkbox"
-                    checked={filtered.length > 0 && contasSelecionadas.length === filtered.filter(l => !(l as any).isPrevisao && l.status !== "Pago").length}
               <tr className="bg-zinc-50 border-b border-zinc-200 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                 <th className="p-3 w-10 text-center align-top">
                   <div className="flex flex-col gap-1.5 items-center justify-start h-full">
