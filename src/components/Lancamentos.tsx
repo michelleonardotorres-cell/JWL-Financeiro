@@ -92,7 +92,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       setNewEntry({
         ...newEntry,
         dataCompetencia: efetivarData.dataCompetencia || new Date().toISOString().split('T')[0],
-        recebedorFornecedor: efetivarData.recebedorFornecedor || "",
+        recebedorFornecedor: efetivarData.fornecedorId || efetivarData.recebedorFornecedor || "",
         fornecedorId: efetivarData.fornecedorId || "",
         descricao: efetivarData.descricao || "",
         tipoLancamento: efetivarData.categoria || "Conta Fixa",

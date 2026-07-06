@@ -67,8 +67,31 @@ export default async function handler(req, res) {
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: "id é obrigatório" });
-      await pool.query('DELETE FROM contratos WHERE id=$1', [id]);
-      return res.status(200).json({ ok: true });
+
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // Verifica medições aprovadas
+        const { rows } = await client.query('SELECT COUNT(*) FROM contrato_parcelas WHERE "contratoId"=$1 AND "statusAprovacao" = \'Aprovado\'', [id]);
+        if (parseInt(rows[0].count) > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: "Este contrato possui medições aprovadas e não pode ser excluído. Você deve inativá-lo ou cancelá-lo." });
+        }
+        
+        // Deleta parcelas pendentes ou rejeitadas
+        await client.query('DELETE FROM contrato_parcelas WHERE "contratoId"=$1', [id]);
+        // Deleta contrato
+        await client.query('DELETE FROM contratos WHERE id=$1', [id]);
+        
+        await client.query('COMMIT');
+        return res.status(200).json({ ok: true });
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     }
 
     return res.status(405).json({ error: "Método não permitido" });

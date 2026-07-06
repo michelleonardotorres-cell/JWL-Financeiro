@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Plus, Save, X, Check, CheckCircle2, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2 } from "lucide-react";
+import { Search, Plus, Save, X, Check, CheckCircle2, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2, Trash2 } from "lucide-react";
 import { Contrato, ContratoParcela } from "../types";
 import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
@@ -9,7 +9,7 @@ import { usePeriodFilter } from "../hooks/usePeriodFilter";
 import { contratoParcelasApi, contratosApi } from "../apiClient";
 
 export default function Contratos() {
-    const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato } = useData();
+    const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato, deleteContrato } = useData();
     const periodFilterState = usePeriodFilter();
     const { activeFilter } = periodFilterState;
 
@@ -24,6 +24,9 @@ export default function Contratos() {
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null);
+    const [deletingContrato, setDeletingContrato] = useState<Contrato | null>(null);
+    const [confirmDeleteText, setConfirmDeleteText] = useState("");
+    const [editingContrato, setEditingContrato] = useState<Contrato | null>(null);
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat("pt-BR", {
@@ -187,7 +190,7 @@ export default function Contratos() {
                 </div>
             </div>
 
-            {showModal && (
+            {showModal && !editingContrato && (
                 <ContratoModal 
                     onClose={() => setShowModal(false)} 
                     onSave={async (entry) => {
@@ -199,12 +202,81 @@ export default function Contratos() {
                 />
             )}
 
+            {editingContrato && (
+                <ContratoModal 
+                    initialData={editingContrato}
+                    onClose={() => setEditingContrato(null)} 
+                    onSave={async (entry) => {
+                        await updateContrato({ ...editingContrato, ...entry } as Contrato);
+                        setEditingContrato(null);
+                        setShowDetailsModal(false);
+                        // Atualiza selecionado se estiver no modal de detalhes
+                        if (selectedContrato && selectedContrato.id === editingContrato.id) {
+                            setSelectedContrato({ ...selectedContrato, ...entry } as Contrato);
+                        }
+                    }} 
+                    fornecedores={[...fornecedores, ...recebedores]}
+                    obras={obras}
+                />
+            )}
+
             {showDetailsModal && selectedContrato && (
                 <ContratoDetalhesModal 
                     contrato={selectedContrato} 
                     onClose={() => { setShowDetailsModal(false); setSelectedContrato(null); }}
                     fornecedores={[...fornecedores, ...recebedores]}
+                    onEdit={(c) => setEditingContrato(c)}
+                    onDelete={(c) => { setDeletingContrato(c); setConfirmDeleteText(""); }}
                 />
+            )}
+
+            {deletingContrato && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="p-5 border-b border-zinc-200">
+                            <h3 className="text-lg font-semibold text-zinc-900">Excluir Contrato</h3>
+                        </div>
+                        <div className="p-5">
+                            <p className="text-sm text-zinc-600 mb-4">
+                                Tem certeza que deseja excluir o contrato <strong>{deletingContrato.descricao}</strong>?
+                            </p>
+                            <p className="text-sm text-rose-600 font-medium mb-2">Para confirmar, digite "confirmar":</p>
+                            <input
+                                type="text"
+                                value={confirmDeleteText}
+                                onChange={(e) => setConfirmDeleteText(e.target.value)}
+                                className="w-full p-2 border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-rose-500 outline-none"
+                                placeholder="confirmar"
+                            />
+                        </div>
+                        <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end gap-3">
+                            <button
+                                onClick={() => setDeletingContrato(null)}
+                                className="px-4 py-2 text-sm font-medium text-zinc-600 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (confirmDeleteText.toLowerCase() !== "confirmar") {
+                                        alert("Você deve digitar 'confirmar' para prosseguir com a exclusão.");
+                                        return;
+                                    }
+                                    try {
+                                        await deleteContrato(deletingContrato.id);
+                                        setDeletingContrato(null);
+                                        setShowDetailsModal(false);
+                                    } catch (e: any) {
+                                        alert(e.response?.data?.error || "Erro ao excluir contrato");
+                                    }
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 transition-colors shadow-sm"
+                            >
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -214,8 +286,8 @@ export default function Contratos() {
 // COMPONENTES SECUNDÁRIOS
 // ---------------------------------------------------------
 
-function ContratoModal({ onClose, onSave, fornecedores, obras }: { onClose: () => void, onSave: (c: Omit<Contrato, "id">) => Promise<void>, fornecedores: any[], obras: any[] }) {
-    const [entry, setEntry] = useState<Partial<Contrato>>({
+function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { onClose: () => void, onSave: (c: Omit<Contrato, "id">) => Promise<void>, fornecedores: any[], obras: any[], initialData?: Contrato }) {
+    const [entry, setEntry] = useState<Partial<Contrato>>(initialData || {
         descricao: "",
         valorTotal: 0,
         tipo: "Despesa",
@@ -233,7 +305,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras }: { onClose: () =
     const formatCurrencyInput = (value: number) => {
         return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
     };
-    const [valorInput, setValorInput] = useState(formatCurrencyInput(0));
+    const [valorInput, setValorInput] = useState(formatCurrencyInput(initialData ? (initialData.valorTotal || initialData.valorPrevisto || 0) : 0));
 
     const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/\D/g, "");
@@ -348,7 +420,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras }: { onClose: () =
     );
 }
 
-function ContratoDetalhesModal({ contrato, onClose, fornecedores }: { contrato: Contrato, onClose: () => void, fornecedores: any[] }) {
+function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDelete }: { contrato: Contrato, onClose: () => void, fornecedores: any[], onEdit: (c: Contrato) => void, onDelete: (c: Contrato) => void }) {
     const [parcelas, setParcelas] = useState<ContratoParcela[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -407,9 +479,17 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores }: { contrato: 
                         <h2 className="text-xl font-bold text-zinc-900">{contrato.descricao}</h2>
                         <p className="text-sm text-zinc-500 mt-0.5 flex items-center gap-1">Fornecedor: <span className="font-semibold text-zinc-700">{fornecedorNome}</span></p>
                     </div>
-                    <button onClick={onClose} className="hover:bg-zinc-100 p-2 rounded-full transition-colors text-zinc-400">
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => onEdit(contrato)} className="hover:bg-zinc-100 p-2 rounded-full transition-colors text-zinc-500" title="Editar Status">
+                            <Edit2 size={18} />
+                        </button>
+                        <button onClick={() => onDelete(contrato)} className="hover:bg-rose-100 p-2 rounded-full transition-colors text-rose-500" title="Excluir Contrato">
+                            <Trash2 size={18} />
+                        </button>
+                        <button onClick={onClose} className="hover:bg-zinc-100 p-2 rounded-full transition-colors text-zinc-400" title="Fechar">
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="p-6 overflow-y-auto flex-1">
