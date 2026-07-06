@@ -86,6 +86,26 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     return () => clearTimeout(handler);
   }, [colFilters]);
 
+  useEffect(() => {
+    if (efetivarData) {
+      setIsAdding(true);
+      setNewEntry({
+        ...newEntry,
+        dataCompetencia: efetivarData.dataCompetencia || new Date().toISOString().split('T')[0],
+        recebedorFornecedor: efetivarData.recebedorFornecedor || "",
+        fornecedorId: efetivarData.fornecedorId || "",
+        descricao: efetivarData.descricao || "",
+        tipoLancamento: efetivarData.categoria || "Conta Fixa",
+        obraId: efetivarData.obraId || "",
+        valor: efetivarData.valor || 0,
+        tipo: efetivarData.tipo || "Despesa",
+        contratoId: efetivarData.contratoId || undefined
+      });
+      setValorInput(new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(efetivarData.valor || 0));
+      if (setEfetivarData) setEfetivarData(null);
+    }
+  }, [efetivarData, setEfetivarData]);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
