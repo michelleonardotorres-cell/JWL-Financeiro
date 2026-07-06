@@ -61,7 +61,7 @@ export default function Receitas() {
   const mediaMensal = total12Meses / 12;
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-8 w-full mx-auto space-y-6">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">
