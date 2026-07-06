@@ -554,11 +554,11 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
     const [isEditing, setIsEditing] = useState(false);
     
     const [editData, setEditData] = useState(parcela.dataVencimento);
-    const [editValor, setEditValor] = useState(parcela.valor);
+    const [editValor, setEditValor] = useState<number | "">(parcela.valor);
 
     const handleSave = async () => {
         try {
-            const res = await contratoParcelasApi.update({ ...parcela, valor: editValor, dataVencimento: editData });
+            const res = await contratoParcelasApi.update({ ...parcela, valor: Number(editValor) || 0, dataVencimento: editData });
             onUpdate(res);
             setIsEditing(false);
         } catch (e: any) {
@@ -591,7 +591,7 @@ function ParcelaRow({ parcela, onUpdate }: { parcela: ContratoParcela, onUpdate:
                         type="number" 
                         step="0.01"
                         value={editValor} 
-                        onChange={e => setEditValor(Number(e.target.value))} 
+                        onChange={e => setEditValor(e.target.value === "" ? "" : Number(e.target.value))} 
                         className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none text-right bg-white font-semibold" 
                     />
                 </td>

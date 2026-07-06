@@ -330,6 +330,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   const previsoes = useMemo(() => {
     return contratos
       .filter((c) => c.ativo)
+      .filter((c) => c.tipoLancamento !== "Contrato de Serviço")
       .filter((c) => {
         // Only show if a lancamento hasn't been generated for this month
         const thisMonthLancamento = lancamentosBase.find((l) => {
