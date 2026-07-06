@@ -196,8 +196,25 @@ export default async function handler(req, res) {
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: "id é obrigatório" });
-      await pool.query('DELETE FROM lancamentos WHERE id=$1', [id]);
-      return res.status(200).json({ ok: true });
+      
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // Excluir a medição (contrato_parcelas) associada a este lançamento, se existir
+        await client.query('DELETE FROM contrato_parcelas WHERE "lancamentoId" = $1', [id]);
+        
+        // Excluir o próprio lançamento
+        await client.query('DELETE FROM lancamentos WHERE id=$1', [id]);
+        
+        await client.query('COMMIT');
+        return res.status(200).json({ ok: true });
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
     }
 
     return res.status(405).json({ error: "Método não permitido" });

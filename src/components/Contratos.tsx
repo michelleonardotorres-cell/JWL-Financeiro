@@ -332,8 +332,8 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
             fornecedorId: entry.fornecedorId,
             recebedorFornecedor: fornecedores.find(f => f.id === entry.fornecedorId)?.nome || "",
             diaVencimento: entry.diaVencimento || 1,
-            ativo: true,
-            status: entry.status,
+            ativo: entry.status === "Ativo" ? true : false,
+            status: entry.status || "Ativo",
             dataInicio: entry.dataInicio,
             dataTermino: entry.dataTermino || undefined,
         };
@@ -347,7 +347,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
                 <div className="bg-indigo-600 p-4 flex items-center justify-between text-white">
                     <h2 className="text-lg font-bold flex items-center gap-2">
@@ -395,17 +395,30 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 bg-white p-4 rounded-lg border border-zinc-200">
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-zinc-600">{isConsumo ? "Valor Mensal Estimado *" : "Valor Total *"}</label>
+                    <div className="grid grid-cols-4 gap-4 bg-white p-4 rounded-lg border border-zinc-200">
+                        <div className="space-y-1 col-span-4 sm:col-span-1">
+                            <label className="text-xs font-semibold text-zinc-600">Status</label>
+                            <select
+                                value={entry.status || "Ativo"}
+                                onChange={e => setEntry({...entry, status: e.target.value})}
+                                className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold"
+                            >
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                        <div className="space-y-1 col-span-4 sm:col-span-1">
+                            <label className="text-xs font-semibold text-zinc-600">{isConsumo ? "Mensal Estimado *" : "Valor Total *"}</label>
                             <input type="text" value={valorInput} onChange={handleValorChange} className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold" />
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-zinc-600">Data de Início *</label>
+                        <div className="space-y-1 col-span-4 sm:col-span-1">
+                            <label className="text-xs font-semibold text-zinc-600">Início *</label>
                             <input type="date" value={entry.dataInicio} onChange={e => setEntry({...entry, dataInicio: e.target.value})} className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-zinc-600">Data de Término {isConsumo && "(Opcional)"}</label>
+                        <div className="space-y-1 col-span-4 sm:col-span-1">
+                            <label className="text-xs font-semibold text-zinc-600">Término {isConsumo && "(Opc)"}</label>
                             <input type="date" value={entry.dataTermino || ""} onChange={e => setEntry({...entry, dataTermino: e.target.value})} className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
                         </div>
                     </div>
@@ -624,7 +637,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     <input 
                         type="number" 
                         step="0.01"
-                        value={editValor} 
+                        value={editValor === 0 ? "" : editValor} 
                         onChange={e => setEditValor(e.target.value === "" ? "" : Number(e.target.value))} 
                         className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none text-right bg-white font-semibold" 
                     />
