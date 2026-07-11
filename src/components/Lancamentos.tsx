@@ -807,18 +807,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     />
                   </div>
                 </th>
-                <th className="p-3 w-[110px] align-top">
-                  <div className="flex flex-col gap-1.5">
-                    <span>Pagamento</span>
-                    <input
-                      type="text"
-                      placeholder="Filtrar..."
-                      value={colFilters.formaPagamento}
-                      onChange={(e) => setColFilters({ ...colFilters, formaPagamento: e.target.value })}
-                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
-                    />
-                  </div>
-                </th>
+
                 <th className="p-3 w-[80px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>NF</span>
@@ -868,18 +857,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     </select>
                   </div>
                 </th>
-                <th className="p-3 w-[120px] align-top">
-                  <div className="flex flex-col gap-1.5">
-                    <span>Subtipo</span>
-                    <input
-                      type="text"
-                      placeholder="Filtrar subtipo..."
-                      value={colFilters.subtipo}
-                      onChange={(e) => setColFilters({ ...colFilters, subtipo: e.target.value })}
-                      className="w-full min-w-[100px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
-                    />
-                  </div>
-                </th>
+
                 <th className="p-3 w-[150px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Centro de Custo</span>
@@ -909,12 +887,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     />
                   </div>
                 </th>
-                <th className="p-3 text-center w-[80px] align-top">
-                  <div className="flex flex-col gap-1.5 items-center">
-                    <span>Ações</span>
-                    <div className="h-6" /> {/* spacer */}
-                  </div>
-                </th>
+
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
@@ -926,20 +899,23 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                 );
 
                 return (
-                  <tr key={`${l.id}-${i}`} className="hover:bg-zinc-50 transition-colors">
+                  <tr 
+                    key={`${l.id}-${i}`} 
+                    className="hover:bg-zinc-50 transition-colors cursor-pointer relative"
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('.action-menu-popup')) return;
+                      
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const isNearBottom = rect.bottom > window.innerHeight - 150;
+                      setMenuPos({ 
+                        top: isNearBottom ? rect.top - 110 : rect.bottom + 5, 
+                        right: window.innerWidth - rect.right 
+                      });
+                      setActiveMenuId(activeMenuId === l.id ? null : l.id);
+                    }}
+                  >
                     <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
                       {safeFormatDate(l.dataCompetencia)}
-                    </td>
-                    <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
-                      <div className="flex flex-col gap-1 items-start justify-center">
-                        <span>{l.formaPagamento || "-"}</span>
-                        {(() => {
-                          const st = calcularStatusLancamento(l);
-                          if (st === "Pago") return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">Pago</span>;
-                          if (st === "Atrasado") return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 border border-red-200">Atrasado</span>;
-                          return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">Pendente</span>;
-                        })()}
-                      </div>
                     </td>
                     <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
                       {l.nf || "-"}
@@ -958,73 +934,67 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       </span>
                     </td>
                     <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
-                      {l.subtipo || "-"}
-                    </td>
-                    <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
                       {obra?.nome || l.obraId || "-"}
                     </td>
                     <td
                       className={`p-4 text-sm font-semibold text-right whitespace-nowrap ${l.tipo === "Receita" ? "text-emerald-600" : "text-zinc-900"}`}
                     >
-                      {l.tipo === "Despesa" ? "-" : "+"}
-                      {formatCurrency(l.valor)}
-                    </td>
-                     <td className="p-4 text-center whitespace-nowrap">
-                      <div className="relative inline-block text-left">
-                        <button
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const isNearBottom = rect.bottom > window.innerHeight - 150;
-                            setMenuPos({ 
-                              top: isNearBottom ? rect.top - 110 : rect.bottom + 5, 
-                              right: window.innerWidth - rect.right 
-                            });
-                            setActiveMenuId(activeMenuId === l.id ? null : l.id);
-                          }}
-                          className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-zinc-700 transition-colors"
-                          title="Opções"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-
-                        {activeMenuId === l.id && (
-                          <>
-                            <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                            <div 
-                               className="fixed bg-white border border-zinc-200 rounded-lg shadow-lg z-[99] py-1 text-left w-32"
-                               style={{ top: menuPos.top, right: menuPos.right }}
-                            >
-                              <button
-                                onClick={() => {
-                                  setActiveMenuId(null);
-                                  setViewingLancamento(l);
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left"
-                              >
-                                Exibir
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setActiveMenuId(null);
-                                  handleStartEdit(l);
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setActiveMenuId(null);
-                                  handleStartDelete(l);
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
-                              >
-                                Apagar
-                              </button>
-                            </div>
-                          </>
-                        )}
+                      <div className="flex flex-col items-end justify-center gap-2">
+                        <span>
+                          {l.tipo === "Despesa" ? "-" : "+"}
+                          {formatCurrency(l.valor)}
+                        </span>
+                        <div className="flex flex-col gap-1 items-end mt-1">
+                          <span className="text-[11px] text-[#2b5a8e] uppercase font-medium">{l.formaPagamento || "-"}</span>
+                          {(() => {
+                            const st = calcularStatusLancamento(l);
+                            if (st === "Pago") return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[#d1fae5] text-[#065f46]">Pago</span>;
+                            if (st === "Atrasado") return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800">Atrasado</span>;
+                            return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[#fef9c3] text-[#b45309]">Pendente</span>;
+                          })()}
+                        </div>
                       </div>
+
+                      {activeMenuId === l.id && (
+                        <div className="action-menu-popup" onClick={(e) => e.stopPropagation()}>
+                          <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
+                          <div 
+                             className="fixed bg-white border border-zinc-200 rounded-lg shadow-lg z-[99] py-1 text-left w-32"
+                             style={{ top: menuPos.top, right: menuPos.right }}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(null);
+                                setViewingLancamento(l);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left"
+                            >
+                              Exibir
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(null);
+                                handleStartEdit(l);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(null);
+                                handleStartDelete(l);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
+                            >
+                              Apagar
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
