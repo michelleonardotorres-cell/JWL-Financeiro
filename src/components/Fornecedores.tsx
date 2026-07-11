@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Users, Search, AlertCircle, Plus, Edit, Trash2, X, Save, Info, MoreVertical, Download, Upload, Star, ChevronLeft, Check } from "lucide-react";
-import { normalizeString, fetchCep, fetchCnpj } from "../utils";
+import { normalizeString, fetchCep, fetchCnpj, formatCpf, formatCnpj } from "../utils";
 import { useData } from "../contexts/DataContext";
 import { Fornecedor } from "../types";
 import * as XLSX from "xlsx";
@@ -65,8 +65,13 @@ export default function Fornecedores() {
 
   const term = normalizeString(searchTerm);
 
+  const termDigits = term.replace(/\D/g, "");
   const filtered = fornecedores.filter((f) => {
-    const matchesSearch = normalizeString(f.nome).includes(term) || (f.nomeFantasia && normalizeString(f.nomeFantasia).includes(term)) || (f.cnpj && f.cnpj.includes(term));
+    const matchesSearch = normalizeString(f.nome).includes(term) || 
+                          (f.nomeFantasia && normalizeString(f.nomeFantasia).includes(term)) || 
+                          (termDigits && f.cnpj && f.cnpj.replace(/\D/g, "").includes(termDigits)) ||
+                          (termDigits && f.cpf && f.cpf.replace(/\D/g, "").includes(termDigits)) ||
+                          (f.cnpj && f.cnpj.includes(term));
     const matchesSegmento = filterSegmento === "Todos" || f.segmento === filterSegmento;
     const matchesCidade = filterCidade === "Todos" || f.cidade === filterCidade;
     const matchesQualificacao = filterQualificacao === "Todos" || (f.qualificacao?.toString() === filterQualificacao);
@@ -643,7 +648,7 @@ export default function Fornecedores() {
                     <div>
                       <label className="block mb-1 font-medium">CNPJ:</label>
                       <input type="text" value={formData.cnpj} onChange={async e => {
-                        const val = e.target.value;
+                        const val = formatCnpj(e.target.value);
                         setFormData({...formData, cnpj: val});
                         const clean = val.replace(/\D/g, '');
                         if (clean.length === 14) {
@@ -656,7 +661,7 @@ export default function Fornecedores() {
                     <div>
                       <label className="block mb-1 font-medium">CPF:</label>
                       <input type="text" value={formData.cpf} onChange={e => {
-                        const val = e.target.value;
+                        const val = formatCpf(e.target.value);
                         setFormData({...formData, cpf: val});
                       }} placeholder="___.___.___-__" className="w-full p-1.5 border border-zinc-300 rounded shadow-sm focus:outline-none focus:border-[#3db2e3]" />
                     </div>
