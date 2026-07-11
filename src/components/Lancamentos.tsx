@@ -795,7 +795,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           <table className="min-w-[1300px] w-full table-fixed text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
               <tr className="bg-zinc-50 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
-                <th className="p-3 w-[110px] align-top">
+                <th className="p-3 w-[90px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Data Comp.</span>
                     <input
@@ -803,12 +803,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar data..."
                       value={colFilters.dataCompetencia}
                       onChange={(e) => setColFilters({ ...colFilters, dataCompetencia: e.target.value })}
-                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[70px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
 
-                <th className="p-3 w-[80px] align-top">
+                <th className="p-3 w-[70px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>NF</span>
                     <input
@@ -816,11 +816,11 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar..."
                       value={colFilters.nf}
                       onChange={(e) => setColFilters({ ...colFilters, nf: e.target.value })}
-                      className="w-full min-w-[60px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[50px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
-                <th className="p-3 w-[140px] align-top">
+                <th className="p-3 w-[250px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Recebedor/Fornecedor</span>
                     <input
@@ -828,11 +828,11 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar recebedor..."
                       value={colFilters.recebedorFornecedor}
                       onChange={(e) => setColFilters({ ...colFilters, recebedorFornecedor: e.target.value })}
-                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[150px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
-                <th className="p-3 w-[250px] align-top">
+                <th className="p-3 w-auto align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Descrição</span>
                     <input
@@ -840,17 +840,17 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       placeholder="Filtrar descrição..."
                       value={colFilters.descricao}
                       onChange={(e) => setColFilters({ ...colFilters, descricao: e.target.value })}
-                      className="w-full min-w-[150px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[200px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
-                <th className="p-3 w-[130px] align-top">
+                <th className="p-3 w-[110px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Tipo</span>
                     <select
                       value={colFilters.tipoLancamento}
                       onChange={(e) => setColFilters({ ...colFilters, tipoLancamento: e.target.value })}
-                      className="w-full min-w-[110px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case cursor-pointer"
+                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case cursor-pointer"
                     >
                       <option value="">Filtrar tipo...</option>
                       {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -858,7 +858,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   </div>
                 </th>
 
-                <th className="p-3 w-[150px] align-top">
+                <th className="p-3 w-[140px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Centro de Custo</span>
                     <input
@@ -868,14 +868,14 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       value={colFilters.obraId}
                       onChange={(e) => setColFilters({ ...colFilters, obraId: e.target.value })}
                       onClick={() => setColFilters({ ...colFilters, obraId: "" })}
-                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[110px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                     <datalist id="col-filter-centro-list">
                       {[...obras].sort((a, b) => a.nome.localeCompare(b.nome)).map(o => <option key={o.id} value={o.nome} />)}
                     </datalist>
                   </div>
                 </th>
-                <th className="p-3 w-[130px] text-right align-top">
+                <th className="p-3 w-[110px] text-right align-top">
                   <div className="flex flex-col gap-1.5 items-end">
                     <span>Valor</span>
                     <input
