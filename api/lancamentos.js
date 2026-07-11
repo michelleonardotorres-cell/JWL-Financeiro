@@ -107,9 +107,10 @@ export default async function handler(req, res) {
           SUM(valor) FILTER (WHERE tipo = 'Despesa') as saidas 
           FROM lancamentos ${whereClause}`, params);
           
+        const countRow = countResult.rows[0] || {};
         const totais = {
-          entradas: parseFloat(countResult.rows[0].entradas || 0),
-          saidas: parseFloat(countResult.rows[0].saidas || 0)
+          entradas: parseFloat(countRow.entradas || 0),
+          saidas: parseFloat(countRow.saidas || 0)
         };
         
         return res.status(200).json({ data: rows, totais, totalItems: rows.length });
@@ -122,10 +123,11 @@ export default async function handler(req, res) {
           SUM(valor) FILTER (WHERE tipo = 'Receita') as entradas, 
           SUM(valor) FILTER (WHERE tipo = 'Despesa') as saidas 
           FROM lancamentos ${whereClause}`, params);
-        const totalItems = parseInt(countResult.rows[0].count, 10);
+        const countRow = countResult.rows[0] || {};
+        const totalItems = parseInt(countRow.count || 0, 10);
         const totais = {
-          entradas: parseFloat(countResult.rows[0].entradas || 0),
-          saidas: parseFloat(countResult.rows[0].saidas || 0)
+          entradas: parseFloat(countRow.entradas || 0),
+          saidas: parseFloat(countRow.saidas || 0)
         };
 
         const { rows } = await pool.query(`${baseQuery} ORDER BY "dataVencimento" ${sortOrderParam} LIMIT $${paramCount} OFFSET $${paramCount + 1}`, [...params, limitNum, offset]);

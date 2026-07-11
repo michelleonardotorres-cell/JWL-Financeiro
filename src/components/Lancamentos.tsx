@@ -918,187 +918,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-              {isAdding && (
-                <tr className="bg-indigo-50/30">
-                  <td className="p-2">
-                    <input
-                      type="date"
-                      value={newEntry.dataCompetencia}
-                      onChange={(e) => setNewEntry({ ...newEntry, dataCompetencia: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <select
-                      value={newEntry.formaPagamento}
-                      onChange={(e) => setNewEntry({ ...newEntry, formaPagamento: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                    >
-                      {["À VISTA", "CARTÃO", "BOLETO", "A PRAZO"].sort((a, b) => a.localeCompare(b)).map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      placeholder="NF"
-                      value={newEntry.nf}
-                      onChange={(e) => setNewEntry({ ...newEntry, nf: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Combobox
-                      options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
-                      value={newEntry.recebedorFornecedor || ""}
-                      onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
-                      placeholder="Recebedor"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      placeholder="Descrição"
-                      value={newEntry.descricao}
-                      onChange={(e) => setNewEntry({ ...newEntry, descricao: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <select
-                      value={newEntry.tipoLancamento}
-                      onChange={(e) => setNewEntry({ ...newEntry, tipoLancamento: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
-                    >
-                      <option value="" disabled>Tipo</option>
-                      {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      placeholder="Subtipo"
-                      value={newEntry.subtipo}
-                      onChange={(e) => setNewEntry({ ...newEntry, subtipo: e.target.value })}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Combobox
-                      options={obras.map(o => ({ id: o.id, label: o.nome }))}
-                      value={newEntry.obraId || ""}
-                      onChange={(id) => setNewEntry({ ...newEntry, obraId: id })}
-                      placeholder="Centro de Custo"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      placeholder="R$ 0,00"
-                      value={valorInput}
-                      onChange={handleValorChange}
-                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs text-right focus:ring-1 focus:ring-indigo-500 outline-none font-semibold"
-                    />
-                  </td>
-                  <td className="p-2 text-center relative max-w-[120px]">
-                    <div className="flex flex-col items-center justify-center gap-1.5">
-                      <div className={`flex flex-col gap-1 w-full scale-90 origin-top ${(newEntry.formaPagamento === "À VISTA" || newEntry.formaPagamento === "CARTÃO") ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"}`}>
-                        <label className="text-[9px] text-zinc-500 font-medium leading-none text-left">Data Pagto</label>
-                        <input
-                          type="date"
-                          value={newEntry.dataPagamento || ""}
-                          onChange={(e) => setNewEntry({ ...newEntry, dataPagamento: e.target.value })}
-                          className="w-full p-1 bg-white border border-zinc-300 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none"
-                          title="Data do Pagamento"
-                          tabIndex={(newEntry.formaPagamento === "À VISTA" || newEntry.formaPagamento === "CARTÃO") ? 0 : -1}
-                        />
-                      </div>
-                      <div className="flex items-center justify-center gap-1.5 w-full">
-                        <button onClick={handleSave} title="Salvar Lançamento" className="flex-1 p-1 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors flex justify-center">
-                          <Check size={14} />
-                        </button>
-                        <button onClick={() => setIsAdding(false)} title="Cancelar" className="flex-1 p-1 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors flex justify-center">
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              )}
-              {isAdding && newEntry.formaPagamento !== "À VISTA" && (
-                <tr className="bg-indigo-50/10">
-                  <td colSpan={10} className="p-3 border-t border-indigo-100">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-semibold text-zinc-600">Data de Vencimento:</label>
-                          <input
-                            type="date"
-                            value={newEntry.dataVencimento || ""}
-                            onChange={(e) => {
-                              const newDate = e.target.value;
-                              setNewEntry({ ...newEntry, dataVencimento: newDate });
-                              if (parcelasCount > 1) {
-                                const baseDateObj = new Date(newDate + "T12:00:00");
-                                const newDates = [];
-                                for(let i = 0; i < parcelasCount; i++) {
-                                  const d = new Date(baseDateObj);
-                                  d.setMonth(d.getMonth() + i);
-                                  newDates.push(d.toISOString().split("T")[0]);
-                                }
-                                setParcelasDates(newDates);
-                              }
-                            }}
-                            className="w-[120px] p-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                            required
-                          />
-                        </div>
-                        <div className="h-6 w-px bg-zinc-200 mx-1"></div>
-                        <label className="text-xs font-semibold text-zinc-600">Quantidade de Parcelas:</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="72"
-                          value={parcelasCount}
-                          onChange={(e) => {
-                            const count = parseInt(e.target.value) || 1;
-                            setParcelasCount(count);
-                            const baseDate = new Date((newEntry.dataVencimento || new Date().toISOString().split('T')[0]) + "T12:00:00");
-                            const newDates = [];
-                            for(let i = 0; i < count; i++) {
-                               const d = new Date(baseDate);
-                               d.setMonth(d.getMonth() + i);
-                               newDates.push(d.toISOString().split("T")[0]);
-                            }
-                            setParcelasDates(newDates);
-                          }}
-                          className="w-20 p-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                        />
-                      </div>
-                      {parcelasCount > 1 && (
-                        <div className="flex flex-wrap gap-4 mt-2 bg-white p-3 rounded border border-zinc-200">
-                          {Array.from({ length: parcelasCount }).map((_, i) => (
-                            <div key={i} className="flex flex-col gap-1">
-                              <span className="text-[10px] font-semibold text-zinc-500">{i + 1}ª Parcela</span>
-                              <input
-                                type="date"
-                                value={parcelasDates[i] || ""}
-                                onChange={(e) => {
-                                  const newDates = [...parcelasDates];
-                                  newDates[i] = e.target.value;
-                                  setParcelasDates(newDates);
-                                }}
-                                className="p-1 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none w-[110px]"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )}
+
               {pageItems.map((l, i) => {
                 const obra = obras.find((o) => o.id === l.obraId || o.nome === l.obraId);
                 const fornecedor = fornecedores.find(
@@ -1283,6 +1103,217 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           </div>
         </div>
       </div>
+
+      {/* Add Modal */}
+      {isAdding && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl space-y-6 relative overflow-y-auto max-h-[90vh]">
+            <h3 className="text-xl font-semibold text-zinc-900 border-b border-zinc-100 pb-3">
+              Novo Lançamento
+            </h3>
+            <button
+              onClick={() => setIsAdding(false)}
+              className="absolute right-6 top-6 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Descrição</label>
+                <input
+                  type="text"
+                  placeholder="Descrição"
+                  value={newEntry.descricao || ""}
+                  onChange={(e) => setNewEntry({ ...newEntry, descricao: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Valor</label>
+                <input
+                  type="text"
+                  placeholder="R$ 0,00"
+                  value={valorInput}
+                  onChange={handleValorChange}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs text-right focus:ring-1 focus:ring-indigo-500 outline-none font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Data Competência</label>
+                <input
+                  type="date"
+                  value={newEntry.dataCompetencia || ""}
+                  onChange={(e) => setNewEntry({ ...newEntry, dataCompetencia: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Forma Pagamento</label>
+                <select
+                  value={newEntry.formaPagamento || "À VISTA"}
+                  onChange={(e) => setNewEntry({ ...newEntry, formaPagamento: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                >
+                  {["À VISTA", "CARTÃO", "BOLETO", "A PRAZO"].sort((a, b) => a.localeCompare(b)).map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Nota Fiscal (NF)</label>
+                <input
+                  type="text"
+                  placeholder="NF"
+                  value={newEntry.nf || ""}
+                  onChange={(e) => setNewEntry({ ...newEntry, nf: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Fornecedor/Recebedor</label>
+                <Combobox
+                  options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
+                  value={newEntry.recebedorFornecedor || ""}
+                  onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
+                  placeholder="Recebedor"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Tipo de Lançamento</label>
+                <select
+                  value={newEntry.tipoLancamento || ""}
+                  onChange={(e) => setNewEntry({ ...newEntry, tipoLancamento: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
+                >
+                  <option value="" disabled>Tipo</option>
+                  {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Subtipo</label>
+                <input
+                  type="text"
+                  placeholder="Subtipo"
+                  value={newEntry.subtipo || ""}
+                  onChange={(e) => setNewEntry({ ...newEntry, subtipo: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Centro de Custo</label>
+                <Combobox
+                  options={obras.map(o => ({ id: o.id, label: o.nome }))}
+                  value={newEntry.obraId || ""}
+                  onChange={(id) => setNewEntry({ ...newEntry, obraId: id })}
+                  placeholder="Centro de Custo"
+                />
+              </div>
+              
+              {/* Conditional fields */}
+              {(newEntry.formaPagamento === "À VISTA" || newEntry.formaPagamento === "CARTÃO") && (
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Data de Pagamento</label>
+                  <input
+                    type="date"
+                    value={newEntry.dataPagamento || ""}
+                    onChange={(e) => setNewEntry({ ...newEntry, dataPagamento: e.target.value })}
+                    className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              )}
+              
+              {newEntry.formaPagamento !== "À VISTA" && (
+                <div className="col-span-2 bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-semibold text-zinc-600">Data de Vencimento</label>
+                      <input
+                        type="date"
+                        value={newEntry.dataVencimento || ""}
+                        onChange={(e) => {
+                          const newDate = e.target.value;
+                          setNewEntry({ ...newEntry, dataVencimento: newDate });
+                          if (parcelasCount > 1) {
+                            const baseDateObj = new Date(newDate + "T12:00:00");
+                            const newDates = [];
+                            for(let i = 0; i < parcelasCount; i++) {
+                              const d = new Date(baseDateObj);
+                              d.setMonth(d.getMonth() + i);
+                              newDates.push(d.toISOString().split("T")[0]);
+                            }
+                            setParcelasDates(newDates);
+                          }
+                        }}
+                        className="w-[140px] p-2 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                        required
+                      />
+                    </div>
+                    <div className="h-10 w-px bg-zinc-200 mx-2"></div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-semibold text-zinc-600">Quantidade de Parcelas</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="72"
+                        value={parcelasCount}
+                        onChange={(e) => {
+                          const count = parseInt(e.target.value) || 1;
+                          setParcelasCount(count);
+                          const baseDate = new Date((newEntry.dataVencimento || new Date().toISOString().split('T')[0]) + "T12:00:00");
+                          const newDates = [];
+                          for(let i = 0; i < count; i++) {
+                             const d = new Date(baseDate);
+                             d.setMonth(d.getMonth() + i);
+                             newDates.push(d.toISOString().split("T")[0]);
+                          }
+                          setParcelasDates(newDates);
+                        }}
+                        className="w-24 p-2 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  {parcelasCount > 1 && (
+                    <div className="flex flex-wrap gap-4 mt-2 bg-white p-3 rounded border border-zinc-200">
+                      {Array.from({ length: parcelasCount }).map((_, i) => (
+                        <div key={i} className="flex flex-col gap-1">
+                          <span className="text-[10px] font-semibold text-zinc-500">{i + 1}ª Parcela</span>
+                          <input
+                            type="date"
+                            value={parcelasDates[i] || ""}
+                            onChange={(e) => {
+                              const newDates = [...parcelasDates];
+                              newDates[i] = e.target.value;
+                              setParcelasDates(newDates);
+                            }}
+                            className="p-1 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none w-[110px]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-3 border-t border-zinc-100 pt-4 mt-6">
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                <Check size={16} />
+                Concluir
+              </button>
+              <button
+                onClick={() => setIsAdding(false)}
+                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                <X size={16} />
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {viewingLancamento && (
