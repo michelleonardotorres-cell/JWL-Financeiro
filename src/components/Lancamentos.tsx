@@ -1089,6 +1089,15 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
             </button>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="col-span-2">
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Fornecedor/Recebedor</label>
+                <Combobox
+                  options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
+                  value={newEntry.recebedorFornecedor || ""}
+                  onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
+                  placeholder="Recebedor"
+                />
+              </div>
+              <div className="col-span-2">
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Descrição</label>
                 <input
                   type="text"
@@ -1096,56 +1105,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   value={newEntry.descricao || ""}
                   onChange={(e) => setNewEntry({ ...newEntry, descricao: e.target.value })}
                   className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Valor</label>
-                <input
-                  type="text"
-                  placeholder="R$ 0,00"
-                  value={valorInput}
-                  onChange={handleValorChange}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs text-right focus:ring-1 focus:ring-indigo-500 outline-none font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Data Competência</label>
-                <input
-                  type="date"
-                  value={newEntry.dataCompetencia || ""}
-                  onChange={(e) => setNewEntry({ ...newEntry, dataCompetencia: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Forma Pagamento</label>
-                <select
-                  value={newEntry.formaPagamento || "À VISTA"}
-                  onChange={(e) => setNewEntry({ ...newEntry, formaPagamento: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                >
-                  {["À VISTA", "CARTÃO", "BOLETO", "A PRAZO"].sort((a, b) => a.localeCompare(b)).map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Nota Fiscal (NF)</label>
-                <input
-                  type="text"
-                  placeholder="NF"
-                  value={newEntry.nf || ""}
-                  onChange={(e) => setNewEntry({ ...newEntry, nf: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Fornecedor/Recebedor</label>
-                <Combobox
-                  options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
-                  value={newEntry.recebedorFornecedor || ""}
-                  onChange={(id) => setNewEntry({ ...newEntry, recebedorFornecedor: id })}
-                  placeholder="Recebedor"
                 />
               </div>
               <div>
@@ -1178,9 +1137,31 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   placeholder="Centro de Custo"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Valor</label>
+                <input
+                  type="text"
+                  placeholder="R$ 0,00"
+                  value={valorInput}
+                  onChange={handleValorChange}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs text-right focus:ring-1 focus:ring-indigo-500 outline-none font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Data Competência</label>
+                <input
+                  type="date"
+                  value={newEntry.dataCompetencia || ""}
+                  onChange={(e) => {
+                    const novaData = e.target.value;
+                    setNewEntry({ ...newEntry, dataCompetencia: novaData, dataPagamento: novaData });
+                  }}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
               
               {/* Conditional fields */}
-              {(newEntry.formaPagamento === "À VISTA" || newEntry.formaPagamento === "CARTÃO") && (
+              {(newEntry.formaPagamento === "À VISTA" || newEntry.formaPagamento === "CARTÃO") ? (
                 <div>
                   <label className="block text-xs font-semibold text-zinc-500 mb-1">Data de Pagamento</label>
                   <input
@@ -1190,7 +1171,32 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                   />
                 </div>
+              ) : (
+                <div className="hidden"></div>
               )}
+              
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Forma Pagamento</label>
+                <select
+                  value={newEntry.formaPagamento || "À VISTA"}
+                  onChange={(e) => setNewEntry({ ...newEntry, formaPagamento: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                >
+                  {["À VISTA", "CARTÃO", "BOLETO", "A PRAZO"].sort((a, b) => a.localeCompare(b)).map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Nota Fiscal (NF)</label>
+                <input
+                  type="text"
+                  placeholder="NF"
+                  value={newEntry.nf || ""}
+                  onChange={(e) => setNewEntry({ ...newEntry, nf: e.target.value })}
+                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
               
               {newEntry.formaPagamento !== "À VISTA" && (
                 <div className="col-span-2 bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 flex flex-col gap-4">
@@ -1341,7 +1347,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               </div>
               <div>
                 <p className="text-zinc-500 font-medium">Centro de Custo</p>
-                <p className="text-zinc-955">{viewingLancamento.obraId || "-"}</p>
+                <p className="text-zinc-955">{obras.find(o => o.id === viewingLancamento.obraId)?.nome || viewingLancamento.obraId || "-"}</p>
               </div>
             </div>
             <div className="flex justify-end gap-3 border-t border-zinc-100 pt-4">
@@ -1404,10 +1410,27 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                 <input
                   type="date"
                   value={editEntry.dataCompetencia || ""}
-                  onChange={(e) => setEditEntry({ ...editEntry, dataCompetencia: e.target.value })}
+                  onChange={(e) => {
+                    const novaData = e.target.value;
+                    setEditEntry({ ...editEntry, dataCompetencia: novaData, dataPagamento: novaData });
+                  }}
                   className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                 />
               </div>
+              
+              {(editEntry.formaPagamento === "À VISTA" || editEntry.formaPagamento === "CARTÃO") ? (
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Data de Pagamento</label>
+                  <input
+                    type="date"
+                    value={editEntry.dataPagamento || ""}
+                    onChange={(e) => setEditEntry({ ...editEntry, dataPagamento: e.target.value })}
+                    className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              ) : (
+                <div className="hidden"></div>
+              )}
               <div>
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Forma Pagamento</label>
                 <select
