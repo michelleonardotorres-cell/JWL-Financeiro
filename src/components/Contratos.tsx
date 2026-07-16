@@ -679,7 +679,9 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
         <tr className="hover:bg-zinc-50 transition-colors group">
             <td className="p-3 text-center text-sm font-medium text-zinc-600">{parcela.numeroParcela}</td>
             <td className="p-3 text-center text-sm font-medium text-zinc-800">{safeFormatDate(parcela.dataVencimento)}</td>
-            <td className="p-3 text-right text-sm font-semibold text-zinc-900">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}</td>
+            <td className="p-3 text-right text-sm font-semibold text-zinc-900">
+                {Number(parcela.valor) === 0 ? "-" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}
+            </td>
             <td className="p-3 text-center">
                 <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                     isPendente ? 'bg-amber-100 text-amber-700 border border-amber-200' :
