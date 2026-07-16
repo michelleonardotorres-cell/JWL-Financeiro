@@ -595,7 +595,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
     const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
     
     const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
-    const [editValor, setEditValor] = useState<number | "">(parcela.valor || "");
+    const [editValor, setEditValor] = useState<string | number>(Number(parcela.valor) === 0 ? "" : parcela.valor);
 
     const handleSave = async () => {
         try {
@@ -656,8 +656,8 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     <input 
                         type="number" 
                         step="0.01"
-                        value={editValor || ""} 
-                        onChange={e => setEditValor(e.target.value === "" ? "" : Number(e.target.value))} 
+                        value={editValor} 
+                        onChange={e => setEditValor(e.target.value)} 
                         className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none text-right bg-white font-semibold" 
                     />
                 </td>
@@ -722,7 +722,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                                             onClick={() => { 
                                                 setShowMenu(false); 
                                                 setEditData(parcela.dataVencimento);
-                                                setEditValor(parcela.valor || "");
+                                                setEditValor(Number(parcela.valor) === 0 ? "" : parcela.valor);
                                                 setIsEditing(true); 
                                             }}
                                             className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-2 font-medium"
