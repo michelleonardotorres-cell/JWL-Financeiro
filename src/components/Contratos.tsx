@@ -15,6 +15,7 @@ export default function Contratos() {
 
     const [data, setData] = useState<Contrato[]>(contratos);
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("Ativo");
     
     // Update local data when global context changes
     useEffect(() => {
@@ -37,6 +38,10 @@ export default function Contratos() {
     // Filtering logic Option A: intercepting dates
     const filtered = useMemo(() => {
         let result = data;
+
+        if (statusFilter !== "Todos") {
+            result = result.filter(c => (c.status || "Ativo") === statusFilter);
+        }
 
         if (activeFilter) {
             const filterStart = activeFilter.start;
@@ -63,7 +68,7 @@ export default function Contratos() {
         }
         
         return result;
-    }, [data, searchTerm, activeFilter]);
+    }, [data, searchTerm, activeFilter, statusFilter]);
 
     const getTipoIcon = (tipo: string | undefined) => {
         switch(tipo) {
@@ -99,8 +104,8 @@ export default function Contratos() {
             </header>
 
             <div className="bg-white flex flex-col min-h-0 rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex-1">
-                <div className="p-4 border-b border-zinc-200 flex items-center gap-4 bg-zinc-50/50">
-                    <div className="relative flex-1 max-w-md">
+                <div className="p-4 border-b border-zinc-200 flex flex-wrap items-center gap-4 bg-zinc-50/50">
+                    <div className="relative flex-1 min-w-[200px] max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                         <input
                             type="text"
@@ -109,6 +114,20 @@ export default function Contratos() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-zinc-500 font-medium">Status:</span>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="bg-white border border-zinc-300 rounded-lg text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                        >
+                            <option value="Todos">Todos</option>
+                            <option value="Ativo">Ativos</option>
+                            <option value="Inativo">Inativos</option>
+                            <option value="Finalizado">Finalizados</option>
+                            <option value="Cancelado">Cancelados</option>
+                        </select>
                     </div>
                 </div>
 
