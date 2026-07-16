@@ -595,7 +595,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
     const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
     
     const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
-    const [editValor, setEditValor] = useState<number | "">(parcela.valor);
+    const [editValor, setEditValor] = useState<number | "">(Number(parcela.valor) === 0 ? "" : parcela.valor);
 
     const handleSave = async () => {
         try {
@@ -656,7 +656,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     <input 
                         type="number" 
                         step="0.01"
-                        value={editValor === 0 ? "" : editValor} 
+                        value={editValor} 
                         onChange={e => setEditValor(e.target.value === "" ? "" : Number(e.target.value))} 
                         className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none text-right bg-white font-semibold" 
                     />
@@ -667,7 +667,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                 <td className="p-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                         <button onClick={handleSave} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors" title="Salvar"><Check size={14}/></button>
-                        <button onClick={() => { setIsEditing(false); setEditData(parcela.dataVencimento); setEditValor(parcela.valor); }} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors" title="Cancelar Edição"><X size={14}/></button>
+                        <button onClick={() => { setIsEditing(false); setEditData(parcela.dataVencimento); setEditValor(Number(parcela.valor) === 0 ? "" : parcela.valor); }} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors" title="Cancelar Edição"><X size={14}/></button>
                         <button onClick={handleDelete} className="p-1.5 bg-zinc-200 text-zinc-600 rounded hover:bg-rose-100 hover:text-rose-600 transition-colors" title="Excluir Medição"><Trash2 size={14} /></button>
                     </div>
                 </td>
