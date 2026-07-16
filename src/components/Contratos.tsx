@@ -719,7 +719,12 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                                             <CheckCircle2 size={14} /> Aprovar
                                         </button>
                                         <button
-                                            onClick={() => { setShowMenu(false); setIsEditing(true); }}
+                                            onClick={() => { 
+                                                setShowMenu(false); 
+                                                setEditData(parcela.dataVencimento);
+                                                setEditValor(Number(parcela.valor) === 0 ? "" : parcela.valor);
+                                                setIsEditing(true); 
+                                            }}
                                             className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-2 font-medium"
                                         >
                                             <Edit2 size={14} /> Editar Valores
