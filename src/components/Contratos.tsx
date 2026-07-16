@@ -312,6 +312,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
         valorTotal: 0,
         tipo: "Despesa",
         tipoLancamento: "Contrato de Serviço",
+        categoria: "CUSTO FIXO",
         obraId: "",
         fornecedorId: "",
         dataInicio: new Date().toISOString().split('T')[0],
@@ -319,6 +320,14 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
         diaVencimento: 10,
         status: "Ativo"
     });
+
+    const tiposOptions = [
+        "RECEITAS", "COMISSÕES SOBRE VENDAS", "IMPOSTOS", "CUSTO VARIÁVEL",
+        "CUSTO FIXO", "DESPESAS OPERACIONAIS", "DESPESAS ADMINISTRATIVAS",
+        "DESPESAS FINANCEIRAS", "OUTRAS RECEITAS", "OUTRAS DESPESAS", "PARCELA",
+        "RETIRADA VB", "ANTECIPAÇÃO DE RECEBÍVEIS", "AMORTIZAÇÃO",
+        "PATRIMÔNIO", "EMPRESTIMOS"
+    ];
 
     const isConsumo = entry.tipoLancamento === "Conta de Consumo";
 
@@ -345,7 +354,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
             valorTotal: entry.valorTotal,
             valorPrevisto: entry.valorTotal, // mantendo por compatibilidade
             tipo: entry.tipo as "Despesa" | "Receita",
-            categoria: entry.tipoLancamento || "Outros",
+            categoria: entry.categoria || "CUSTO FIXO",
             tipoLancamento: entry.tipoLancamento,
             obraId: entry.obraId,
             fornecedorId: entry.fornecedorId,
@@ -396,6 +405,18 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
                         <div className="space-y-1 col-span-2 sm:col-span-1">
                             <label className="text-xs font-semibold text-zinc-600">Descrição *</label>
                             <input type="text" value={entry.descricao} onChange={e => setEntry({...entry, descricao: e.target.value})} className="w-full p-2 bg-white border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm" placeholder="Ex: Aluguel Sede, Conta de Luz" />
+                        </div>
+                        <div className="space-y-1 col-span-2 sm:col-span-2">
+                            <label className="text-xs font-semibold text-zinc-600">Tipo *</label>
+                            <select 
+                                value={entry.categoria || "CUSTO FIXO"} 
+                                onChange={e => setEntry({...entry, categoria: e.target.value})}
+                                className="w-full p-2 bg-white border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                            >
+                                {tiposOptions.map(t => (
+                                    <option key={t} value={t}>{t}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                     
@@ -508,6 +529,7 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
                                 {contrato.status || 'Ativo'}
                             </span>
                             <span className="text-xs text-zinc-500 font-medium bg-zinc-100 px-2 py-0.5 rounded">{contrato.tipoLancamento || "Outros"}</span>
+                            {contrato.categoria && <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-0.5 rounded">{contrato.categoria}</span>}
                         </div>
                         <h2 className="text-xl font-bold text-zinc-900">{contrato.descricao}</h2>
                         <p className="text-sm text-zinc-500 mt-0.5 flex items-center gap-1">Fornecedor: <span className="font-semibold text-zinc-700">{fornecedorNome}</span></p>
