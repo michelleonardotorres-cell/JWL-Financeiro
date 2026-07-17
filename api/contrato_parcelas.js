@@ -5,7 +5,7 @@ async function validateSaldoRestante(client, contratoId, novaMedicaoValor, exclu
   if (cRows.length === 0) throw new Error("Contrato não encontrado");
   const contrato = cRows[0];
   
-  if (contrato.tipoLancamento === 'Conta de Consumo') {
+  if (contrato.tipoLancamento === 'Conta de Consumo' || contrato.tipoLancamento === 'Aluguel/Locação') {
     return true;
   }
   

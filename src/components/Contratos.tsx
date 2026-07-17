@@ -190,7 +190,7 @@ export default function Contratos() {
                                                 {formatCurrency(c.valorTotal || c.valorPrevisto || 0)}
                                             </div>
                                             <div className="text-[10px] text-zinc-400 font-normal">
-                                                {c.tipoLancamento === "Conta de Consumo" ? "Est. Mensal" : "Valor Total"}
+                                                {c.tipoLancamento === "Conta de Consumo" ? "Est. Mensal" : c.tipoLancamento === "Aluguel/Locação" ? "Valor Mensal" : "Valor Total"}
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
@@ -330,6 +330,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
     ];
 
     const isConsumo = entry.tipoLancamento === "Conta de Consumo";
+    const isAluguel = entry.tipoLancamento === "Aluguel/Locação";
 
     const formatCurrencyInput = (value: number) => {
         return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -450,7 +451,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
                             </select>
                         </div>
                         <div className="space-y-1 col-span-4 sm:col-span-1">
-                            <label className="text-xs font-semibold text-zinc-600">{isConsumo ? "Mensal Estimado *" : "Valor Total *"}</label>
+                            <label className="text-xs font-semibold text-zinc-600">{isConsumo ? "Mensal Estimado *" : isAluguel ? "Valor Mensal *" : "Valor Total *"}</label>
                             <input type="text" value={valorInput} onChange={handleValorChange} className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold" />
                         </div>
                         <div className="space-y-1 col-span-4 sm:col-span-1">
@@ -489,11 +490,13 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
     }, [contrato.id]);
 
     const isConsumo = contrato.tipoLancamento === "Conta de Consumo";
+    const isAluguel = contrato.tipoLancamento === "Aluguel/Locação";
+    const isLimitless = isConsumo || isAluguel;
     
     // Calcula o consumido (apenas de parcelas aprovadas ou todas geradas? Vamos usar todas geradas para mostrar comprometimento)
     const totalConsumido = parcelas.reduce((acc, p) => acc + Number(p.valor), 0);
-    const valorReferencia = isConsumo ? (contrato.valorTotal || contrato.valorPrevisto || 0) : (contrato.valorTotal || contrato.valorPrevisto || 0);
-    const saldoRestante = isConsumo ? 0 : Math.max(0, valorReferencia - totalConsumido);
+    const valorReferencia = isLimitless ? (contrato.valorTotal || contrato.valorPrevisto || 0) : (contrato.valorTotal || contrato.valorPrevisto || 0);
+    const saldoRestante = isLimitless ? 0 : Math.max(0, valorReferencia - totalConsumido);
     
     const fornecedorNome = fornecedores.find(f => f.id === contrato.fornecedorId || f.id === contrato.recebedorFornecedor)?.nome || contrato.recebedorFornecedor;
 
@@ -504,7 +507,7 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
                 id: "",
                 contratoId: contrato.id,
                 numeroParcela: nextNum,
-                valor: 0,
+                valor: isAluguel ? (contrato.valorTotal || contrato.valorPrevisto || 0) : 0,
                 dataVencimento: new Date().toISOString().split('T')[0],
                 statusAprovacao: "Pendente"
             });
@@ -548,7 +551,7 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
                 </div>
                 
                 <div className="p-6 overflow-y-auto flex-1">
-                    {!isConsumo && (
+                    {!isLimitless && (
                         <div className="grid grid-cols-3 gap-4 mb-6">
                             <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex flex-col justify-center">
                                 <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-1">Valor Global</p>
@@ -569,10 +572,10 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
                         <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
                             <h3 className="font-semibold text-zinc-800 flex items-center gap-2">
                                 <CalendarDays size={18} className="text-indigo-600" />
-                                Fila de Medições
+                                {isAluguel ? "Histórico de Locação" : isConsumo ? "Histórico de Contas" : "Fila de Medições"}
                             </h3>
                             <button onClick={handleRegistrarMedicao} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm flex items-center gap-1">
-                                <Plus size={14} /> Registrar Medição
+                                <Plus size={14} /> {isAluguel ? "Registrar Aluguel" : isConsumo ? "Registrar Conta" : "Registrar Medição"}
                             </button>
                         </div>
                         <div className="overflow-x-auto">
