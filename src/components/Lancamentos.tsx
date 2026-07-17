@@ -930,7 +930,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     </td>
                     <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
                       <span className="inline-flex items-center px-2 py-1 rounded-md bg-zinc-100 text-[10px] font-medium text-zinc-700">
-                        {l.tipoLancamento || l.categoria}
+                        {l.categoria || l.tipoLancamento || "-"}
                       </span>
                     </td>
                     <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
