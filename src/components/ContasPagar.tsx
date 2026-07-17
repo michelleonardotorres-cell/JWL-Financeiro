@@ -350,6 +350,12 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   };
 
   const previsoes = useMemo(() => {
+    // DESATIVADO: Caminho A escolhido. A injeção automática de "Previsões" amarelas no Contas a Pagar
+    // foi desativada para não gerar duplicidade com a nova tela de Recorrências (Medições/Contratos).
+    // Agora o usuário deve sempre gerar o lançamento pelo painel de Recorrências.
+    // 
+    // LÓGICA ANTERIOR (Mantida para documentação caso seja necessário reativar no futuro):
+    /*
     return contratos
       .filter((c) => c.ativo)
       .filter((c) => c.tipoLancamento !== "Contrato de Serviço")
@@ -368,7 +374,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
           id: `prev-${c.id}`,
           isPrevisao: true,
           contratoId: c.id,
-          dataCompetencia: dataVencimento, // Defaults to vencimento until effective
+          dataCompetencia: dataVencimento,
           dataVencimento,
           descricao: c.descricao,
           recebedorFornecedor: c.recebedorFornecedor,
@@ -380,6 +386,8 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
           obraId: c.obraId,
         };
       });
+    */
+    return [];
   }, [contratos, lancamentosBase, currentMonth, currentYear]);
 
   const despesas = [
