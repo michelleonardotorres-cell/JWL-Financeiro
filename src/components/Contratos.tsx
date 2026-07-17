@@ -616,12 +616,29 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
     const [showMenu, setShowMenu] = useState(false);
     const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
     
+    const formatCurrencyInput = (val: number) => {
+        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+    };
+
     const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
-    const [editValor, setEditValor] = useState<string | number>(Number(parcela.valor) === 0 ? "" : parcela.valor);
+    const [editValorNum, setEditValorNum] = useState<number>(Number(parcela.valor) || 0);
+    const [editValorStr, setEditValorStr] = useState<string>(Number(parcela.valor) === 0 ? "" : formatCurrencyInput(Number(parcela.valor)));
+
+    const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/\D/g, "");
+        if (val === "") {
+            setEditValorNum(0);
+            setEditValorStr("");
+            return;
+        }
+        const num = Number(val) / 100;
+        setEditValorNum(num);
+        setEditValorStr(formatCurrencyInput(num));
+    };
 
     const handleSave = async () => {
         try {
-            const res = await contratoParcelasApi.update({ ...parcela, valor: Number(editValor) || 0, dataVencimento: editData });
+            const res = await contratoParcelasApi.update({ ...parcela, valor: editValorNum, dataVencimento: editData });
             onUpdate(res);
             setIsEditing(false);
         } catch (e: any) {
@@ -676,11 +693,11 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                 </td>
                 <td className="p-3">
                     <input 
-                        type="number" 
-                        step="0.01"
-                        value={editValor} 
-                        onChange={e => setEditValor(e.target.value)} 
+                        type="text" 
+                        value={editValorStr} 
+                        onChange={handleValorChange} 
                         className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none text-right bg-white font-semibold" 
+                        placeholder="R$ 0,00"
                     />
                 </td>
                 <td className="p-3 text-center">
@@ -689,7 +706,12 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                 <td className="p-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                         <button onClick={handleSave} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors" title="Salvar"><Check size={14}/></button>
-                        <button onClick={() => { setIsEditing(false); setEditData(parcela.dataVencimento); setEditValor(Number(parcela.valor) === 0 ? "" : parcela.valor); }} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors" title="Cancelar Edição"><X size={14}/></button>
+                        <button onClick={() => { 
+                            setIsEditing(false); 
+                            setEditData(parcela.dataVencimento); 
+                            setEditValorNum(Number(parcela.valor) || 0);
+                            setEditValorStr(Number(parcela.valor) === 0 ? "" : formatCurrencyInput(Number(parcela.valor)));
+                        }} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors" title="Cancelar Edição"><X size={14}/></button>
                         <button onClick={handleDelete} className="p-1.5 bg-zinc-200 text-zinc-600 rounded hover:bg-rose-100 hover:text-rose-600 transition-colors" title="Excluir Medição"><Trash2 size={14} /></button>
                     </div>
                 </td>
@@ -746,7 +768,8 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                                             onClick={() => { 
                                                 setShowMenu(false); 
                                                 setEditData(parcela.dataVencimento);
-                                                setEditValor(Number(parcela.valor) === 0 ? "" : parcela.valor);
+                                                setEditValorNum(Number(parcela.valor) || 0);
+                                                setEditValorStr(Number(parcela.valor) === 0 ? "" : formatCurrencyInput(Number(parcela.valor)));
                                                 setIsEditing(true); 
                                             }}
                                             className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-2 font-medium"
