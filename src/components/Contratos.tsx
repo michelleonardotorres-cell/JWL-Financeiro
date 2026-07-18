@@ -219,7 +219,7 @@ export default function Contratos() {
                                             </div>
                                         </td>
                                         <td className="p-4 text-sm font-semibold text-right">
-                                            <div className={c.tipo === "Despesa" ? "text-rose-600" : "text-emerald-600"}>
+                                            <div className="text-zinc-900">
                                                 {formatCurrency(c.valorTotal || c.valorPrevisto || 0)}
                                             </div>
                                             <div className="text-[10px] text-zinc-400 font-normal">
@@ -228,7 +228,7 @@ export default function Contratos() {
                                         </td>
                                         <td className="p-4 text-sm font-semibold text-right">
                                             {saldoRestante !== null ? (
-                                                <div className="text-zinc-700">
+                                                <div className={saldoRestante > 0 ? "text-emerald-600" : "text-zinc-700"}>
                                                     {formatCurrency(saldoRestante)}
                                                 </div>
                                             ) : (
