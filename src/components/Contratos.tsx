@@ -4,22 +4,39 @@ import { Contrato, ContratoParcela } from "../types";
 import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
-import { PeriodFilter } from "./PeriodFilter";
-import { usePeriodFilter } from "../hooks/usePeriodFilter";
+
 import { contratoParcelasApi, contratosApi } from "../apiClient";
 
 export default function Contratos() {
     const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato, deleteContrato, refreshData } = useData();
-    const periodFilterState = usePeriodFilter();
-    const { activeFilter } = periodFilterState;
+    const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato, deleteContrato, refreshData } = useData();
 
     const [data, setData] = useState<Contrato[]>(contratos);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("Ativo");
+    const [obraFilter, setObraFilter] = useState("Todos");
     
+    const [parcelasByContrato, setParcelasByContrato] = useState<Record<string, ContratoParcela[]>>({});
+
+    const fetchParcelasForContracts = async (contracts: Contrato[]) => {
+        try {
+            const results = await Promise.all(
+                contracts.map(c => contratoParcelasApi.getByContratoId(c.id).then(res => ({ id: c.id, parcelas: res })))
+            );
+            const map: Record<string, ContratoParcela[]> = {};
+            for (const r of results) {
+                map[r.id] = r.parcelas;
+            }
+            setParcelasByContrato(map);
+        } catch (e) {
+            console.error("Error fetching parcelas", e);
+        }
+    };
+
     // Update local data when global context changes
     useEffect(() => {
       setData(contratos);
+      fetchParcelasForContracts(contratos);
     }, [contratos]);
 
     const [showModal, setShowModal] = useState(false);
@@ -35,26 +52,16 @@ export default function Contratos() {
             currency: "BRL",
         }).format(value);
 
-    // Filtering logic Option A: intercepting dates
+    // Filtering logic
     const filtered = useMemo(() => {
         let result = data;
 
         if (statusFilter !== "Todos") {
             result = result.filter(c => (c.status || "Ativo") === statusFilter);
         }
-
-        if (activeFilter) {
-            const filterStart = activeFilter.start;
-            const filterEnd = activeFilter.end;
-            
-            result = result.filter(c => {
-               if (!c.dataInicio) return true; // Legacy contracts without start date
-               const start = c.dataInicio;
-               const end = c.dataTermino || "9999-12-31"; // Infinity if not set
-               
-               // Intersects if contract starts before filter ends AND ends after filter starts
-               return start <= filterEnd && end >= filterStart;
-            });
+        
+        if (obraFilter !== "Todos") {
+            result = result.filter(c => c.obraId === obraFilter);
         }
 
         const term = normalizeString(searchTerm);
@@ -68,7 +75,7 @@ export default function Contratos() {
         }
         
         return result;
-    }, [data, searchTerm, activeFilter, statusFilter]);
+    }, [data, searchTerm, obraFilter, statusFilter]);
 
     const getTipoIcon = (tipo: string | undefined) => {
         switch(tipo) {
@@ -92,7 +99,6 @@ export default function Contratos() {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <PeriodFilter filterState={periodFilterState} />
                     <button
                         onClick={() => setShowModal(true)}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -116,6 +122,19 @@ export default function Contratos() {
                         />
                     </div>
                     <div className="flex items-center gap-2">
+                        <span className="text-sm text-zinc-500 font-medium">Obra:</span>
+                        <select
+                            value={obraFilter}
+                            onChange={(e) => setObraFilter(e.target.value)}
+                            className="bg-white border border-zinc-300 rounded-lg text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none max-w-[200px]"
+                        >
+                            <option value="Todos">Todas</option>
+                            {obras.map(o => (
+                                <option key={o.id} value={o.id}>{o.nome}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
                         <span className="text-sm text-zinc-500 font-medium">Status:</span>
                         <select
                             value={statusFilter}
@@ -132,7 +151,7 @@ export default function Contratos() {
                 </div>
 
                 <div className="overflow-x-auto overflow-y-auto flex-1">
-                    <table className="min-w-[990px] w-full table-fixed text-left border-collapse">
+                    <table className="min-w-[1130px] w-full table-fixed text-left border-collapse">
                         <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
                             <tr className="bg-zinc-50 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
                                 <th className="p-4 w-[160px]">Status / Período</th>
@@ -140,13 +159,14 @@ export default function Contratos() {
                                 <th className="p-4 w-[220px]">Descrição / Centro de Custo</th>
                                 <th className="p-4 w-[160px]">Tipo de Recorrência</th>
                                 <th className="p-4 text-right w-[140px]">Valor Total/Mensal</th>
+                                <th className="p-4 text-right w-[140px]">Saldo</th>
                                 <th className="p-4 text-center w-[96px]">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200">
                             {filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-zinc-500">
+                                    <td colSpan={7} className="p-8 text-center text-zinc-500">
                                         Nenhum contrato encontrado para este período.
                                     </td>
                                 </tr>
@@ -154,17 +174,31 @@ export default function Contratos() {
                                 const fornecedor = [...fornecedores, ...recebedores].find((f) => f.id === c.fornecedorId || f.id === c.recebedorFornecedor);
                                 const obra = obras.find(o => o.id === c.obraId);
 
+                                const parcelas = parcelasByContrato[c.id] || [];
+                                const hasPendente = parcelas.some(p => p.statusAprovacao === "Pendente");
+                                const isLimitless = c.tipoLancamento === "Conta de Consumo" || c.tipoLancamento === "Aluguel/Locação";
+                                const totalConsumido = parcelas.reduce((acc, p) => acc + Number(p.valor), 0);
+                                const valorReferencia = c.valorTotal || c.valorPrevisto || 0;
+                                const saldoRestante = isLimitless ? null : Math.max(0, valorReferencia - totalConsumido);
+
                                 return (
                                     <tr key={c.id} className="hover:bg-zinc-50 transition-colors cursor-pointer" onClick={() => { setSelectedContrato(c); setShowDetailsModal(true); }}>
                                         <td className="p-4">
-                                            <div className="flex flex-col gap-1">
-                                                <span className={`inline-flex w-fit px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                                    c.status === 'Finalizado' ? 'bg-zinc-100 text-zinc-600' :
-                                                    c.status === 'Cancelado' ? 'bg-rose-100 text-rose-700' :
-                                                    'bg-emerald-100 text-emerald-700'
-                                                }`}>
-                                                    {c.status || 'Ativo'}
-                                                </span>
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`inline-flex w-fit px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                        c.status === 'Finalizado' ? 'bg-zinc-100 text-zinc-600' :
+                                                        c.status === 'Cancelado' ? 'bg-rose-100 text-rose-700' :
+                                                        'bg-emerald-100 text-emerald-700'
+                                                    }`}>
+                                                        {c.status || 'Ativo'}
+                                                    </span>
+                                                    {hasPendente && (
+                                                        <span className="inline-flex w-fit px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200" title="Possui medição pendente de aprovação">
+                                                            Pendente
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 {c.dataInicio && (
                                                     <span className="text-[11px] text-zinc-500">
                                                         {safeFormatDate(c.dataInicio)} {c.dataTermino ? `até ${safeFormatDate(c.dataTermino)}` : '(Contínuo)'}
@@ -192,6 +226,15 @@ export default function Contratos() {
                                             <div className="text-[10px] text-zinc-400 font-normal">
                                                 {c.tipoLancamento === "Conta de Consumo" ? "Est. Mensal" : c.tipoLancamento === "Aluguel/Locação" ? "Valor Mensal" : "Valor Total"}
                                             </div>
+                                        </td>
+                                        <td className="p-4 text-sm font-semibold text-right">
+                                            {saldoRestante !== null ? (
+                                                <div className="text-zinc-700">
+                                                    {formatCurrency(saldoRestante)}
+                                                </div>
+                                            ) : (
+                                                <div className="text-zinc-400">-</div>
+                                            )}
                                         </td>
                                         <td className="p-4 text-center">
                                             <button 
@@ -247,6 +290,7 @@ export default function Contratos() {
                     onEdit={(c) => setEditingContrato(c)}
                     onDelete={(c) => { setDeletingContrato(c); setConfirmDeleteText(""); }}
                     onApproveMedicao={refreshData}
+                    onParcelasChange={() => fetchParcelasForContracts(contratos)}
                 />
             )}
 
@@ -475,7 +519,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
     );
 }
 
-function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDelete, onApproveMedicao }: { contrato: Contrato, onClose: () => void, fornecedores: any[], onEdit: (c: Contrato) => void, onDelete: (c: Contrato) => void, onApproveMedicao: () => Promise<void> }) {
+function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDelete, onApproveMedicao, onParcelasChange }: { contrato: Contrato, onClose: () => void, fornecedores: any[], onEdit: (c: Contrato) => void, onDelete: (c: Contrato) => void, onApproveMedicao: () => Promise<void>, onParcelasChange?: () => void }) {
     const [parcelas, setParcelas] = useState<ContratoParcela[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -512,6 +556,7 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
                 statusAprovacao: "Pendente"
             });
             setParcelas(prev => [...prev, res]);
+            onParcelasChange?.();
         } catch (e: any) {
             console.error(e);
             alert("Erro ao registrar medição. " + (e.response?.data?.error || ""));
@@ -598,8 +643,14 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
                                         <ParcelaRow 
                                             key={p.id} 
                                             parcela={p} 
-                                            onUpdate={(updated) => setParcelas(prev => prev.map(x => x.id === updated.id ? updated : x))} 
-                                            onDelete={(id) => setParcelas(prev => prev.filter(x => x.id !== id))}
+                                            onUpdate={(updated) => {
+                                                setParcelas(prev => prev.map(x => x.id === updated.id ? updated : x));
+                                                onParcelasChange?.();
+                                            }} 
+                                            onDelete={(id) => {
+                                                setParcelas(prev => prev.filter(x => x.id !== id));
+                                                onParcelasChange?.();
+                                            }}
                                             onApproveMedicao={onApproveMedicao}
                                         />
                                     ))}
