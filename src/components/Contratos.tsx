@@ -9,7 +9,6 @@ import { contratoParcelasApi, contratosApi } from "../apiClient";
 
 export default function Contratos() {
     const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato, deleteContrato, refreshData } = useData();
-    const { obras, fornecedores, recebedores, contratos, addContrato, updateContrato, deleteContrato, refreshData } = useData();
 
     const [data, setData] = useState<Contrato[]>(contratos);
     const [searchTerm, setSearchTerm] = useState("");
