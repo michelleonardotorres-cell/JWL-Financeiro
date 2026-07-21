@@ -62,7 +62,10 @@ function getPool() {
     // Phase 2: Obras schema migration
     pool.query(`
       ALTER TABLE obras 
-      ADD COLUMN IF NOT EXISTS "valorContrato" numeric;
+      ADD COLUMN IF NOT EXISTS "valorContrato" numeric,
+      ADD COLUMN IF NOT EXISTS "cliente" text,
+      ADD COLUMN IF NOT EXISTS "endereco" text,
+      ADD COLUMN IF NOT EXISTS "reajusteContrato" numeric;
 
       CREATE TABLE IF NOT EXISTS obra_aditivos (
         id text PRIMARY KEY,
