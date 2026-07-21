@@ -58,6 +58,36 @@ function getPool() {
         CONSTRAINT fk_lancamento FOREIGN KEY("lancamentoId") REFERENCES lancamentos(id) ON DELETE SET NULL
       );
     `).catch(e => console.log('Contratos schema migration note:', e.message));
+
+    // Phase 2: Obras schema migration
+    pool.query(`
+      ALTER TABLE obras 
+      ADD COLUMN IF NOT EXISTS "valorContrato" numeric;
+
+      CREATE TABLE IF NOT EXISTS obra_aditivos (
+        id text PRIMARY KEY,
+        "obraId" text NOT NULL,
+        descricao text,
+        valor numeric NOT NULL,
+        "data" date,
+        CONSTRAINT fk_obra_aditivo FOREIGN KEY("obraId") REFERENCES obras(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS obra_medicoes (
+        id text PRIMARY KEY,
+        "obraId" text NOT NULL,
+        "numeroMedicao" integer NOT NULL,
+        valor numeric NOT NULL,
+        "valorRetencao" numeric NOT NULL DEFAULT 0,
+        "dataVencimento" date NOT NULL,
+        "statusAprovacao" text DEFAULT 'Pendente',
+        "lancamentoReceitaId" text,
+        "lancamentoImpostoId" text,
+        CONSTRAINT fk_obra_medicao FOREIGN KEY("obraId") REFERENCES obras(id) ON DELETE CASCADE,
+        CONSTRAINT fk_lancamento_rec FOREIGN KEY("lancamentoReceitaId") REFERENCES lancamentos(id) ON DELETE SET NULL,
+        CONSTRAINT fk_lancamento_imp FOREIGN KEY("lancamentoImpostoId") REFERENCES lancamentos(id) ON DELETE SET NULL
+      );
+    `).catch(e => console.log('Obras schema migration note:', e.message));
   }
   return pool;
 }

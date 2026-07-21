@@ -1,4 +1,4 @@
-import { Obra, Fornecedor, Lancamento, Contrato, ContratoParcela } from "./types";
+import { Obra, Fornecedor, Lancamento, Contrato, ContratoParcela, ObraAditivo, ObraMedicao } from "./types";
 
 // Polyfill for randomUUID if not available in older browsers
 function generateId(prefix: string) {
@@ -42,6 +42,30 @@ export const obrasApi = {
   },
   update: (obra: Obra) => apiFetch<Obra>("obras", { method: "PUT", body: JSON.stringify(obra) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`obras?id=${id}`, { method: "DELETE" })
+};
+
+// Obra Aditivos
+export const obraAditivosApi = {
+  getByObraId: (obraId: string) => apiFetch<ObraAditivo[]>(`obra_aditivos?obraId=${obraId}`),
+  create: (aditivo: Omit<ObraAditivo, "id">) => {
+    const id = generateId("oa");
+    return apiFetch<ObraAditivo>("obra_aditivos", { method: "POST", body: JSON.stringify({ ...aditivo, id }) });
+  },
+  update: (aditivo: ObraAditivo) => apiFetch<ObraAditivo>("obra_aditivos", { method: "PUT", body: JSON.stringify(aditivo) }),
+  delete: (id: string) => apiFetch<{ok: boolean}>(`obra_aditivos?id=${id}`, { method: "DELETE" })
+};
+
+// Obra Medicoes
+export const obraMedicoesApi = {
+  getByObraId: (obraId: string) => apiFetch<ObraMedicao[]>(`obra_medicoes?obraId=${obraId}`),
+  create: (medicao: Omit<ObraMedicao, "id">) => {
+    const id = generateId("om");
+    return apiFetch<ObraMedicao>("obra_medicoes", { method: "POST", body: JSON.stringify({ ...medicao, id }) });
+  },
+  update: (medicao: ObraMedicao) => apiFetch<ObraMedicao>("obra_medicoes", { method: "PUT", body: JSON.stringify(medicao) }),
+  approve: (id: string) => apiFetch<ObraMedicao>("obra_medicoes?action=aprovar", { method: "POST", body: JSON.stringify({ id }) }),
+  revertApprove: (id: string) => apiFetch<ObraMedicao>("obra_medicoes?action=reverter", { method: "POST", body: JSON.stringify({ id }) }),
+  delete: (id: string) => apiFetch<{ok: boolean}>(`obra_medicoes?id=${id}`, { method: "DELETE" })
 };
 
 // Fornecedores

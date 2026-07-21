@@ -9,6 +9,26 @@ export type Obra = {
   status: "Em Andamento" | "Concluída" | "Planejamento";
 };
 
+export type ObraAditivo = {
+  id: string;
+  obraId: string;
+  descricao?: string;
+  valor: number;
+  data?: string;
+};
+
+export type ObraMedicao = {
+  id: string;
+  obraId: string;
+  numeroMedicao: number;
+  valor: number;
+  valorRetencao: number;
+  dataVencimento: string;
+  statusAprovacao: "Pendente" | "Aprovado" | "Rejeitado";
+  lancamentoReceitaId?: string;
+  lancamentoImpostoId?: string;
+};
+
 export type Categoria =
   | "Materiais"
   | "Mão de Obra"
