@@ -6,6 +6,7 @@ import { Obra, ObraAditivo, ObraMedicao } from "../types";
 import ModalRelatorioObra from "./ModalRelatorioObra";
 import { obraAditivosApi, obraMedicoesApi } from "../apiClient";
 import CurrencyInput from "./CurrencyInput";
+import AprovarMedicaoModal from "./AprovarMedicaoModal";
 
 export default function Obras() {
   const { obras, addObra, updateObra, deleteObra, refreshData } = useData();
@@ -471,8 +472,12 @@ function MedicoesSection({ obraId, onMedicoesChange }: { obraId: string, onMedic
 }
 
 function MedicaoRow({ medicao, onUpdate, onDelete, onApprove }: { medicao: ObraMedicao, onUpdate: (m: ObraMedicao) => void, onDelete: (id: string) => void, onApprove: () => void }) {
+  const { fornecedores, recebedores } = useData();
+  const allFornecedores = [...fornecedores, ...recebedores];
+  
   const isPendente = medicao.statusAprovacao === "Pendente";
   const [isEditing, setIsEditing] = useState(false);
+  const [showAprovarModal, setShowAprovarModal] = useState(false);
 
   const [editData, setEditData] = useState(medicao.dataVencimento ? medicao.dataVencimento.split('T')[0] : "");
   const [editValor, setEditValor] = useState<number>(Number(medicao.valor) || 0);
@@ -490,12 +495,12 @@ function MedicaoRow({ medicao, onUpdate, onDelete, onApprove }: { medicao: ObraM
     }
   };
 
-  const handleApproveAction = async () => {
-    if (!confirm(`Confirmar aprovação? Isso criará um lançamento de receita (${formatCurrency(medicao.valor)}) e um de impostos (${formatCurrency(medicao.valorRetencao)}).`)) return;
+  const handleApproveAction = async (dados: any) => {
     try {
-      const res = await obraMedicoesApi.approve(medicao.id);
+      const res = await obraMedicoesApi.approve(medicao.id, dados);
       onUpdate(res);
       onApprove();
+      setShowAprovarModal(false);
       alert("Medição aprovada e lançamentos gerados!");
     } catch (e: any) {
       alert("Erro ao aprovar. " + (e.response?.data?.error || ""));
@@ -564,7 +569,7 @@ function MedicaoRow({ medicao, onUpdate, onDelete, onApprove }: { medicao: ObraM
       <td className="p-3 text-center flex justify-center gap-1">
         {isPendente ? (
           <>
-            <button onClick={handleApproveAction} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded text-xs font-semibold" title="Aprovar">Aprovar</button>
+            <button onClick={() => setShowAprovarModal(true)} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded text-xs font-semibold" title="Aprovar">Aprovar</button>
             <button onClick={() => setIsEditing(true)} className="text-indigo-600 hover:bg-indigo-50 p-1.5 rounded" title="Editar"><Edit2 size={16}/></button>
             <button onClick={handleDelete} className="text-rose-500 hover:bg-rose-50 p-1.5 rounded" title="Excluir"><Trash2 size={16}/></button>
           </>
@@ -572,6 +577,16 @@ function MedicaoRow({ medicao, onUpdate, onDelete, onApprove }: { medicao: ObraM
           <button onClick={handleRevertApproveAction} className="text-amber-600 hover:bg-amber-50 p-1.5 rounded text-xs font-semibold" title="Reverter Aprovação">Reverter</button>
         )}
       </td>
+      {showAprovarModal && (
+        <AprovarMedicaoModal
+          titulo={`Aprovar Medição ${medicao.numeroMedicao}`}
+          valorOriginal={medicao.valor}
+          dataOriginal={medicao.dataVencimento ? medicao.dataVencimento.split('T')[0] : ""}
+          fornecedores={allFornecedores}
+          onConfirm={handleApproveAction}
+          onClose={() => setShowAprovarModal(false)}
+        />
+      )}
     </tr>
   );
 }

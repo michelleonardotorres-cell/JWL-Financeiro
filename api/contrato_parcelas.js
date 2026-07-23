@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       if (req.query.action === "aprovar") {
-        const { id } = req.body;
+        const { id, fornecedorId, recebedorFornecedor, dataVencimento, dataCompetencia, nf } = req.body;
         if (!id) return res.status(400).json({ error: "id é obrigatório" });
         
         const client = await pool.connect();
@@ -97,8 +97,8 @@ export default async function handler(req, res) {
             
           await client.query(
             `INSERT INTO lancamentos 
-               (id, descricao, valor, tipo, categoria, "tipoLancamento", subtipo, "obraId", "fornecedorId", "recebedorFornecedor", "dataVencimento", "dataCompetencia", status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+               (id, descricao, valor, tipo, categoria, "tipoLancamento", subtipo, "obraId", "fornecedorId", "recebedorFornecedor", "dataVencimento", "dataCompetencia", status, nf)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
             [
               lancId,
               `${parcela.descricao} (Medição ${parcela.numeroParcela})`,
@@ -108,11 +108,12 @@ export default async function handler(req, res) {
               parcela.tipoLancamento || null,
               parcela.subtipo || null,
               parcela.obraId || null,
-              parcela.fornecedorId || null,
-              parcela.nomeFornecedor || null,
-              formattedDate,
-              formattedDate, // USING formattedDate AS dataCompetencia
-              "Aberto"
+              fornecedorId || parcela.fornecedorId || null,
+              recebedorFornecedor || parcela.nomeFornecedor || null,
+              dataVencimento || formattedDate,
+              dataCompetencia || formattedDate,
+              "Aberto",
+              nf || null
             ]
           );
           

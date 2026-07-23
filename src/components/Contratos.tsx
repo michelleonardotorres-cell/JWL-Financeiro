@@ -5,6 +5,7 @@ import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 import CurrencyInput from "./CurrencyInput";
+import AprovarMedicaoModal from "./AprovarMedicaoModal";
 
 import { contratoParcelasApi, contratosApi } from "../apiClient";
 
@@ -653,10 +654,15 @@ function ContratoDetalhesModal({ contrato, onClose, fornecedores, onEdit, onDele
 }
 
 function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela: ContratoParcela, onUpdate: (p: ContratoParcela) => void, onDelete: (id: string) => void, onApproveMedicao: () => Promise<void> }) {
+    const { fornecedores, recebedores, contratos } = useData();
+    const allFornecedores = [...fornecedores, ...recebedores];
+    const myContrato = contratos.find(c => c.id === parcela.contratoId);
+
     const isPendente = parcela.statusAprovacao === "Pendente";
     const [isEditing, setIsEditing] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+    const [showAprovarModal, setShowAprovarModal] = useState(false);
     
     const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
     const [editValorNum, setEditValorNum] = useState<number>(Number(parcela.valor) || 0);
@@ -672,16 +678,15 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
         }
     };
 
-    const handleApprove = async () => {
-        if (!confirm(`Confirmar aprovação desta medição? Um lançamento será gerado nas Contas a Pagar no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}.`)) return;
+    const handleApproveAction = async (dados: any) => {
         try {
-            const res = await contratoParcelasApi.approve(parcela.id);
+            const res = await contratoParcelasApi.approve(parcela.id, dados);
             onUpdate(res);
             await onApproveMedicao();
-            alert("Medição aprovada e inserida no Contas a Pagar com sucesso!");
+            setShowAprovarModal(false);
+            alert("Medição aprovada com sucesso!");
         } catch (e: any) {
-            console.error(e);
-            alert("Erro ao aprovar medição. " + (e.response?.data?.error || ""));
+            alert("Erro ao aprovar. " + (e.response?.data?.error || ""));
         }
     };
 
@@ -782,7 +787,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                                 {isPendente ? (
                                     <>
                                         <button
-                                            onClick={() => { setShowMenu(false); handleApprove(); }}
+                                            onClick={() => { setShowMenu(false); setShowAprovarModal(true); }}
                                             className="w-full px-3 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-2 font-medium"
                                         >
                                             <CheckCircle2 size={14} /> Aprovar
@@ -821,6 +826,17 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     )}
                 </div>
             </td>
+            {showAprovarModal && (
+                <AprovarMedicaoModal
+                    titulo={`Aprovar Medição ${parcela.numeroParcela}`}
+                    valorOriginal={parcela.valor}
+                    dataOriginal={parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : ""}
+                    fornecedorSugeridoId={myContrato?.fornecedorId || ""}
+                    fornecedores={allFornecedores}
+                    onConfirm={handleApproveAction}
+                    onClose={() => setShowAprovarModal(false)}
+                />
+            )}
         </tr>
     );
 }

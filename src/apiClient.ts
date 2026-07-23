@@ -63,7 +63,7 @@ export const obraMedicoesApi = {
     return apiFetch<ObraMedicao>("obra_medicoes", { method: "POST", body: JSON.stringify({ ...medicao, id }) });
   },
   update: (medicao: ObraMedicao) => apiFetch<ObraMedicao>("obra_medicoes", { method: "PUT", body: JSON.stringify(medicao) }),
-  approve: (id: string) => apiFetch<ObraMedicao>("obra_medicoes?action=aprovar", { method: "POST", body: JSON.stringify({ id }) }),
+  approve: (id: string, extraData?: any) => apiFetch<ObraMedicao>("obra_medicoes?action=aprovar", { method: "POST", body: JSON.stringify({ id, ...extraData }) }),
   revertApprove: (id: string) => apiFetch<ObraMedicao>("obra_medicoes?action=reverter", { method: "POST", body: JSON.stringify({ id }) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`obra_medicoes?id=${id}`, { method: "DELETE" })
 };
@@ -159,7 +159,7 @@ export const contratoParcelasApi = {
     return apiFetch<ContratoParcela>("contrato_parcelas", { method: "POST", body: JSON.stringify({ ...parcela, id }) });
   },
   update: (parcela: ContratoParcela) => apiFetch<ContratoParcela>("contrato_parcelas", { method: "PUT", body: JSON.stringify(parcela) }),
-  approve: (id: string) => apiFetch<ContratoParcela>("contrato_parcelas?action=aprovar", { method: "POST", body: JSON.stringify({ id }) }),
+  approve: (id: string, extraData?: any) => apiFetch<ContratoParcela>("contrato_parcelas?action=aprovar", { method: "POST", body: JSON.stringify({ id, ...extraData }) }),
   revertApprove: (id: string) => apiFetch<ContratoParcela>("contrato_parcelas?action=reverter", { method: "POST", body: JSON.stringify({ id }) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`contrato_parcelas?id=${id}`, { method: "DELETE" })
 };

@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       if (req.query.action === "aprovar") {
-        const { id } = req.body;
+        const { id, fornecedorId, recebedorFornecedor, dataVencimento, dataCompetencia, nf } = req.body;
         if (!id) return res.status(400).json({ error: "id é obrigatório" });
         
         const client = await pool.connect();
@@ -67,8 +67,8 @@ export default async function handler(req, res) {
           // Lançamento de Receita
           await client.query(
             `INSERT INTO lancamentos 
-               (id, descricao, valor, tipo, categoria, "obraId", "dataVencimento", "dataCompetencia", status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+               (id, descricao, valor, tipo, categoria, "obraId", "dataVencimento", "dataCompetencia", status, "fornecedorId", "recebedorFornecedor", nf)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
               lancReceitaId,
               `Medição ${medicao.numeroMedicao} - ${medicao.nome}`,
@@ -76,9 +76,12 @@ export default async function handler(req, res) {
               "Receita",
               "Receitas de Vendas",
               medicao.obraId,
-              formattedDate,
-              formattedDate,
-              "Aberto"
+              dataVencimento || formattedDate,
+              dataCompetencia || formattedDate,
+              "Aberto",
+              fornecedorId || null,
+              recebedorFornecedor || null,
+              nf || null
             ]
           );
 
@@ -88,8 +91,8 @@ export default async function handler(req, res) {
             lancImpostoId = "l_" + Math.random().toString(36).substring(2, 15);
             await client.query(
               `INSERT INTO lancamentos 
-                 (id, descricao, valor, tipo, categoria, "obraId", "dataVencimento", "dataCompetencia", status)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                 (id, descricao, valor, tipo, categoria, "obraId", "dataVencimento", "dataCompetencia", status, "fornecedorId", "recebedorFornecedor", nf)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
               [
                 lancImpostoId,
                 `Retenção/Impostos da Medição ${medicao.numeroMedicao} - ${medicao.nome}`,
@@ -97,9 +100,12 @@ export default async function handler(req, res) {
                 "Despesa",
                 "Impostos",
                 medicao.obraId,
-                formattedDate,
-                formattedDate,
-                "Aberto"
+                dataVencimento || formattedDate,
+                dataCompetencia || formattedDate,
+                "Aberto",
+                fornecedorId || null,
+                recebedorFornecedor || null,
+                nf || null
               ]
             );
           }
