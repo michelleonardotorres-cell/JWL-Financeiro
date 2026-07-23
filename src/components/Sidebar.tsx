@@ -49,7 +49,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   return (
     <>
       <button 
-        className="md:hidden fixed bottom-6 right-6 z-[70] bg-emerald-500 text-white p-4 rounded-full shadow-lg"
+        className="md:hidden fixed bottom-6 right-6 z-[70] bg-emerald-500 text-white p-4 rounded-full shadow-lg print:hidden"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
       >
         {mobileMenuOpen ? <XIcon size={24} /> : <Menu size={24} />}
@@ -68,7 +68,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           setIsExpanded(false);
           setActiveDropdown(null);
         }}
-        className={`fixed md:relative ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} w-64 ${isExpanded ? "md:w-64" : "md:w-20"} bg-zinc-950 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 transition-all duration-300 ease-in-out z-[65]`}
+        className={`fixed md:relative ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} w-64 ${isExpanded ? "md:w-64" : "md:w-20"} bg-zinc-950 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 transition-all duration-300 ease-in-out z-[65] print:hidden`}
       >
       <div className={`p-4 border-b border-zinc-800 flex items-center ${showText ? "justify-start" : "justify-center"}`}>
         <div className="flex items-center justify-center min-w-[24px]">

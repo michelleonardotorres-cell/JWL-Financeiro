@@ -95,7 +95,7 @@ export default function Obras() {
 
   return (
     <div className="flex-1 p-8 overflow-auto bg-zinc-50 relative">
-      <div className="w-full mx-auto space-y-6">
+      <div className={`w-full mx-auto space-y-6 ${relatorioObraId ? 'print:hidden' : ''}`}>
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
