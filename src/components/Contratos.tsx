@@ -4,6 +4,7 @@ import { Contrato, ContratoParcela } from "../types";
 import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
+import CurrencyInput from "./CurrencyInput";
 
 import { contratoParcelasApi, contratosApi } from "../apiClient";
 
@@ -375,18 +376,6 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
     const isConsumo = entry.tipoLancamento === "Conta de Consumo";
     const isAluguel = entry.tipoLancamento === "Aluguel/Locação";
 
-    const formatCurrencyInput = (value: number) => {
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-    };
-    const [valorInput, setValorInput] = useState(formatCurrencyInput(initialData ? (initialData.valorTotal || initialData.valorPrevisto || 0) : 0));
-
-    const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value.replace(/\D/g, "");
-        const numericValue = Number(value) / 100;
-        setValorInput(formatCurrencyInput(numericValue));
-        setEntry({ ...entry, valorTotal: numericValue });
-    };
-
     const handleSaveClick = async () => {
         if (!entry.descricao || !entry.valorTotal || !entry.fornecedorId || !entry.obraId || !entry.dataInicio) {
             alert("Por favor, preencha os campos obrigatórios (Descrição, Valor, Fornecedor, Obra, Início).");
@@ -495,7 +484,7 @@ function ContratoModal({ onClose, onSave, fornecedores, obras, initialData }: { 
                         </div>
                         <div className="space-y-1 col-span-4 sm:col-span-1">
                             <label className="text-xs font-semibold text-zinc-600">{isConsumo ? "Mensal Estimado *" : isAluguel ? "Valor Mensal *" : "Valor Total *"}</label>
-                            <input type="text" value={valorInput} onChange={handleValorChange} className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold" />
+                            <CurrencyInput value={entry.valorTotal || 0} onChangeValue={(val) => setEntry({...entry, valorTotal: val})} className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold" />
                         </div>
                         <div className="space-y-1 col-span-4 sm:col-span-1">
                             <label className="text-xs font-semibold text-zinc-600">Início *</label>
@@ -669,17 +658,8 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
     const [showMenu, setShowMenu] = useState(false);
     const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
     
-    const formatCurrencyInput = (val: number) => {
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
-    };
-
     const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
     const [editValorNum, setEditValorNum] = useState<number>(Number(parcela.valor) || 0);
-
-    const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.replace(/\D/g, "");
-        setEditValorNum(Number(val) / 100);
-    };
 
     const handleSave = async () => {
         try {
@@ -737,10 +717,9 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                     <input type="date" value={editData} onChange={e => setEditData(e.target.value)} className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none bg-white" />
                 </td>
                 <td className="p-3">
-                    <input 
-                        type="text" 
-                        value={formatCurrencyInput(editValorNum)} 
-                        onChange={handleValorChange} 
+                    <CurrencyInput 
+                        value={editValorNum} 
+                        onChangeValue={setEditValorNum} 
                         className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none text-right bg-white font-semibold" 
                         placeholder="R$ 0,00"
                     />
