@@ -7,8 +7,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Building2, X } from "lucide-react";
+import { Building2, X, Printer } from "lucide-react";
 import { useData } from "../contexts/DataContext";
+import { obraMedicoesApi } from "../apiClient";
 
 interface ModalRelatorioObraProps {
   obraId: string;
@@ -19,11 +20,21 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
   const { obras, lancamentos } = useData();
 
   const [selectedObraId, setSelectedObraId] = useState<string>(obraId);
+  const [totalMedido, setTotalMedido] = useState<number>(0);
 
   // Update selected if obraId changes (in case it is reused)
   useEffect(() => {
     if (obraId) setSelectedObraId(obraId);
   }, [obraId]);
+
+  useEffect(() => {
+    if (selectedObraId) {
+      obraMedicoesApi.getByObraId(selectedObraId).then(medicoes => {
+        const medido = medicoes.reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
+        setTotalMedido(medido);
+      }).catch(console.error);
+    }
+  }, [selectedObraId]);
 
   const sortedObras = [...obras].sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -57,6 +68,10 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
 
   const COLORS = ["#0ea5e9", "#f43f5e", "#f59e0b", "#8b5cf6", "#10b981"];
 
+  const obraSelecionada = obras.find(o => o.id === selectedObraId);
+  const valorTotalContrato = (obraSelecionada?.valorContrato || 0) + (obraSelecionada?.aditivo || 0) + (obraSelecionada?.reajusteContrato || 0);
+  const saldoAMedir = Math.max(0, valorTotalContrato - totalMedido);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-zinc-50 rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[95vh]">
@@ -88,47 +103,59 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
-              <p className="text-sm font-medium text-zinc-500">Receitas da Obra</p>
-              <p className="text-3xl font-semibold text-emerald-600 mt-2">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 print:overflow-visible">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm col-span-1 sm:col-span-2 lg:col-span-1">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Valor Total do Contrato</p>
+              <p className="text-xl font-bold text-zinc-900 mt-2">
+                {formatCurrency(valorTotalContrato)}
+              </p>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm col-span-1 sm:col-span-2 lg:col-span-1">
+              <p className="text-xs font-medium text-emerald-700 uppercase">Saldo a Medir</p>
+              <p className="text-xl font-bold text-emerald-800 mt-2">
+                {formatCurrency(saldoAMedir)}
+              </p>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Receitas</p>
+              <p className="text-xl font-bold text-emerald-600 mt-2">
                 {formatCurrency(receitas)}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
-              <p className="text-sm font-medium text-zinc-500">Custos Totais</p>
-              <p className="text-3xl font-semibold text-rose-600 mt-2">
+            <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Custos</p>
+              <p className="text-xl font-bold text-rose-600 mt-2">
                 {formatCurrency(totalDespesas)}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
-              <p className="text-sm font-medium text-zinc-500">Resultado da Obra</p>
-              <p
-                className={`text-3xl font-semibold mt-2 ${saldo >= 0 ? "text-emerald-600" : "text-rose-600"}`}
-              >
+            <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Resultado</p>
+              <p className={`text-xl font-bold mt-2 ${saldo >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                 {formatCurrency(saldo)}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex flex-col">
-              <h3 className="text-lg font-semibold text-zinc-900 mb-6 shrink-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:block">
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex flex-col print:mb-8 print:break-inside-avoid">
+              <h3 className="text-lg font-semibold text-zinc-900 mb-2 shrink-0">
                 Composição de Custos
               </h3>
-              <div className="flex-1 min-h-[300px]">
+              <div className="flex-1 min-h-[400px]">
                 {despesasPorCategoria.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart margin={{ top: 20, right: 0, bottom: 20, left: 0 }}>
                       <Pie
                         data={despesasPorCategoria}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={80}
-                        outerRadius={110}
-                        paddingAngle={2}
+                        cy="45%"
+                        innerRadius={90}
+                        outerRadius={130}
+                        paddingAngle={3}
                         dataKey="value"
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        labelLine={true}
                       >
                         {despesasPorCategoria.map((entry, index) => (
                           <Cell
@@ -140,7 +167,7 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
                       <Tooltip
                         formatter={(value: number) => formatCurrency(value)}
                       />
-                      <Legend verticalAlign="bottom" height={36} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -151,7 +178,7 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col print:break-inside-avoid">
               <div className="p-6 border-b border-zinc-100 flex items-center justify-between shrink-0">
                 <h3 className="text-lg font-semibold text-zinc-900">
                   Detalhamento de Custos
