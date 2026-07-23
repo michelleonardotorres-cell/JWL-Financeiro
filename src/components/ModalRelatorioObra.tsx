@@ -73,8 +73,8 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
   const saldoAMedir = Math.max(0, valorTotalContrato - totalMedido);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:absolute print:inset-0 print:bg-white print:p-0">
-      <div className="bg-zinc-50 rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:bg-white print:overflow-visible">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:static print:inset-0 print:bg-white print:p-0 print:block print:m-0">
+      <div className="bg-zinc-50 rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:bg-white print:overflow-visible print:block print:w-full print:max-w-none print:m-0">
         {/* Título Visível Apenas na Impressão */}
         <div className="hidden print:block mb-8 border-b pb-4 pt-6 px-6">
           <h1 className="text-2xl font-bold">Relatório da Obra: {obraSelecionada?.nome}</h1>
@@ -113,55 +113,55 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 print:overflow-visible print:p-0 print:mt-6">
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-            <div className="bg-white p-3 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] sm:text-xs font-medium text-zinc-500 uppercase truncate">Valor do Contrato</p>
-              <p className="text-sm sm:text-lg lg:text-xl font-bold text-zinc-900 mt-1 truncate" title={formatCurrency(valorTotalContrato)}>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 print:overflow-visible print:p-0 print:mt-6 print:block">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 print:grid-cols-2 print:gap-4">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-center print:break-inside-avoid">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Valor do Contrato</p>
+              <p className="text-lg lg:text-xl font-bold text-zinc-900 mt-1">
                 {formatCurrency(valorTotalContrato)}
               </p>
             </div>
-            <div className="bg-white p-3 sm:p-5 rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] sm:text-xs font-medium text-emerald-700 uppercase truncate">Saldo a Medir</p>
-              <p className="text-sm sm:text-lg lg:text-xl font-bold text-emerald-800 mt-1 truncate" title={formatCurrency(saldoAMedir)}>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm flex flex-col justify-center print:break-inside-avoid">
+              <p className="text-xs font-medium text-emerald-700 uppercase">Saldo a Medir</p>
+              <p className="text-lg lg:text-xl font-bold text-emerald-800 mt-1">
                 {formatCurrency(saldoAMedir)}
               </p>
             </div>
-            <div className="bg-white p-3 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] sm:text-xs font-medium text-zinc-500 uppercase truncate">Receitas</p>
-              <p className="text-sm sm:text-lg lg:text-xl font-bold text-emerald-600 mt-1 truncate" title={formatCurrency(receitas)}>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-center print:break-inside-avoid">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Receitas</p>
+              <p className="text-lg lg:text-xl font-bold text-emerald-600 mt-1">
                 {formatCurrency(receitas)}
               </p>
             </div>
-            <div className="bg-white p-3 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-center">
-              <p className="text-[10px] sm:text-xs font-medium text-zinc-500 uppercase truncate">Custos</p>
-              <p className="text-sm sm:text-lg lg:text-xl font-bold text-rose-600 mt-1 truncate" title={formatCurrency(totalDespesas)}>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-center print:break-inside-avoid">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Custos</p>
+              <p className="text-lg lg:text-xl font-bold text-rose-600 mt-1">
                 {formatCurrency(totalDespesas)}
               </p>
             </div>
-            <div className="bg-white p-3 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm col-span-2 lg:col-span-1 flex flex-col justify-center">
-              <p className="text-[10px] sm:text-xs font-medium text-zinc-500 uppercase truncate">Resultado</p>
-              <p className={`text-sm sm:text-lg lg:text-xl font-bold mt-1 truncate ${saldo >= 0 ? "text-emerald-600" : "text-rose-600"}`} title={formatCurrency(saldo)}>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-zinc-200 shadow-sm md:col-span-2 print:col-span-2 flex flex-col justify-center print:break-inside-avoid">
+              <p className="text-xs font-medium text-zinc-500 uppercase">Resultado</p>
+              <p className={`text-lg lg:text-xl font-bold mt-1 ${saldo >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                 {formatCurrency(saldo)}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:block">
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex flex-col print:mb-8 print:break-inside-avoid">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:block print:space-y-8">
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex flex-col print:mb-8 print:break-inside-avoid print:w-full">
               <h3 className="text-lg font-semibold text-zinc-900 mb-2 shrink-0">
                 Composição de Custos
               </h3>
-              <div className="flex-1 min-h-[350px]">
+              <div className="flex-1 min-h-[400px]">
                 {despesasPorCategoria.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={despesasPorCategoria}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={80}
-                        outerRadius={110}
+                        cy="45%"
+                        innerRadius={90}
+                        outerRadius={120}
                         paddingAngle={3}
                         dataKey="value"
                       >
@@ -175,7 +175,7 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
                       <Tooltip
                         formatter={(value: number) => formatCurrency(value)}
                       />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      <Legend verticalAlign="bottom" height={48} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -186,14 +186,14 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col print:break-inside-avoid">
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col print:break-inside-avoid print:w-full">
               <div className="p-6 border-b border-zinc-100 flex items-center justify-between shrink-0">
                 <h3 className="text-lg font-semibold text-zinc-900">
                   Detalhamento de Custos
                 </h3>
                 <Building2 className="text-zinc-400" size={20} />
               </div>
-              <div className="divide-y divide-zinc-100 flex-1 overflow-y-auto">
+              <div className="divide-y divide-zinc-100 flex-1 overflow-y-auto print:overflow-visible">
                 {despesasPorCategoria.map((cat, idx) => (
                   <div
                     key={cat.name}
@@ -201,7 +201,7 @@ export default function ModalRelatorioObra({ obraId, onClose }: ModalRelatorioOb
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: COLORS[idx % COLORS.length] }}
                       ></div>
                       <span className="text-sm font-medium text-zinc-700">
