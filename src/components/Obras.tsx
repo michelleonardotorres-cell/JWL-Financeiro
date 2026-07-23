@@ -244,11 +244,17 @@ export default function Obras() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-zinc-700 mb-1">Valor do Contrato Inicial</label>
-                        <input type="number" step="0.01" value={formData.valorContrato || ""} onChange={e => setFormData({...formData, valorContrato: Number(e.target.value)})} className="w-full p-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="R$ 0,00" />
+                        <input type="text" value={formatCurrency(formData.valorContrato)} onChange={e => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setFormData({...formData, valorContrato: Number(val) / 100});
+                        }} className="w-full p-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="R$ 0,00" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-zinc-700 mb-1">Reajuste de Contrato (+)</label>
-                        <input type="number" step="0.01" min="0" value={formData.reajusteContrato || ""} onChange={e => setFormData({...formData, reajusteContrato: Number(e.target.value)})} className="w-full p-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="R$ 0,00" />
+                        <input type="text" value={formatCurrency(formData.reajusteContrato)} onChange={e => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setFormData({...formData, reajusteContrato: Number(val) / 100});
+                        }} className="w-full p-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="R$ 0,00" />
                       </div>
                       {/* O aditivo é gerenciado pela tabela abaixo */}
                       <div className="flex flex-col justify-end">
@@ -351,7 +357,12 @@ function AditivosSection({ obraId, onAditivosChange }: { obraId: string, onAditi
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-600 mb-1">Valor (pode ser negativo)</label>
-            <input type="number" step="0.01" value={newVal || ""} onChange={e => setNewVal(Number(e.target.value))} className="w-full p-2 border border-zinc-300 rounded text-sm focus:ring-2 focus:ring-indigo-500" />
+            <input type="text" value={new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(newVal)} onChange={e => {
+              const isNegative = e.target.value.includes('-');
+              const val = e.target.value.replace(/\D/g, "");
+              const num = Number(val) / 100;
+              setNewVal(isNegative ? -num : num);
+            }} className="w-full p-2 border border-zinc-300 rounded text-sm focus:ring-2 focus:ring-indigo-500" />
           </div>
           <button onClick={handleAdd} className="bg-emerald-600 text-white px-4 py-2 rounded font-medium text-sm hover:bg-emerald-700 transition-colors">
             Salvar
@@ -531,10 +542,16 @@ function MedicaoRow({ medicao, onUpdate, onDelete, onApprove }: { medicao: ObraM
           <input type="date" value={editData} onChange={e => setEditData(e.target.value)} className="w-full p-1.5 text-xs border border-zinc-300 rounded focus:ring-1 focus:ring-indigo-500" />
         </td>
         <td className="p-3 text-right">
-          <input type="number" step="0.01" value={editValor || ""} onChange={e => setEditValor(Number(e.target.value))} className="w-full text-right p-1.5 text-xs border border-zinc-300 rounded focus:ring-1 focus:ring-indigo-500" placeholder="0,00" />
+          <input type="text" value={formatCurrency(editValor)} onChange={e => {
+            const val = e.target.value.replace(/\D/g, "");
+            setEditValor(Number(val) / 100);
+          }} className="w-full text-right p-1.5 text-xs border border-zinc-300 rounded focus:ring-1 focus:ring-indigo-500" placeholder="R$ 0,00" />
         </td>
         <td className="p-3 text-right">
-          <input type="number" step="0.01" value={editRetencao || ""} onChange={e => setEditRetencao(Number(e.target.value))} className="w-full text-right p-1.5 text-xs border border-zinc-300 rounded focus:ring-1 focus:ring-indigo-500" placeholder="0,00" />
+          <input type="text" value={formatCurrency(editRetencao)} onChange={e => {
+            const val = e.target.value.replace(/\D/g, "");
+            setEditRetencao(Number(val) / 100);
+          }} className="w-full text-right p-1.5 text-xs border border-zinc-300 rounded focus:ring-1 focus:ring-indigo-500" placeholder="R$ 0,00" />
         </td>
         <td className="p-3 text-center">
           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">Editando</span>

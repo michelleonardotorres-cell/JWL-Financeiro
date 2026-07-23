@@ -675,18 +675,10 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
 
     const [editData, setEditData] = useState(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
     const [editValorNum, setEditValorNum] = useState<number>(Number(parcela.valor) || 0);
-    const [editValorStr, setEditValorStr] = useState<string>(Number(parcela.valor) === 0 ? "" : formatCurrencyInput(Number(parcela.valor)));
 
     const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/\D/g, "");
-        if (val === "") {
-            setEditValorNum(0);
-            setEditValorStr("");
-            return;
-        }
-        const num = Number(val) / 100;
-        setEditValorNum(num);
-        setEditValorStr(formatCurrencyInput(num));
+        setEditValorNum(Number(val) / 100);
     };
 
     const handleSave = async () => {
@@ -747,7 +739,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                 <td className="p-3">
                     <input 
                         type="text" 
-                        value={editValorStr} 
+                        value={formatCurrencyInput(editValorNum)} 
                         onChange={handleValorChange} 
                         className="w-full p-1.5 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none text-right bg-white font-semibold" 
                         placeholder="R$ 0,00"
@@ -763,7 +755,6 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                             setIsEditing(false); 
                             setEditData(parcela.dataVencimento); 
                             setEditValorNum(Number(parcela.valor) || 0);
-                            setEditValorStr(Number(parcela.valor) === 0 ? "" : formatCurrencyInput(Number(parcela.valor)));
                         }} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors" title="Cancelar Edição"><X size={14}/></button>
                         <button onClick={handleDelete} className="p-1.5 bg-zinc-200 text-zinc-600 rounded hover:bg-rose-100 hover:text-rose-600 transition-colors" title="Excluir Medição"><Trash2 size={14} /></button>
                     </div>
