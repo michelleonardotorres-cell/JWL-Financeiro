@@ -74,7 +74,7 @@ export default async function handler(req, res) {
               `Medição ${medicao.numeroMedicao} - ${medicao.nome}`,
               medicao.valor,
               "Receita",
-              "Receitas de Vendas",
+              "RECEITAS",
               medicao.obraId,
               dataVencimento || formattedDate,
               dataCompetencia || formattedDate,
@@ -98,14 +98,14 @@ export default async function handler(req, res) {
                 `Retenção/Impostos da Medição ${medicao.numeroMedicao} - ${medicao.nome}`,
                 valorRetencao,
                 "Despesa",
-                "Impostos",
+                "IMPOSTOS",
                 medicao.obraId,
-                dataVencimento || formattedDate,
-                dataCompetencia || formattedDate,
+                req.body.dataVencimentoImposto || dataVencimento || formattedDate,
+                req.body.dataCompetenciaImposto || dataCompetencia || formattedDate,
                 "Aberto",
-                fornecedorId || null,
-                recebedorFornecedor || null,
-                nf || null
+                req.body.fornecedorImpostoId || null,
+                req.body.recebedorFornecedorImposto || null,
+                req.body.nfImposto || null
               ]
             );
           }

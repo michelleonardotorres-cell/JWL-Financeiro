@@ -581,6 +581,7 @@ function MedicaoRow({ medicao, onUpdate, onDelete, onApprove }: { medicao: ObraM
         <AprovarMedicaoModal
           titulo={`Aprovar Medição ${medicao.numeroMedicao}`}
           valorOriginal={medicao.valor}
+          valorRetencao={medicao.valorRetencao}
           dataOriginal={medicao.dataVencimento ? medicao.dataVencimento.split('T')[0] : ""}
           fornecedores={allFornecedores}
           onConfirm={handleApproveAction}
