@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Fornecedor, Lancamento } from "../types";
-import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye, MoreHorizontal } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye, MoreHorizontal, Download, Search, Filter, Tag, FileText, Share2, Paperclip } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 import { safeFormatDate } from "../utils";
 import { lancamentosApi } from "../apiClient";
+import { AnexosModal } from "./AnexosModal";
 
 export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
     const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -57,6 +58,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   
   const [deletandoContaId, setDeletandoContaId] = useState<string | null>(null);
   const [confirmDeleteText, setConfirmDeleteText] = useState("");
+  const [anexosModalId, setAnexosModalId] = useState<string | null>(null);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -906,6 +908,18 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                                 <button
                                   onClick={() => {
                                     setActiveMenuId(null);
+                                    setAnexosModalId(l.id);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors block text-left font-medium flex justify-between items-center"
+                                >
+                                  Anexos
+                                  <Paperclip size={14} className="opacity-50" />
+                                </button>
+                              )}
+                              {!(l as any).isPrevisao && (
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
                                     setDeletandoContaId(l.id);
                                     setConfirmDeleteText("");
                                   }}
@@ -931,6 +945,10 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
           )}
         </div>
       </div>
+
+      {anexosModalId && (
+        <AnexosModal lancamentoId={anexosModalId} onClose={() => setAnexosModalId(null)} />
+      )}
 
       {/* Payment Modal */}
       {pagandoContaId && (

@@ -34,6 +34,7 @@ export interface Lancamento {
   recebedorFornecedor?: string;
   contratoId?: string;
   status: "Aberto" | "Pago" | "Atrasado";
+  anexos?: any[];
 }
 export type LancamentoRecord = Lancamento & XataRecord;
 
@@ -49,6 +50,7 @@ export interface Contrato {
   recebedorFornecedor?: string;
   diaVencimento: number;
   ativo: boolean;
+  anexos?: any[];
 }
 export type ContratoRecord = Contrato & XataRecord;
 
@@ -119,6 +121,7 @@ const tables = [
       { name: "recebedorFornecedor", type: "string" },
       { name: "contratoId", type: "string" },
       { name: "status", type: "string" },
+      { name: "anexos", type: "file[]" },
     ],
   },
   {
@@ -135,6 +138,7 @@ const tables = [
       { name: "recebedorFornecedor", type: "string" },
       { name: "diaVencimento", type: "int" },
       { name: "ativo", type: "bool" },
+      { name: "anexos", type: "file[]" },
     ],
   },
 ] as const;

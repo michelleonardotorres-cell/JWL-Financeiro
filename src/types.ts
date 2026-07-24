@@ -105,6 +105,7 @@ export type Lancamento = {
   status: "Aberto" | "Pago" | "Atrasado";
   lancamentoPaiId?: string | null;
   parcelas?: { id: string; status: string; dataVencimento: string }[];
+  anexos?: any[];
 };
 
 export type Contrato = {

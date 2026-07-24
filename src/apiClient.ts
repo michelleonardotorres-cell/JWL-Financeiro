@@ -137,7 +137,14 @@ export const lancamentosApi = {
     return processLancamento(res);
   },
   batchPay: (ids: string[]) => apiFetch<{success: boolean, count: number}>("lancamentos", { method: "PATCH", body: JSON.stringify({ ids }) }),
-  delete: (id: string) => apiFetch<{ok: boolean}>(`lancamentos?id=${id}`, { method: "DELETE" })
+  delete: (id: string) => apiFetch<{ok: boolean}>(`lancamentos?id=${id}`, { method: "DELETE" }),
+  
+  // Anexos
+  getAnexos: (id: string) => apiFetch<any[]>(`lancamentos?action=get_anexos&id=${id}`),
+  addAnexo: (id: string, fileData: { nome: string, tipo: string, base64: string }) => 
+    apiFetch<any[]>(`lancamentos?action=add_anexo`, { method: "POST", body: JSON.stringify({ id, ...fileData }) }),
+  removeAnexo: (id: string, anexoId: string) =>
+    apiFetch<any[]>(`lancamentos?action=remove_anexo`, { method: "POST", body: JSON.stringify({ id, anexoId }) })
 };
 
 // Contratos

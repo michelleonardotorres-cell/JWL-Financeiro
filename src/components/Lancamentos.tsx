@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { safeFormatDate, normalizeString } from "../utils";
-import { Search, Filter, Plus, Save, X, Check, MoreHorizontal, ChevronDown, Upload, Download, UploadCloud, AlertCircle } from "lucide-react";
+import { Search, Filter, Plus, Save, X, Check, MoreHorizontal, ChevronDown, Upload, Download, UploadCloud, AlertCircle, Paperclip } from "lucide-react";
 import { Lancamento } from "../types";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
@@ -9,6 +9,7 @@ import LancamentosImportErrorsModal, { ImportError } from "./LancamentosImportEr
 import { lancamentosApi } from "../apiClient";
 import { usePeriodFilter } from "../hooks/usePeriodFilter";
 import { PeriodFilter } from "./PeriodFilter";
+import { AnexosModal } from "./AnexosModal";
 
 export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarData }: { setActiveTab?: (tab: string) => void, efetivarData?: any, setEfetivarData?: (data: any) => void }) {
     const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -56,6 +57,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
   const [editingLancamento, setEditingLancamento] = useState<Lancamento | null>(null);
   const [deletingLancamento, setDeletingLancamento] = useState<Lancamento | null>(null);
   const [confirmDeleteText, setConfirmDeleteText] = useState("");
+  const [anexosModalId, setAnexosModalId] = useState<string | null>(null);
   const [editValorInput, setEditValorInput] = useState("");
   const [editEntry, setEditEntry] = useState<Partial<Lancamento>>({});
   const periodFilterState = usePeriodFilter();
@@ -976,6 +978,17 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveMenuId(null);
+                                setAnexosModalId(l.id);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left flex justify-between items-center"
+                            >
+                              Anexos
+                              <Paperclip size={14} className="opacity-50" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(null);
                                 handleStartEdit(l);
                               }}
                               className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left"
@@ -1667,7 +1680,11 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           }}
         />
       )}
+
+      {anexosModalId && (
+        <AnexosModal lancamentoId={anexosModalId} onClose={() => setAnexosModalId(null)} />
+      )}
+
     </div>
   );
 }
-
