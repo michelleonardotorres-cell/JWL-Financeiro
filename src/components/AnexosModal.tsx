@@ -71,6 +71,29 @@ export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
     }
   };
 
+  const handleOpenAnexo = (e: React.MouseEvent, anexo: any) => {
+    e.preventDefault();
+    if (!anexo.base64) {
+      if (anexo.url) window.open(anexo.url, '_blank');
+      return;
+    }
+    
+    fetch(anexo.base64)
+      .then(res => res.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      })
+      .catch(err => {
+        console.error(err);
+        const a = document.createElement("a");
+        a.href = anexo.base64;
+        a.download = anexo.name || "anexo";
+        a.click();
+      });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative max-h-[90vh] flex flex-col">
@@ -97,10 +120,9 @@ export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
               {anexos.map(anexo => (
                 <li key={anexo.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-200">
                   <a 
-                    href={anexo.base64 || anexo.url} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="flex items-center gap-3 overflow-hidden group w-full"
+                    href="#" 
+                    onClick={(e) => handleOpenAnexo(e, anexo)}
+                    className="flex items-center gap-3 overflow-hidden group w-full cursor-pointer"
                   >
                     {anexo.mediaType?.includes('image') ? (
                       <ImageIcon size={20} className="text-emerald-500 shrink-0" />
