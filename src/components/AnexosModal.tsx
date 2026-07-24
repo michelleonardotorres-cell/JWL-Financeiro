@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Upload, Trash2, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
-import { apiClient } from "../apiClient";
+import { lancamentosApi } from "../apiClient";
 
 interface AnexosModalProps {
   lancamentoId: string;
@@ -19,7 +19,7 @@ export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
   const fetchAnexos = async () => {
     setLoading(true);
     try {
-      const data = await apiClient.getAnexos(lancamentoId);
+      const data = await lancamentosApi.getAnexos(lancamentoId);
       setAnexos(data || []);
     } catch (e) {
       console.error(e);
@@ -40,7 +40,7 @@ export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
       
       setUploading(true);
       try {
-        const newData = await apiClient.addAnexo(lancamentoId, {
+        const newData = await lancamentosApi.addAnexo(lancamentoId, {
           nome: file.name,
           tipo: file.type,
           base64: base64
@@ -61,7 +61,7 @@ export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
     if (!confirm("Remover este anexo?")) return;
     setUploading(true);
     try {
-      const newData = await apiClient.removeAnexo(lancamentoId, anexoId);
+      const newData = await lancamentosApi.removeAnexo(lancamentoId, anexoId);
       setAnexos(newData);
     } catch (e) {
       console.error(e);
