@@ -20,7 +20,8 @@ export default async function handler(req, res) {
         `SELECT id, descricao, "valorPrevisto", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
                 "recebedorFornecedor", "diaVencimento", ativo,
-                "dataInicio", "dataTermino", status, "valorTotal"
+                "dataInicio", "dataTermino", status, "valorTotal",
+                CASE WHEN jsonb_typeof(anexos) = 'array' THEN jsonb_array_length(anexos) ELSE 0 END AS "anexosCount"
          FROM contratos ORDER BY descricao ASC`
       );
       // Parse boolean ativo field

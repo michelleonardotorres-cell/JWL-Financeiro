@@ -106,6 +106,7 @@ export type Lancamento = {
   lancamentoPaiId?: string | null;
   parcelas?: { id: string; status: string; dataVencimento: string }[];
   anexos?: any[];
+  anexosCount?: number;
 };
 
 export type Contrato = {
@@ -125,6 +126,7 @@ export type Contrato = {
   diaVencimento: number;
   ativo: boolean; // mantido por compatibilidade
   status?: string; // "Ativo", "Finalizado", "Cancelado"
+  anexosCount?: number;
 };
 
 export type ContratoParcela = {

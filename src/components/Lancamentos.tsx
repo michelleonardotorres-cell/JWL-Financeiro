@@ -983,7 +983,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                               className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left flex justify-between items-center"
                             >
                               Anexos
-                              <Paperclip size={14} className="opacity-50" />
+                              <div className="flex items-center gap-1.5">
+                                {(l.anexosCount && l.anexosCount > 0) ? (
+                                  <span className="text-[10px] font-bold text-zinc-500 bg-zinc-200/50 px-1.5 rounded-full">{l.anexosCount}</span>
+                                ) : null}
+                                <Paperclip size={14} className="opacity-50" />
+                              </div>
                             </button>
                             <button
                               onClick={(e) => {

@@ -241,13 +241,18 @@ export default function Contratos() {
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button 
-                                                    className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                                                    onClick={(e) => { e.stopPropagation(); setAnexosModalId(c.id); }}
-                                                    title="Anexos"
-                                                >
-                                                    <Paperclip size={18} />
-                                                </button>
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <button 
+                                                        className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                                        onClick={(e) => { e.stopPropagation(); setAnexosModalId(c.id); }}
+                                                        title="Anexos"
+                                                    >
+                                                        <Paperclip size={18} />
+                                                    </button>
+                                                    {(c.anexosCount && c.anexosCount > 0) ? (
+                                                        <span className="text-[10px] font-bold text-zinc-500 leading-none -mt-1">{c.anexosCount}</span>
+                                                    ) : null}
+                                                </div>
                                                 <button 
                                                     className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
                                                     onClick={(e) => { e.stopPropagation(); setSelectedContrato(c); setShowDetailsModal(true); }}

@@ -97,6 +97,7 @@ export default async function handler(req, res) {
                 "formaPagamento", nf, descricao, valor, "valorPago", "jurosMulta", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
                 "recebedorFornecedor", "contratoId", status, "lancamentoPaiId",
+                CASE WHEN jsonb_typeof(anexos) = 'array' THEN jsonb_array_length(anexos) ELSE 0 END AS "anexosCount",
                 (
                   SELECT COALESCE(json_agg(
                     json_build_object('id', child.id, 'status', child.status, 'dataVencimento', child."dataVencimento")
