@@ -1,25 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { X, Upload, Trash2, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
-import { lancamentosApi } from "../apiClient";
+import { lancamentosApi, contratosApi } from "../apiClient";
 
 interface AnexosModalProps {
-  lancamentoId: string;
+  entityId: string;
+  entityType?: 'lancamento' | 'contrato';
   onClose: () => void;
 }
 
-export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
+export function AnexosModal({ entityId, entityType = 'lancamento', onClose }: AnexosModalProps) {
   const [anexos, setAnexos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchAnexos();
-  }, [lancamentoId]);
+  }, [entityId]);
+
+  const api = entityType === 'contrato' ? contratosApi : lancamentosApi;
 
   const fetchAnexos = async () => {
     setLoading(true);
     try {
-      const data = await lancamentosApi.getAnexos(lancamentoId);
+      const data = await api.getAnexos(entityId);
       setAnexos(data || []);
     } catch (e) {
       console.error(e);
@@ -40,7 +43,7 @@ export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
       
       setUploading(true);
       try {
-        const newData = await lancamentosApi.addAnexo(lancamentoId, {
+        const newData = await api.addAnexo(entityId, {
           nome: file.name,
           tipo: file.type,
           base64: base64
@@ -61,7 +64,7 @@ export function AnexosModal({ lancamentoId, onClose }: AnexosModalProps) {
     if (!confirm("Remover este anexo?")) return;
     setUploading(true);
     try {
-      const newData = await lancamentosApi.removeAnexo(lancamentoId, anexoId);
+      const newData = await api.removeAnexo(entityId, anexoId);
       setAnexos(newData);
     } catch (e) {
       console.error(e);

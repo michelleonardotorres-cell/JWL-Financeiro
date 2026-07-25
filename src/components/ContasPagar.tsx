@@ -947,7 +947,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       </div>
 
       {anexosModalId && (
-        <AnexosModal lancamentoId={anexosModalId} onClose={() => setAnexosModalId(null)} />
+        <AnexosModal entityId={anexosModalId} onClose={() => setAnexosModalId(null)} />
       )}
 
       {/* Payment Modal */}

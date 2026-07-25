@@ -8,6 +8,14 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
+      const { action, id } = req.query;
+
+      if (action === "get_anexos") {
+        if (!id) return res.status(400).json({ error: "id é obrigatório" });
+        const { rows } = await pool.query(`SELECT anexos FROM contratos WHERE id = $1`, [id]);
+        return res.status(200).json(rows[0]?.anexos || []);
+      }
+
       const { rows } = await pool.query(
         `SELECT id, descricao, "valorPrevisto", tipo, categoria,
                 "tipoLancamento", subtipo, "obraId", "fornecedorId",
@@ -20,7 +28,37 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
+      const { action } = req.query;
       const d = req.body;
+
+      if (action === "add_anexo") {
+        if (!d.id || !d.base64) return res.status(400).json({ error: "id e base64 são obrigatórios" });
+        const newAnexo = {
+           id: "file_" + Math.random().toString(36).substring(2, 9),
+           name: d.nome || "comprovante",
+           mediaType: d.tipo || "application/octet-stream",
+           base64: d.base64
+        };
+        const { rows } = await pool.query(
+          `UPDATE contratos SET anexos = COALESCE(anexos, '[]'::jsonb) || $2::jsonb WHERE id = $1 RETURNING anexos`,
+          [d.id, JSON.stringify([newAnexo])]
+        );
+        return res.status(200).json(rows[0]?.anexos || []);
+      }
+
+      if (action === "remove_anexo") {
+        if (!d.id || !d.anexoId) return res.status(400).json({ error: "id e anexoId são obrigatórios" });
+        const { rows } = await pool.query(
+          `UPDATE contratos SET anexos = (
+             SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+             FROM jsonb_array_elements(COALESCE(anexos, '[]'::jsonb)) elem
+             WHERE elem->>'id' != $2
+           ) WHERE id = $1 RETURNING anexos`,
+          [d.id, d.anexoId]
+        );
+        return res.status(200).json(rows[0]?.anexos || []);
+      }
+
       if (!d.id || !d.descricao) return res.status(400).json({ error: "id e descricao são obrigatórios" });
       const { rows } = await pool.query(
         `INSERT INTO contratos

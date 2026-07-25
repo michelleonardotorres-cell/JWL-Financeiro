@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Plus, Save, X, Check, CheckCircle2, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2, Trash2, MoreHorizontal, RotateCcw } from "lucide-react";
+import { Search, Plus, Save, X, Check, CheckCircle2, CalendarDays, Droplets, Building2, Briefcase, FileText, Edit2, Trash2, MoreHorizontal, RotateCcw, Paperclip } from "lucide-react";
 import { Contrato, ContratoParcela } from "../types";
 import { normalizeString, safeParseISO, safeFormatDate } from "../utils";
 import { useData } from "../contexts/DataContext";
 import Combobox from "./Combobox";
 import CurrencyInput from "./CurrencyInput";
 import AprovarMedicaoModal from "./AprovarMedicaoModal";
+import { AnexosModal } from "./AnexosModal";
 
 import { contratoParcelasApi, contratosApi } from "../apiClient";
 
@@ -46,6 +47,7 @@ export default function Contratos() {
     const [deletingContrato, setDeletingContrato] = useState<Contrato | null>(null);
     const [confirmDeleteText, setConfirmDeleteText] = useState("");
     const [editingContrato, setEditingContrato] = useState<Contrato | null>(null);
+    const [anexosModalId, setAnexosModalId] = useState<string | null>(null);
 
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat("pt-BR", {
@@ -238,12 +240,22 @@ export default function Contratos() {
                                             )}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <button 
-                                                className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                                                onClick={(e) => { e.stopPropagation(); setSelectedContrato(c); setShowDetailsModal(true); }}
-                                            >
-                                                <Search size={18} />
-                                            </button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button 
+                                                    className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); setAnexosModalId(c.id); }}
+                                                    title="Anexos"
+                                                >
+                                                    <Paperclip size={18} />
+                                                </button>
+                                                <button 
+                                                    className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedContrato(c); setShowDetailsModal(true); }}
+                                                    title="Ver Detalhes"
+                                                >
+                                                    <Search size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );
@@ -342,6 +354,10 @@ export default function Contratos() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {anexosModalId && (
+                <AnexosModal entityId={anexosModalId} entityType="contrato" onClose={() => setAnexosModalId(null)} />
             )}
         </div>
     );

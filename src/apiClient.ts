@@ -155,7 +155,14 @@ export const contratosApi = {
     return apiFetch<Contrato>("contratos", { method: "POST", body: JSON.stringify({ ...contrato, id }) });
   },
   update: (contrato: Contrato) => apiFetch<Contrato>("contratos", { method: "PUT", body: JSON.stringify(contrato) }),
-  delete: (id: string) => apiFetch<{ok: boolean}>(`contratos?id=${id}`, { method: "DELETE" })
+  delete: (id: string) => apiFetch<{ok: boolean}>(`contratos?id=${id}`, { method: "DELETE" }),
+
+  // Anexos
+  getAnexos: (id: string) => apiFetch<any[]>(`contratos?action=get_anexos&id=${id}`),
+  addAnexo: (id: string, fileData: { nome: string, tipo: string, base64: string }) => 
+    apiFetch<any[]>(`contratos?action=add_anexo`, { method: "POST", body: JSON.stringify({ id, ...fileData }) }),
+  removeAnexo: (id: string, anexoId: string) =>
+    apiFetch<any[]>(`contratos?action=remove_anexo`, { method: "POST", body: JSON.stringify({ id, anexoId }) })
 };
 
 // Contrato Parcelas

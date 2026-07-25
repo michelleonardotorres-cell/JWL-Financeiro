@@ -1682,7 +1682,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       )}
 
       {anexosModalId && (
-        <AnexosModal lancamentoId={anexosModalId} onClose={() => setAnexosModalId(null)} />
+        <AnexosModal entityId={anexosModalId} onClose={() => setAnexosModalId(null)} />
       )}
 
     </div>
