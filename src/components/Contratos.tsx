@@ -758,7 +758,7 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                         <button onClick={handleSave} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors" title="Salvar"><Check size={14}/></button>
                         <button onClick={() => { 
                             setIsEditing(false); 
-                            setEditData(parcela.dataVencimento); 
+                            setEditData(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : ""); 
                             setEditValorNum(Number(parcela.valor) || 0);
                         }} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors" title="Cancelar Edição"><X size={14}/></button>
                         <button onClick={handleDelete} className="p-1.5 bg-zinc-200 text-zinc-600 rounded hover:bg-rose-100 hover:text-rose-600 transition-colors" title="Excluir Medição"><Trash2 size={14} /></button>
@@ -816,9 +816,8 @@ function ParcelaRow({ parcela, onUpdate, onDelete, onApproveMedicao }: { parcela
                                         <button
                                             onClick={() => { 
                                                 setShowMenu(false); 
-                                                setEditData(parcela.dataVencimento);
+                                                setEditData(parcela.dataVencimento ? parcela.dataVencimento.split('T')[0] : "");
                                                 setEditValorNum(Number(parcela.valor) || 0);
-                                                setEditValorStr(Number(parcela.valor) === 0 ? "" : formatCurrencyInput(Number(parcela.valor)));
                                                 setIsEditing(true); 
                                             }}
                                             className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-2 font-medium"
