@@ -207,7 +207,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       tipoLancamento: editEntry.tipoLancamento,
       subtipo: editEntry.subtipo,
       obraId: editEntry.obraId,
-      status: isBoletoOuPrazo ? "Aberto" : "Pago",
+      status: editingLancamento!.status,
     };
 
     try {

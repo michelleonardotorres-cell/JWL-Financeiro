@@ -6,6 +6,8 @@ import Combobox from "./Combobox";
 import { safeFormatDate } from "../utils";
 import { lancamentosApi } from "../apiClient";
 import { AnexosModal } from "./AnexosModal";
+import { usePeriodFilter } from "../hooks/usePeriodFilter";
+import { PeriodFilter } from "./PeriodFilter";
 
 export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
     const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
@@ -15,7 +17,8 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       const initialFornecedores = fornecedores;
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  const [periodoVencimento, setPeriodoVencimento] = useState<string>("Todos os Períodos");
+  const periodFilterState = usePeriodFilter();
+  const { activeFilter } = periodFilterState;
   const [contasSelecionadas, setContasSelecionadas] = useState<string[]>([]);
   const [serverLancamentos, setServerLancamentos] = useState<Lancamento[]>([]);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
@@ -293,27 +296,10 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   useEffect(() => {
     let start: string | undefined;
     let end: string | undefined;
-    const today = new Date();
-    const tzOffset = today.getTimezoneOffset() * 60000;
-    const localToday = new Date(Date.now() - tzOffset);
     
-    if (periodoVencimento === "Vence Hoje") {
-      start = localToday.toISOString().split('T')[0];
-      end = start;
-    } else if (periodoVencimento === "Próximos 7 Dias") {
-      start = localToday.toISOString().split('T')[0];
-      const nextWeek = new Date(localToday.getTime() + 7 * 24 * 60 * 60 * 1000);
-      end = nextWeek.toISOString().split('T')[0];
-    } else if (periodoVencimento === "Este Mês") {
-      const firstDay = new Date(localToday.getFullYear(), localToday.getMonth(), 1);
-      const lastDay = new Date(localToday.getFullYear(), localToday.getMonth() + 1, 0);
-      start = firstDay.toISOString().split('T')[0];
-      end = lastDay.toISOString().split('T')[0];
-    } else if (periodoVencimento === "Mês Anterior") {
-      const firstDay = new Date(localToday.getFullYear(), localToday.getMonth() - 1, 1);
-      const lastDay = new Date(localToday.getFullYear(), localToday.getMonth(), 0);
-      start = firstDay.toISOString().split('T')[0];
-      end = lastDay.toISOString().split('T')[0];
+    if (activeFilter && activeFilter.start && activeFilter.end) {
+      start = activeFilter.start;
+      end = activeFilter.end;
     }
 
     const fetchServer = async () => {
@@ -330,7 +316,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       }
     };
     fetchServer();
-  }, [periodoVencimento, lancamentosBase, debouncedColFilters]);
+  }, [activeFilter, lancamentosBase, debouncedColFilters]);
 
   const handleBaixarLote = async () => {
     if (contasSelecionadas.length === 0) return;
@@ -395,28 +381,8 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
   const despesas = [
     ...serverLancamentos,
     ...previsoes.filter(p => {
-      if (periodoVencimento === "Todos os Períodos") return true;
-      const today = new Date();
-      const tzOffset = today.getTimezoneOffset() * 60000;
-      const localToday = new Date(Date.now() - tzOffset);
-      const startOfToday = localToday.toISOString().split('T')[0];
-      
-      if (periodoVencimento === "Vence Hoje") return p.dataVencimento === startOfToday;
-      if (periodoVencimento === "Próximos 7 Dias") {
-        const nextWeek = new Date(localToday.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        return p.dataVencimento >= startOfToday && p.dataVencimento <= nextWeek;
-      }
-      if (periodoVencimento === "Este Mês") {
-        const firstDay = new Date(localToday.getFullYear(), localToday.getMonth(), 1).toISOString().split('T')[0];
-        const lastDay = new Date(localToday.getFullYear(), localToday.getMonth() + 1, 0).toISOString().split('T')[0];
-        return p.dataVencimento >= firstDay && p.dataVencimento <= lastDay;
-      }
-      if (periodoVencimento === "Mês Anterior") {
-        const firstDay = new Date(localToday.getFullYear(), localToday.getMonth() - 1, 1).toISOString().split('T')[0];
-        const lastDay = new Date(localToday.getFullYear(), localToday.getMonth(), 0).toISOString().split('T')[0];
-        return p.dataVencimento >= firstDay && p.dataVencimento <= lastDay;
-      }
-      return true;
+      if (!activeFilter || !activeFilter.start || !activeFilter.end) return true;
+      return p.dataVencimento >= activeFilter.start && p.dataVencimento <= activeFilter.end;
     })
   ];
 
@@ -439,7 +405,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     .reduce((acc, curr) => acc + curr.valor, 0);
   const totalPago = despesas
     .filter((l) => l.status === "Pago" && !(l as any).isPrevisao)
-    .reduce((acc, curr) => acc + curr.valor, 0);
+    .reduce((acc, curr) => acc + curr.valor + (curr.jurosMulta || 0), 0);
 
   const handleEfetivar = (prev: any) => {
     if (onEfetivar) {
@@ -523,17 +489,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
             ))}
           </div>
           <div className="flex items-center gap-4">
-            <select
-              value={periodoVencimento}
-              onChange={(e) => setPeriodoVencimento(e.target.value)}
-              className="bg-white border border-zinc-300 text-zinc-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2"
-            >
-              <option value="Todos os Períodos">Todos os Períodos</option>
-              <option value="Vence Hoje">Vence Hoje</option>
-              <option value="Próximos 7 Dias">Próximos 7 Dias</option>
-              <option value="Este Mês">Este Mês</option>
-              <option value="Mês Anterior">Mês Anterior</option>
-            </select>
+            <PeriodFilter filterState={periodFilterState} />
 
             {contasSelecionadas.length > 0 && (
               <button
@@ -830,6 +786,11 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     </td>
                     <td className="p-4 text-sm font-semibold text-zinc-900 text-right whitespace-nowrap">
                       {formatCurrency(l.valor)}
+                      {l.jurosMulta ? (
+                        <div className="text-[10px] text-rose-500 font-normal mt-0.5">
+                          + {formatCurrency(l.jurosMulta)} (Juros/Multa)
+                        </div>
+                      ) : null}
                     </td>
                     <td className="p-4 text-center select-none cursor-default" title={(l as any).isPrevisao ? "Esta é uma previsão de contrato. Confirme os valores para efetivar e enviar ao Lançamentos." : ""}>
                       <span
