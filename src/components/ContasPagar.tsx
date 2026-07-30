@@ -18,13 +18,14 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const periodFilterState = usePeriodFilter();
-  const { activeFilter } = periodFilterState;
+  const { activeFilter, setActiveFilter, monthNames, setTempMonth, setTempYear, setTempPeriodType } = periodFilterState;
   const [contasSelecionadas, setContasSelecionadas] = useState<string[]>([]);
   const [serverLancamentos, setServerLancamentos] = useState<Lancamento[]>([]);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [filterStatus, setFilterStatus] = useState<
     "Todos" | "Aberto" | "Atrasado" | "Pago"
-  >("Aberto");
+  >("Todos");
+  const [isInitialized, setIsInitialized] = useState(false);
   const [colFilters, setColFilters] = useState({
     dataVencimento: "",
     descricao: "",
@@ -32,6 +33,52 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     obraId: "",
   });
   const [debouncedColFilters, setDebouncedColFilters] = useState(colFilters);
+
+  useEffect(() => {
+    if (isInitialized || lancamentos.length === 0) return;
+    
+    const despesas = lancamentos.filter(l => l.tipo === "Despesa");
+    const atrasados = despesas.filter(l => l.status === "Atrasado");
+    const abertos = despesas.filter(l => l.status === "Aberto");
+
+    let targetStatus: "Todos" | "Aberto" | "Atrasado" | "Pago" = "Todos";
+    let targetDateStr: string | null = null;
+
+    if (atrasados.length > 0) {
+      targetStatus = "Atrasado";
+      targetDateStr = atrasados.reduce((acc, curr) => (curr.dataVencimento < acc ? curr.dataVencimento : acc), atrasados[0].dataVencimento);
+    } else if (abertos.length > 0) {
+      targetStatus = "Aberto";
+      targetDateStr = abertos.reduce((acc, curr) => (curr.dataVencimento < acc ? curr.dataVencimento : acc), abertos[0].dataVencimento);
+    }
+
+    if (targetStatus !== "Todos" && targetDateStr) {
+      const [y, m] = targetDateStr.split('-');
+      const year = parseInt(y, 10);
+      const month = parseInt(m, 10) - 1;
+      const monthStr = String(month + 1).padStart(2, "0");
+      const start = `${year}-${monthStr}-01`;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const end = `${year}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
+
+      setFilterStatus(targetStatus);
+      setActiveFilter({
+        type: "mes",
+        start,
+        end,
+        label: `${monthNames[month]} ${year}`,
+        month,
+        year
+      });
+      setTempMonth(month);
+      setTempYear(year);
+      setTempPeriodType("mes");
+    } else {
+      setFilterStatus("Todos");
+    }
+    
+    setIsInitialized(true);
+  }, [lancamentos, isInitialized, setActiveFilter, monthNames, setTempMonth, setTempYear, setTempPeriodType]);
 
   const [isAdding, setIsAdding] = useState(false);
   const [valorInput, setValorInput] = useState("");
@@ -391,21 +438,25 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       if (filterStatus === "Todos") return true;
       return l.status === filterStatus;
     })
-    .sort(
-      (a, b) =>
-        new Date(a.dataVencimento).getTime() -
-        new Date(b.dataVencimento).getTime(),
-    );
+    .sort((a, b) => {
+      const statusOrder = { Atrasado: 1, Aberto: 2, Pago: 3 };
+      const aStatus = statusOrder[a.status as keyof typeof statusOrder] || 4;
+      const bStatus = statusOrder[b.status as keyof typeof statusOrder] || 4;
+      if (aStatus !== bStatus) {
+        return aStatus - bStatus;
+      }
+      return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime();
+    });
 
   const totalAberto = despesas
     .filter((l) => l.status === "Aberto")
-    .reduce((acc, curr) => acc + curr.valor, 0);
+    .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
   const totalAtrasado = despesas
     .filter((l) => l.status === "Atrasado" && !(l as any).isPrevisao)
-    .reduce((acc, curr) => acc + curr.valor, 0);
+    .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
   const totalPago = despesas
     .filter((l) => l.status === "Pago" && !(l as any).isPrevisao)
-    .reduce((acc, curr) => acc + curr.valor + (curr.jurosMulta || 0), 0);
+    .reduce((acc, curr) => acc + Number(curr.valor || 0) + Number(curr.jurosMulta || 0), 0);
 
   const handleEfetivar = (prev: any) => {
     if (onEfetivar) {
@@ -787,8 +838,9 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     <td className="p-4 text-sm font-semibold text-zinc-900 text-right whitespace-nowrap">
                       {formatCurrency(l.valor)}
                       {l.jurosMulta ? (
-                        <div className="text-[10px] text-rose-500 font-normal mt-0.5">
-                          + {formatCurrency(l.jurosMulta)} (Juros/Multa)
+                        <div className="text-[10px] text-rose-500 font-normal mt-0.5 leading-tight flex flex-col items-end">
+                          <span>+ {formatCurrency(l.jurosMulta)}</span>
+                          <span>(Juros/Multa)</span>
                         </div>
                       ) : null}
                     </td>
