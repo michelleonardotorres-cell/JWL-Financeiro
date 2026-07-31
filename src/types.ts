@@ -97,7 +97,6 @@ export type Lancamento = {
   tipo: "Receita" | "Despesa";
   categoria: Categoria | string;
   tipoLancamento?: string;
-  subtipo?: string;
   obraId?: string;
   fornecedorId?: string;
   recebedorFornecedor?: string;
@@ -119,7 +118,6 @@ export type Contrato = {
   tipo: "Receita" | "Despesa";
   categoria: Categoria | string;
   tipoLancamento?: string;
-  subtipo?: string;
   obraId?: string;
   fornecedorId?: string;
   recebedorFornecedor?: string;

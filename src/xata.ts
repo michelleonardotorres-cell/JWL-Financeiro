@@ -28,7 +28,6 @@ export interface Lancamento {
   tipo: "Receita" | "Despesa";
   categoria: string;
   tipoLancamento?: string;
-  subtipo?: string;
   obraId?: string;
   fornecedorId?: string;
   recebedorFornecedor?: string;
@@ -44,7 +43,6 @@ export interface Contrato {
   tipo: "Receita" | "Despesa";
   categoria: string;
   tipoLancamento?: string;
-  subtipo?: string;
   obraId?: string;
   fornecedorId?: string;
   recebedorFornecedor?: string;
@@ -115,7 +113,6 @@ const tables = [
       { name: "tipo", type: "string" },
       { name: "categoria", type: "string" },
       { name: "tipoLancamento", type: "string" },
-      { name: "subtipo", type: "string" },
       { name: "obraId", type: "string" },
       { name: "fornecedorId", type: "string" },
       { name: "recebedorFornecedor", type: "string" },
@@ -132,7 +129,6 @@ const tables = [
       { name: "tipo", type: "string" },
       { name: "categoria", type: "string" },
       { name: "tipoLancamento", type: "string" },
-      { name: "subtipo", type: "string" },
       { name: "obraId", type: "string" },
       { name: "fornecedorId", type: "string" },
       { name: "recebedorFornecedor", type: "string" },

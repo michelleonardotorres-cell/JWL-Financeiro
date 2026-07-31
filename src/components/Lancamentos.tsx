@@ -40,7 +40,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     recebedorFornecedor: "",
     descricao: "",
     tipoLancamento: "",
-    subtipo: "",
     obraId: "",
     valor: 0,
     tipo: "Despesa",
@@ -71,7 +70,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
     recebedorFornecedor: "",
     descricao: "",
     tipoLancamento: "",
-    subtipo: "",
     obraId: "",
     valor: "",
   });
@@ -205,7 +203,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       tipo: isReceita ? "Receita" : "Despesa",
       categoria: editEntry.tipoLancamento || "Outros",
       tipoLancamento: editEntry.tipoLancamento,
-      subtipo: editEntry.subtipo,
       obraId: editEntry.obraId,
       status: editingLancamento!.status,
     };
@@ -268,7 +265,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
               <tr><th>Valor</th><td>R$ ${lancamento.valor.toFixed(2)}</td></tr>
               <tr><th>Tipo</th><td>${lancamento.tipo}</td></tr>
               <tr><th>Categoria (Tipo Lançamento)</th><td>${lancamento.categoria || "-"}</td></tr>
-              <tr><th>Subtipo</th><td>${lancamento.subtipo || "-"}</td></tr>
               <tr><th>Centro de Custo</th><td>${lancamento.obraId || "-"}</td></tr>
               <tr><th>Data Competência</th><td>${lancamento.dataCompetencia}</td></tr>
               <tr><th>Data Vencimento</th><td>${lancamento.dataVencimento}</td></tr>
@@ -300,7 +296,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         recebedorFornecedor: efetivarData.recebedorFornecedor || "",
         descricao: efetivarData.descricao || "",
         tipoLancamento: efetivarData.categoria || "",
-        subtipo: "",
         obraId: efetivarData.obraId || "",
         valor: efetivarData.valor || 0,
         tipo: "Despesa",
@@ -346,7 +341,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       recebedorFornecedor: "",
       descricao: "",
       tipoLancamento: "",
-      subtipo: "",
       obraId: "",
       valor: 0,
       tipo: "Despesa",
@@ -397,7 +391,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           tipo: isReceita ? "Receita" : "Despesa",
           categoria: newEntry.tipoLancamento || "Outros",
           tipoLancamento: newEntry.tipoLancamento,
-          subtipo: newEntry.subtipo,
           obraId: newEntry.obraId,
           status: isBoletoOuPrazo ? "Aberto" : "Pago",
           contratoId: newEntry.contratoId
@@ -428,7 +421,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         tipo: isReceita ? "Receita" : "Despesa",
         categoria: newEntry.tipoLancamento || "Outros",
         tipoLancamento: newEntry.tipoLancamento,
-        subtipo: newEntry.subtipo,
         obraId: newEntry.obraId,
         status: isBoletoOuPrazo ? "Aberto" : "Pago",
         contratoId: newEntry.contratoId
@@ -488,7 +480,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         'Recebedor/Fornecedor': l.recebedorFornecedor,
         'Descrição': l.descricao,
         'Tipo de Lançamento (Categoria)': l.categoria || l.tipoLancamento,
-        'Subtipo': l.subtipo,
         'Centro de Custo': obras.find(o => o.id === l.obraId)?.nome || l.obraId,
         'Valor': l.valor,
         'Tipo': l.tipo,
@@ -518,7 +509,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
       'Recebedor/Fornecedor': 'Nome do Fornecedor A',
       'Descrição': 'Descrição do Lançamento',
       'Tipo Lançamento': 'DESPESAS OPERACIONAIS',
-      'Subtipo': 'Material de Escritório',
       'Centro de Custo': obras[0]?.nome || 'Obra A',
       'Valor (Apenas números e vírgula)': 1500.50,
       'Tipo (Despesa/Receita)': 'Despesa'
@@ -635,7 +625,6 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           tipo: tipo as 'Despesa' | 'Receita',
           categoria: row['Tipo Lançamento']?.toString() || "Outros",
           tipoLancamento: row['Tipo Lançamento']?.toString() || "Outros",
-          subtipo: row['Subtipo']?.toString() || "",
           obraId: obraIdFinal,
           status: "Pago",
         };
@@ -797,6 +786,11 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
           <table className="min-w-[1300px] w-full table-fixed text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
               <tr className="bg-zinc-50 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                <th className="p-3 w-[40px] align-top text-center">
+                  <div className="flex flex-col gap-1.5 items-center justify-center">
+                    <Paperclip size={14} className="opacity-0" />
+                  </div>
+                </th>
                 <th className="p-3 w-[90px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Data Comp.</span>
@@ -916,10 +910,16 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                       setActiveMenuId(activeMenuId === l.id ? null : l.id);
                     }}
                   >
+                    <td 
+                      className="p-4 text-center cursor-pointer hover:bg-zinc-200 transition-colors rounded-l-md" 
+                      onClick={(e) => { e.stopPropagation(); setAnexosModalId(l.id); }}
+                    >
+                      <Paperclip size={16} className={l.anexosCount && l.anexosCount > 0 ? "text-emerald-500" : "text-zinc-400"} />
+                    </td>
                     <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
                       {safeFormatDate(l.dataCompetencia)}
                     </td>
-                    <td className="p-4 text-sm text-zinc-600 whitespace-nowrap">
+                    <td className="p-4 text-sm text-zinc-600 max-w-[120px] break-words whitespace-normal" title={l.nf || ""}>
                       {l.nf || "-"}
                     </td>
                     <td className="p-4 text-sm font-medium text-zinc-900 break-words whitespace-normal">
@@ -974,22 +974,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                             >
                               Exibir
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(null);
-                                setAnexosModalId(l.id);
-                              }}
-                              className="w-full px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors block text-left flex justify-between items-center"
-                            >
-                              Anexos
-                              <div className="flex items-center gap-1.5">
-                                {(l.anexosCount && l.anexosCount > 0) ? (
-                                  <span className="text-[10px] font-bold text-zinc-500 bg-zinc-200/50 px-1.5 rounded-full">{l.anexosCount}</span>
-                                ) : null}
-                                <Paperclip size={14} className="opacity-50" />
-                              </div>
-                            </button>
+
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1136,16 +1121,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Subtipo</label>
-                <input
-                  type="text"
-                  placeholder="Subtipo"
-                  value={newEntry.subtipo || ""}
-                  onChange={(e) => setNewEntry({ ...newEntry, subtipo: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                />
-              </div>
+
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Centro de Custo</label>
                 <Combobox
@@ -1490,15 +1466,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Subtipo</label>
-                <input
-                  type="text"
-                  value={editEntry.subtipo || ""}
-                  onChange={(e) => setEditEntry({ ...editEntry, subtipo: e.target.value })}
-                  className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                />
-              </div>
+
               <div className="col-span-2">
                 <label className="block text-xs font-semibold text-zinc-500 mb-1">Centro de Custo</label>
                 <Combobox

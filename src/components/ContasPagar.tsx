@@ -91,7 +91,6 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
     formaPagamento: "A PRAZO",
     dataCompetencia: "",
     tipoLancamento: "Conta Fixa",
-    subtipo: "",
     nf: "",
   });
   
@@ -169,7 +168,6 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
           descricao: `${newConta.descricao} (${i + 1}/${parcelasCount})`,
           categoria: newConta.tipoLancamento || "Conta Fixa",
           tipoLancamento: newConta.tipoLancamento || "Conta Fixa",
-          subtipo: newConta.subtipo || "",
           obraId: newConta.obraId || undefined,
           valor: parcelaValor,
           tipo: "Despesa" as const,
@@ -199,7 +197,6 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
         descricao: newConta.descricao,
         categoria: newConta.tipoLancamento || "Conta Fixa",
         tipoLancamento: newConta.tipoLancamento || "Conta Fixa",
-        subtipo: newConta.subtipo || "",
         obraId: newConta.obraId || undefined,
         valor: newConta.valor,
         tipo: "Despesa" as const,
@@ -228,7 +225,6 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       formaPagamento: "A PRAZO",
       dataCompetencia: "",
       tipoLancamento: "Conta Fixa",
-      subtipo: "",
       nf: "",
     });
     setValorInput("");
@@ -247,7 +243,6 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
       formaPagamento: "A PRAZO",
       dataCompetencia: "",
       tipoLancamento: "Conta Fixa",
-      subtipo: "",
       nf: "",
     });
     setValorInput("");
@@ -595,24 +590,24 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                 </th>
                 <th className="p-3 align-top">
                   <div className="flex flex-col gap-1.5">
-                    <span>Descrição</span>
-                    <input
-                      type="text"
-                      placeholder="Filtrar descrição..."
-                      value={colFilters.descricao}
-                      onChange={(e) => setColFilters({ ...colFilters, descricao: e.target.value })}
-                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
-                    />
-                  </div>
-                </th>
-                <th className="p-3 align-top">
-                  <div className="flex flex-col gap-1.5">
                     <span>Fornecedor</span>
                     <input
                       type="text"
                       placeholder="Filtrar fornecedor..."
                       value={colFilters.recebedorFornecedor}
                       onChange={(e) => setColFilters({ ...colFilters, recebedorFornecedor: e.target.value })}
+                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                  </div>
+                </th>
+                <th className="p-3 align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Descrição</span>
+                    <input
+                      type="text"
+                      placeholder="Filtrar descrição..."
+                      value={colFilters.descricao}
+                      onChange={(e) => setColFilters({ ...colFilters, descricao: e.target.value })}
                       className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
                     />
                   </div>
@@ -669,20 +664,20 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   </td>
                   <td className="p-2"></td>
                   <td className="p-2">
+                    <Combobox
+                      options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
+                      value={newConta.fornecedorId || ""}
+                      onChange={(id) => setNewConta({ ...newConta, fornecedorId: id })}
+                      placeholder="Fornecedor"
+                    />
+                  </td>
+                  <td className="p-2">
                     <input
                       type="text"
                       placeholder="Descrição"
                       value={newConta.descricao}
                       onChange={(e) => setNewConta({ ...newConta, descricao: e.target.value })}
                       className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Combobox
-                      options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
-                      value={newConta.fornecedorId || ""}
-                      onChange={(id) => setNewConta({ ...newConta, fornecedorId: id })}
-                      placeholder="Fornecedor"
                     />
                   </td>
                   <td className="p-2">
@@ -828,10 +823,10 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     <td className="p-4 text-sm font-medium text-zinc-900 whitespace-nowrap">
                       {l.dataPagamento ? safeFormatDate(l.dataPagamento) : "-"}
                     </td>
-                    <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">{l.descricao}</td>
                     <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
                       {fornecedor?.nome || "-"}
                     </td>
+                    <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">{l.descricao}</td>
                     <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
                       {obra?.nome || l.obraId || "-"}
                     </td>
@@ -1121,15 +1116,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-zinc-700">Subtipo</label>
-                <input
-                  type="text"
-                  value={newConta.subtipo}
-                  onChange={(e) => setNewConta({ ...newConta, subtipo: e.target.value })}
-                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-                />
-              </div>
+
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
               <button
