@@ -548,7 +548,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
           </div>
         </div>
         <div className="overflow-x-auto overflow-y-auto flex-1">
-          <table className="min-w-[1040px] w-full table-fixed text-left border-collapse">
+          <table className="min-w-[1300px] w-full table-fixed text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
               <tr className="bg-zinc-50 border-b border-zinc-200 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                 <th className="p-3 w-10 text-center align-top">
@@ -570,7 +570,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     <div className="h-6" /> {/* spacer */}
                   </div>
                 </th>
-                <th className="p-3 align-top">
+                <th className="p-3 w-[90px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Vencimento</span>
                     <input
@@ -582,13 +582,13 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     />
                   </div>
                 </th>
-                <th className="p-3 align-top">
+                <th className="p-3 w-[90px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Data Pgto</span>
                     <div className="h-6" /> {/* spacer */}
                   </div>
                 </th>
-                <th className="p-3 align-top">
+                <th className="p-3 w-auto align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Fornecedor</span>
                     <input
@@ -600,7 +600,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     />
                   </div>
                 </th>
-                <th className="p-3 align-top">
+                <th className="p-3 w-auto align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Descrição</span>
                     <input
@@ -612,7 +612,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     />
                   </div>
                 </th>
-                <th className="p-3 align-top">
+                <th className="p-3 w-[140px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Centro de Custo</span>
                     <input
@@ -629,19 +629,19 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     </datalist>
                   </div>
                 </th>
-                <th className="p-3 text-right align-top">
+                <th className="p-3 w-[110px] text-right align-top">
                   <div className="flex flex-col gap-1.5 items-end">
                     <span>Valor</span>
                     <div className="h-6" /> {/* spacer */}
                   </div>
                 </th>
-                <th className="p-3 text-center align-top">
+                <th className="p-3 w-[90px] text-center align-top">
                   <div className="flex flex-col gap-1.5 items-center">
                     <span>Status</span>
                     <div className="h-6" /> {/* spacer */}
                   </div>
                 </th>
-                <th className="p-3 text-center align-top">
+                <th className="p-3 w-[80px] text-center align-top">
                   <div className="flex flex-col gap-1.5 items-center">
                     <span>Ações</span>
                     <div className="h-6" /> {/* spacer */}
