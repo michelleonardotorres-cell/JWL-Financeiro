@@ -858,7 +858,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                       >
                         {l.status} {(l as any).isPrevisao && <span className="ml-1 opacity-70 italic">- Previsão</span>}
                       </span>
-                    </td>
+
                       {activeMenuId === l.id && (
                         <div className="action-menu-popup" onClick={(e) => e.stopPropagation()}>
                           <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
@@ -928,6 +928,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                           </div>
                         </div>
                       )}
+                    </td>
                   </tr>
                 );
               })}
