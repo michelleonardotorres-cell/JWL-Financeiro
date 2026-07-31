@@ -783,7 +783,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
         </div>
 
         <div className="w-full overflow-x-auto overflow-y-auto flex-1 min-h-0">
-          <table className="min-w-[1300px] w-full table-fixed text-left border-collapse">
+          <table className="min-w-[1400px] w-full table-fixed text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
               <tr className="bg-zinc-50 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
                 <th className="p-3 w-[40px] align-top text-center">
@@ -804,7 +804,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   </div>
                 </th>
 
-                <th className="p-3 w-[90px] align-top">
+                <th className="p-3 w-[120px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>NF</span>
                     <input
@@ -854,7 +854,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   </div>
                 </th>
 
-                <th className="p-3 w-[170px] align-top">
+                <th className="p-3 w-[220px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Centro de Custo</span>
                     <input
