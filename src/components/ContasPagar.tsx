@@ -570,6 +570,11 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     <div className="h-6" /> {/* spacer */}
                   </div>
                 </th>
+                <th className="p-3 w-[40px] align-top text-center">
+                  <div className="flex flex-col gap-1.5 items-center justify-center">
+                    <Paperclip size={14} className="opacity-0" />
+                  </div>
+                </th>
                 <th className="p-3 w-[90px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Vencimento</span>
@@ -582,7 +587,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     />
                   </div>
                 </th>
-                <th className="p-3 w-[90px] align-top">
+                <th className="p-3 w-[110px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Data Pgto</span>
                     <div className="h-6" /> {/* spacer */}
@@ -612,7 +617,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     />
                   </div>
                 </th>
-                <th className="p-3 w-[140px] align-top">
+                <th className="p-3 w-[170px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Centro de Custo</span>
                     <input
@@ -648,6 +653,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
               {isAdding && (
                 <>
                 <tr className="bg-indigo-50/30">
+                  <td className="p-2"></td>
                   <td className="p-2"></td>
                   <td className="p-2">
                     <input
@@ -809,6 +815,12 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                           className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
                         />
                       )}
+                    </td>
+                    <td 
+                      className="p-4 text-center cursor-pointer hover:bg-zinc-200 transition-colors" 
+                      onClick={(e) => { e.stopPropagation(); setAnexosModalId(l.id); }}
+                    >
+                      <Paperclip size={16} className={(l as any).anexosCount && (l as any).anexosCount > 0 ? "text-emerald-500" : "text-zinc-400"} />
                     </td>
                     <td className="p-4 text-sm font-medium whitespace-nowrap">
                       {(() => {

@@ -804,7 +804,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   </div>
                 </th>
 
-                <th className="p-3 w-[70px] align-top">
+                <th className="p-3 w-[90px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>NF</span>
                     <input
@@ -854,7 +854,7 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                   </div>
                 </th>
 
-                <th className="p-3 w-[140px] align-top">
+                <th className="p-3 w-[170px] align-top">
                   <div className="flex flex-col gap-1.5">
                     <span>Centro de Custo</span>
                     <input
