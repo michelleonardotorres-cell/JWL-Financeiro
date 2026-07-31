@@ -791,15 +791,15 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     <Paperclip size={14} className="opacity-0" />
                   </div>
                 </th>
-                <th className="p-3 w-[90px] align-top">
+                <th className="p-3 w-[110px] align-top">
                   <div className="flex flex-col gap-1.5">
-                    <span>Data Comp.</span>
+                    <span>Competência</span>
                     <input
                       type="text"
                       placeholder="Filtrar data..."
                       value={colFilters.dataCompetencia}
                       onChange={(e) => setColFilters({ ...colFilters, dataCompetencia: e.target.value })}
-                      className="w-full min-w-[70px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
+                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent normal-case"
                     />
                   </div>
                 </th>
