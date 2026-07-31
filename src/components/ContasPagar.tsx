@@ -641,12 +641,7 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                     <div className="h-6" /> {/* spacer */}
                   </div>
                 </th>
-                <th className="p-3 w-[80px] text-center align-top">
-                  <div className="flex flex-col gap-1.5 items-center">
-                    <span>Ações</span>
-                    <div className="h-6" /> {/* spacer */}
-                  </div>
-                </th>
+
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
@@ -786,7 +781,19 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                   (o) => o.id === l.obraId || o.nome === l.obraId
                 );
                 return (
-                  <tr key={`${l.id}-${i}`} className={`transition-colors ${l.status === 'Atrasado' ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-zinc-50'}`}>
+                  <tr 
+                    key={`${l.id}-${i}`} 
+                    className={`transition-colors cursor-pointer relative ${l.status === 'Atrasado' ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-zinc-50'}`}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('.action-menu-popup') || (e.target as HTMLElement).tagName.toLowerCase() === 'input') return;
+                      const isNearBottom = e.clientY > window.innerHeight - 150;
+                      setMenuPos({ 
+                        top: isNearBottom ? e.clientY - 130 : e.clientY + 10, 
+                        right: window.innerWidth - e.clientX - 10 
+                      });
+                      setActiveMenuId(activeMenuId === l.id ? null : l.id);
+                    }}
+                  >
                     <td className="p-4 text-center">
                       {!(l as any).isPrevisao && l.status !== "Pago" && (
                         <input
@@ -852,95 +859,75 @@ export default function ContasPagar({ onEfetivar }: { onEfetivar?: (data: any) =
                         {l.status} {(l as any).isPrevisao && <span className="ml-1 opacity-70 italic">- Previsão</span>}
                       </span>
                     </td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <div className="relative inline-block text-left">
-                        <button
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const isNearBottom = rect.bottom > window.innerHeight - 150;
-                            setMenuPos({ 
-                              top: isNearBottom ? rect.top - 110 : rect.bottom + 5, 
-                              right: window.innerWidth - rect.right 
-                            });
-                            setActiveMenuId(activeMenuId === l.id ? null : l.id);
-                          }}
-                          className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-zinc-700 transition-colors"
-                          title="Opções"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-
-                        {activeMenuId === l.id && (
-                          <>
-                            <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                            <div 
-                               className="fixed bg-white border border-zinc-200 rounded-lg shadow-lg z-[99] py-1 text-left w-32"
-                               style={{ top: menuPos.top, right: menuPos.right }}
-                            >
-                              {l.status !== "Pago" ? (
-                                (l as any).isPrevisao ? (
-                                  <button
-                                    onClick={() => {
-                                      setActiveMenuId(null);
-                                      handleEfetivar(l);
-                                    }}
-                                    className="w-full px-3 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 transition-colors block text-left font-medium"
-                                  >
-                                    Efetivar
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      setActiveMenuId(null);
-                                      handlePagar(l.id);
-                                    }}
-                                    className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors block text-left font-medium"
-                                  >
-                                    Pagar
-                                  </button>
-                                )
-                              ) : (
-                                !(l as any).isPrevisao && (
-                                  <button
-                                    onClick={() => {
-                                      setActiveMenuId(null);
-                                      handleDesfazerPagamento(l.id);
-                                    }}
-                                    className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
-                                  >
-                                    Desfazer
-                                  </button>
-                                )
-                              )}
-                              {!(l as any).isPrevisao && (
+                      {activeMenuId === l.id && (
+                        <div className="action-menu-popup" onClick={(e) => e.stopPropagation()}>
+                          <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
+                          <div 
+                             className="fixed bg-white border border-zinc-200 rounded-lg shadow-lg z-[99] py-1 text-left w-32"
+                             style={{ top: menuPos.top, right: menuPos.right }}
+                          >
+                            {l.status !== "Pago" ? (
+                              (l as any).isPrevisao ? (
                                 <button
                                   onClick={() => {
                                     setActiveMenuId(null);
-                                    setAnexosModalId(l.id);
+                                    handleEfetivar(l);
                                   }}
-                                  className="w-full px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors block text-left font-medium flex justify-between items-center"
+                                  className="w-full px-3 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 transition-colors block text-left font-medium"
                                 >
-                                  Anexos
-                                  <Paperclip size={14} className="opacity-50" />
+                                  Efetivar
                                 </button>
-                              )}
-                              {!(l as any).isPrevisao && (
+                              ) : (
                                 <button
                                   onClick={() => {
                                     setActiveMenuId(null);
-                                    setDeletandoContaId(l.id);
-                                    setConfirmDeleteText("");
+                                    handlePagar(l.id);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors block text-left font-medium"
+                                >
+                                  Pagar
+                                </button>
+                              )
+                            ) : (
+                              !(l as any).isPrevisao && (
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    handleDesfazerPagamento(l.id);
                                   }}
                                   className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
                                 >
-                                  Excluir
+                                  Desfazer
                                 </button>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </td>
+                              )
+                            )}
+                            {!(l as any).isPrevisao && (
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  setAnexosModalId(l.id);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors block text-left font-medium flex justify-between items-center"
+                              >
+                                Anexos
+                                <Paperclip size={14} className="opacity-50" />
+                              </button>
+                            )}
+                            {!(l as any).isPrevisao && (
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  setDeletandoContaId(l.id);
+                                  setConfirmDeleteText("");
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
+                              >
+                                Excluir
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                   </tr>
                 );
               })}

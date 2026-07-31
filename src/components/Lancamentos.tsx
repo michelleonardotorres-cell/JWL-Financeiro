@@ -899,13 +899,12 @@ export default function Lancamentos({ setActiveTab, efetivarData, setEfetivarDat
                     key={`${l.id}-${i}`} 
                     className="hover:bg-zinc-50 transition-colors cursor-pointer relative"
                     onClick={(e) => {
-                      if ((e.target as HTMLElement).closest('.action-menu-popup')) return;
+                      if ((e.target as HTMLElement).closest('.action-menu-popup') || (e.target as HTMLElement).tagName.toLowerCase() === 'input') return;
                       
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const isNearBottom = rect.bottom > window.innerHeight - 150;
+                      const isNearBottom = e.clientY > window.innerHeight - 150;
                       setMenuPos({ 
-                        top: isNearBottom ? rect.top - 110 : rect.bottom + 5, 
-                        right: window.innerWidth - rect.right 
+                        top: isNearBottom ? e.clientY - 130 : e.clientY + 10, 
+                        right: window.innerWidth - e.clientX - 10 
                       });
                       setActiveMenuId(activeMenuId === l.id ? null : l.id);
                     }}
