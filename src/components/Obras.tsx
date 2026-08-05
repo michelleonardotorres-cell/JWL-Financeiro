@@ -25,11 +25,11 @@ export default function Obras() {
     status: "Em Andamento"
   });
 
-  const formatCurrency = (value: number | undefined) =>
+  const formatCurrency = (value: any) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(value || 0);
+    }).format(Number(value) || 0);
 
   const term = normalizeString(searchTerm);
 
@@ -142,13 +142,13 @@ export default function Obras() {
                   <th className="p-4 font-medium">Cliente</th>
                   <th className="p-4 font-medium">Status</th>
                   <th className="p-4 font-medium text-right">Valor Contrato</th>
-                  <th className="p-4 font-medium text-right">Total (com Aditivos)</th>
+                  <th className="p-4 font-medium text-right">Total (com Adit. e Reajustes)</th>
                   <th className="p-4 font-medium text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 text-sm">
                 {filtered.map((o) => {
-                  const valorTotal = (o.valorContrato || 0) + (o.aditivo || 0) + (o.reajusteContrato || 0);
+                  const valorTotal = (Number(o.valorContrato) || 0) + (Number(o.aditivo) || 0) + (Number(o.reajusteContrato) || 0);
                   return (
                     <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
                       <td className="p-4">
