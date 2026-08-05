@@ -17,6 +17,14 @@ export type ObraAditivo = {
   data?: string;
 };
 
+export type ObraReajuste = {
+  id: string;
+  obraId: string;
+  descricao?: string;
+  valor: number;
+  data?: string;
+};
+
 export type ObraMedicao = {
   id: string;
   obraId: string;

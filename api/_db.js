@@ -76,6 +76,15 @@ function getPool() {
         CONSTRAINT fk_obra_aditivo FOREIGN KEY("obraId") REFERENCES obras(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS obra_reajustes (
+        id text PRIMARY KEY,
+        "obraId" text NOT NULL,
+        descricao text,
+        valor numeric NOT NULL,
+        "data" date,
+        CONSTRAINT fk_obra_reajuste FOREIGN KEY("obraId") REFERENCES obras(id) ON DELETE CASCADE
+      );
+
       CREATE TABLE IF NOT EXISTS obra_medicoes (
         id text PRIMARY KEY,
         "obraId" text NOT NULL,

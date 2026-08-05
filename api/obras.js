@@ -9,8 +9,9 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const { rows } = await pool.query(`
-        SELECT o.id, o.nome, o.status, o."valorContrato", o.cliente, o.endereco, o."reajusteContrato",
-               COALESCE((SELECT SUM(valor) FROM obra_aditivos WHERE "obraId" = o.id), 0) AS aditivo
+        SELECT o.id, o.nome, o.status, o."valorContrato", o.cliente, o.endereco,
+               COALESCE((SELECT SUM(valor) FROM obra_aditivos WHERE "obraId" = o.id), 0) AS aditivo,
+               COALESCE((SELECT SUM(valor) FROM obra_reajustes WHERE "obraId" = o.id), o."reajusteContrato", 0) AS "reajusteContrato"
         FROM obras o
         ORDER BY o.nome ASC
       `);

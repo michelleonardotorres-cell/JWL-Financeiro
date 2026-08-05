@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Building2, Search, Plus, Edit, Trash2, X, Save, BarChart3, Edit2 } from "lucide-react";
 import { normalizeString } from "../utils";
 import { useData } from "../contexts/DataContext";
-import { Obra, ObraAditivo, ObraMedicao } from "../types";
+import { Obra, ObraAditivo, ObraReajuste, ObraMedicao } from "../types";
 import ModalRelatorioObra from "./ModalRelatorioObra";
-import { obraAditivosApi, obraMedicoesApi } from "../apiClient";
+import { obraAditivosApi, obraReajustesApi, obraMedicoesApi } from "../apiClient";
 import CurrencyInput from "./CurrencyInput";
 import AprovarMedicaoModal from "./AprovarMedicaoModal";
 
@@ -248,9 +248,11 @@ export default function Obras() {
                         <label className="block text-sm font-medium text-zinc-700 mb-1">Valor do Contrato Inicial</label>
                         <CurrencyInput value={formData.valorContrato || 0} onChangeValue={val => setFormData({...formData, valorContrato: val})} className="w-full p-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="R$ 0,00" />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-1">Reajuste de Contrato (+)</label>
-                        <CurrencyInput value={formData.reajusteContrato || 0} onChangeValue={val => setFormData({...formData, reajusteContrato: val})} className="w-full p-2.5 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="R$ 0,00" />
+                      <div className="flex flex-col justify-end">
+                        <label className="block text-sm font-medium text-zinc-700 mb-1">Total de Reajustes</label>
+                        <div className="w-full p-2.5 bg-zinc-100 border border-zinc-200 rounded-lg font-medium text-zinc-700">
+                          {formatCurrency(formData.reajusteContrato)}
+                        </div>
                       </div>
                       {/* O aditivo é gerenciado pela tabela abaixo */}
                       <div className="flex flex-col justify-end">
@@ -266,7 +268,10 @@ export default function Obras() {
 
               {editingId && (
                 <>
-                  <AditivosSection obraId={editingId} onAditivosChange={() => refreshData()} />
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <AditivosSection obraId={editingId} onAditivosChange={() => refreshData()} />
+                    <ReajustesSection obraId={editingId} onReajustesChange={() => refreshData()} />
+                  </div>
                   <MedicoesSection obraId={editingId} onMedicoesChange={() => refreshData()} />
                 </>
               )}
@@ -337,7 +342,7 @@ function AditivosSection({ obraId, onAditivosChange }: { obraId: string, onAditi
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm">
+    <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-zinc-800">Aditivos da Obra</h3>
         <button onClick={() => setShowAdd(!showAdd)} className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-100 transition-colors flex items-center gap-1">
@@ -391,6 +396,107 @@ function AditivosSection({ obraId, onAditivosChange }: { obraId: string, onAditi
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function ReajustesSection({ obraId, onReajustesChange }: { obraId: string, onReajustesChange: () => void }) {
+  const [reajustes, setReajustes] = useState<ObraReajuste[]>([]);
+  
+  const [showAdd, setShowAdd] = useState(false);
+  const [newDesc, setNewDesc] = useState("");
+  const [newVal, setNewVal] = useState<number>(0);
+
+  useEffect(() => {
+    obraReajustesApi.getByObraId(obraId).then(setReajustes).catch(console.error);
+  }, [obraId]);
+
+  const handleAdd = async () => {
+    try {
+      const res = await obraReajustesApi.create({
+        obraId,
+        descricao: newDesc,
+        valor: newVal,
+        data: new Date().toISOString().split('T')[0]
+      });
+      setReajustes(prev => [...prev, res]);
+      setShowAdd(false);
+      setNewDesc("");
+      setNewVal(0);
+      onReajustesChange();
+    } catch (e) {
+      alert("Erro ao salvar reajuste.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if(!confirm("Excluir reajuste?")) return;
+    try {
+      await obraReajustesApi.delete(id);
+      setReajustes(prev => prev.filter(x => x.id !== id));
+      onReajustesChange();
+    } catch (e) {
+      alert("Erro ao excluir reajuste.");
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-zinc-800">Reajustes de Contrato</h3>
+        <button onClick={() => setShowAdd(!showAdd)} className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-100 transition-colors flex items-center gap-1">
+          <Plus size={16} /> Reajuste
+        </button>
+      </div>
+
+      {showAdd && (
+        <div className="flex flex-wrap items-end gap-3 mb-4 bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-zinc-600 mb-1">Descrição</label>
+            <input type="text" value={newDesc} onChange={e => setNewDesc(e.target.value)} className="w-full p-2 border border-zinc-300 rounded text-sm focus:ring-2 focus:ring-indigo-500" placeholder="Ex: INCC" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 mb-1">Valor (pode ser negativo)</label>
+            <CurrencyInput allowNegative value={newVal || 0} onChangeValue={setNewVal} className="w-full p-2 border border-zinc-300 rounded text-sm focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <button onClick={handleAdd} className="bg-emerald-600 text-white px-4 py-2 rounded font-medium text-sm hover:bg-emerald-700 transition-colors mt-auto mb-1">
+            Salvar
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1">
+        {reajustes.length === 0 ? (
+          <p className="text-sm text-zinc-500 text-center py-4">Nenhum reajuste registrado.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-zinc-500 border-b border-zinc-200 uppercase tracking-wider bg-zinc-50">
+                <tr>
+                  <th className="p-3">Data</th>
+                  <th className="p-3">Descrição</th>
+                  <th className="p-3 text-right">Valor</th>
+                  <th className="p-3 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {reajustes.map(a => (
+                  <tr key={a.id}>
+                    <td className="p-3 text-zinc-600">{a.data ? new Date(a.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}</td>
+                    <td className="p-3 font-medium text-zinc-800">{a.descricao || 'Reajuste'}</td>
+                    <td className={`p-3 text-right font-medium ${a.valor < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(a.valor)}
+                    </td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => handleDelete(a.id)} className="text-rose-500 hover:bg-rose-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

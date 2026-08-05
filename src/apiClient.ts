@@ -1,4 +1,4 @@
-import { Obra, Fornecedor, Lancamento, Contrato, ContratoParcela, ObraAditivo, ObraMedicao } from "./types";
+import { Obra, Fornecedor, Lancamento, Contrato, ContratoParcela, ObraAditivo, ObraReajuste, ObraMedicao } from "./types";
 
 // Polyfill for randomUUID if not available in older browsers
 function generateId(prefix: string) {
@@ -53,6 +53,17 @@ export const obraAditivosApi = {
   },
   update: (aditivo: ObraAditivo) => apiFetch<ObraAditivo>("obra_aditivos", { method: "PUT", body: JSON.stringify(aditivo) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`obra_aditivos?id=${id}`, { method: "DELETE" })
+};
+
+// Obra Reajustes
+export const obraReajustesApi = {
+  getByObraId: (obraId: string) => apiFetch<ObraReajuste[]>(`obra_reajustes?obraId=${obraId}`),
+  create: (reajuste: Omit<ObraReajuste, "id">) => {
+    const id = generateId("or");
+    return apiFetch<ObraReajuste>("obra_reajustes", { method: "POST", body: JSON.stringify({ ...reajuste, id }) });
+  },
+  update: (reajuste: ObraReajuste) => apiFetch<ObraReajuste>("obra_reajustes", { method: "PUT", body: JSON.stringify(reajuste) }),
+  delete: (id: string) => apiFetch<{ok: boolean}>(`obra_reajustes?id=${id}`, { method: "DELETE" })
 };
 
 // Obra Medicoes
