@@ -12,6 +12,7 @@ export function AnexosModal({ entityId, entityType = 'lancamento', onClose }: An
   const [anexos, setAnexos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     fetchAnexos();
@@ -31,11 +32,7 @@ export function AnexosModal({ entityId, entityType = 'lancamento', onClose }: An
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Convert to base64
+  const processFile = (file: File, inputElement?: HTMLInputElement) => {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
@@ -54,10 +51,35 @@ export function AnexosModal({ entityId, entityType = 'lancamento', onClose }: An
         alert("Erro ao enviar anexo.");
       } finally {
         setUploading(false);
-        if (e.target) e.target.value = '';
+        if (inputElement) inputElement.value = '';
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processFile(file, e.target);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+    }
   };
 
   const handleRemove = async (anexoId: string) => {
@@ -151,9 +173,18 @@ export function AnexosModal({ entityId, entityType = 'lancamento', onClose }: An
         </div>
 
         <div className="border-t border-zinc-100 pt-4">
-          <label className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 hover:bg-indigo-50 cursor-pointer transition-colors text-indigo-700 font-medium text-sm disabled:opacity-50">
-            <Upload size={18} />
-            {uploading ? "Processando..." : "Selecionar arquivo"}
+          <label 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed rounded-lg cursor-pointer transition-all font-medium text-sm disabled:opacity-50
+              ${isDragging 
+                ? 'border-indigo-400 bg-indigo-100 text-indigo-800 scale-[1.02]' 
+                : 'border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 text-indigo-700'
+              }`}
+          >
+            <Upload size={18} className={isDragging ? 'animate-bounce' : ''} />
+            {uploading ? "Processando..." : isDragging ? "Solte o arquivo aqui" : "Selecionar arquivo ou arrastar"}
             <input 
               type="file" 
               className="hidden" 
