@@ -141,6 +141,37 @@ export type ContratoParcela = {
   numeroParcela: number;
   valor: number;
   dataVencimento: string;
-  statusAprovacao: "Pendente" | "Aprovado" | "Rejeitado";
   lancamentoId?: string;
+};
+
+export type Orcamento = {
+  id: string;
+  obraId: string;
+  taxaBdi?: number;
+  dataCriacao?: string;
+  itens?: OrcamentoItem[];
+};
+
+export type OrcamentoItem = {
+  id: string;
+  orcamentoId: string;
+  parentId?: string | null;
+  codigo?: string;
+  descricao: string;
+  unidade?: string;
+  quantidade?: number;
+  valorUnitMo?: number;
+  valorUnitMat?: number;
+  bdiItem?: number;
+  // Transients for UI calculation
+  subItens?: OrcamentoItem[];
+};
+
+export type OrcamentoDetalhamento = {
+  id: string;
+  orcamentoItemId: string;
+  tipo: "MATERIAL" | "MAO_DE_OBRA";
+  descricao: string;
+  fornecedor?: string;
+  valor: number;
 };

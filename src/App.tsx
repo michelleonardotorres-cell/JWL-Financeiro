@@ -15,11 +15,13 @@ import Fornecedores from "./components/Fornecedores";
 import Receitas from "./components/Receitas";
 import Contratos from "./components/Contratos";
 import Recebedores from "./components/Recebedores";
+import OrcamentoSintetico from "./components/obras/OrcamentoSintetico";
 import { DataProvider, useData } from "./contexts/DataContext";
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [efetivarData, setEfetivarData] = useState<any>(null);
+  const [orcamentoObraId, setOrcamentoObraId] = useState<string | null>(null);
   const { isLoading, error } = useData();
 
   if (isLoading) {
@@ -59,7 +61,7 @@ function AppContent() {
       case "dre":
         return <DRE />;
       case "obras":
-        return <Obras />;
+        return <Obras onPlanejamento={(id) => setOrcamentoObraId(id)} />;
       case "fornecedores":
         return <Fornecedores />;
       case "receitas":
@@ -72,6 +74,17 @@ function AppContent() {
         return <Dashboard />;
     }
   };
+
+  if (orcamentoObraId) {
+    return (
+      <div className="flex h-screen bg-zinc-50 font-sans text-zinc-900 overflow-hidden">
+        <Sidebar activeTab="obras" setActiveTab={(tab) => { setOrcamentoObraId(null); setActiveTab(tab); }} />
+        <main className="flex-1 overflow-y-auto">
+          <OrcamentoSintetico obraId={orcamentoObraId} onBack={() => setOrcamentoObraId(null)} />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-zinc-50 font-sans text-zinc-900 overflow-hidden">

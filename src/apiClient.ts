@@ -188,3 +188,10 @@ export const contratoParcelasApi = {
   revertApprove: (id: string) => apiFetch<ContratoParcela>("contrato_parcelas?action=reverter", { method: "POST", body: JSON.stringify({ id }) }),
   delete: (id: string) => apiFetch<{ok: boolean}>(`contrato_parcelas?id=${id}`, { method: "DELETE" })
 };
+
+// Orçamentos
+import { Orcamento } from "./types";
+export const orcamentosApi = {
+  getByObraId: (obraId: string) => apiFetch<Orcamento | null>(`orcamentos?obraId=${obraId}`),
+  save: (orcamento: Orcamento) => apiFetch<{success: boolean, id: string}>("orcamentos", { method: "POST", body: JSON.stringify(orcamento) })
+};

@@ -8,7 +8,7 @@ import { obraAditivosApi, obraReajustesApi, obraMedicoesApi } from "../apiClient
 import CurrencyInput from "./CurrencyInput";
 import AprovarMedicaoModal from "./AprovarMedicaoModal";
 
-export default function Obras() {
+export default function Obras({ onPlanejamento }: { onPlanejamento?: (id: string) => void }) {
   const { obras, addObra, updateObra, deleteObra, refreshData } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -183,6 +183,9 @@ export default function Obras() {
                         </button>
                         <button onClick={() => openModal(o)} className="p-1.5 text-zinc-400 hover:text-indigo-600 bg-zinc-100 hover:bg-indigo-50 rounded transition-colors" title="Editar / Medições">
                           <Edit size={16} />
+                        </button>
+                        <button onClick={() => onPlanejamento && onPlanejamento(o.id)} className="p-1.5 text-zinc-400 hover:text-blue-600 bg-zinc-100 hover:bg-blue-50 rounded transition-colors" title="Planejamento Orçamentário">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
                         </button>
                         <button onClick={() => handleDelete(o.id)} className="p-1.5 text-zinc-400 hover:text-rose-600 bg-zinc-100 hover:bg-rose-50 rounded transition-colors" title="Excluir">
                           <Trash2 size={16} />

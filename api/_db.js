@@ -100,6 +100,42 @@ function getPool() {
         CONSTRAINT fk_lancamento_imp FOREIGN KEY("lancamentoImpostoId") REFERENCES lancamentos(id) ON DELETE SET NULL
       );
     `).catch(e => console.log('Obras schema migration note:', e.message));
+
+    // Phase 3: Gestão de Obras (Orçamentos) schema migration
+    pool.query(`
+      CREATE TABLE IF NOT EXISTS orcamentos (
+        id text PRIMARY KEY,
+        "obraId" text NOT NULL,
+        "taxaBdi" numeric,
+        "dataCriacao" timestamp DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_obra_orcamento FOREIGN KEY("obraId") REFERENCES obras(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS orcamento_itens (
+        id text PRIMARY KEY,
+        "orcamentoId" text NOT NULL,
+        "parentId" text,
+        codigo text,
+        descricao text NOT NULL,
+        unidade text,
+        quantidade numeric,
+        "valorUnitMo" numeric,
+        "valorUnitMat" numeric,
+        "bdiItem" numeric,
+        CONSTRAINT fk_orcamento FOREIGN KEY("orcamentoId") REFERENCES orcamentos(id) ON DELETE CASCADE,
+        CONSTRAINT fk_parent_item FOREIGN KEY("parentId") REFERENCES orcamento_itens(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS orcamento_detalhamentos (
+        id text PRIMARY KEY,
+        "orcamentoItemId" text NOT NULL,
+        tipo text NOT NULL, -- 'MATERIAL' or 'MAO_DE_OBRA'
+        descricao text NOT NULL,
+        fornecedor text,
+        valor numeric NOT NULL,
+        CONSTRAINT fk_orcamento_item FOREIGN KEY("orcamentoItemId") REFERENCES orcamento_itens(id) ON DELETE CASCADE
+      );
+    `).catch(e => console.log('Orcamentos schema migration note:', e.message));
   }
   return pool;
 }
