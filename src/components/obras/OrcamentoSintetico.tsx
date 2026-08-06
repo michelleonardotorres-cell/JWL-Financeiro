@@ -200,32 +200,55 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
         const novosItens: OrcamentoItem[] = [];
         const codeMap: Record<string, string> = {}; // map code to newly generated ids
 
+        const getVal = (r: any, keys: string[]) => {
+          for (const k of Object.keys(r)) {
+            if (keys.includes(k.toUpperCase()) && r[k] !== undefined && r[k] !== null) {
+              return String(r[k]).trim();
+            }
+          }
+          return "";
+        };
+
+        // First pass: map all codes to IDs
         data.forEach((row: any) => {
-          const itemCode = row.Item || row.codigo || row.Codigo || row.CÓDIGO;
-          const id = `item_${Math.random().toString(36).substring(2, 9)}`;
-          if (itemCode) codeMap[String(itemCode)] = id;
+          const itemCode = getVal(row, ["ITEM", "CODIGO", "CÓDIGO", "CÓD"]);
+          if (itemCode) {
+            const id = `item_${Math.random().toString(36).substring(2, 9)}`;
+            codeMap[itemCode] = id;
+          }
         });
 
+        // Second pass: build items and link parents
         data.forEach((row: any) => {
-          const itemCode = String(row.Item || row.codigo || row.Codigo || row.CÓDIGO || "");
+          const itemCode = getVal(row, ["ITEM", "CODIGO", "CÓDIGO", "CÓD"]);
           if (!itemCode) return;
 
           const parts = itemCode.split(".");
           parts.pop(); // remove last part to find parent
           const parentCode = parts.join(".");
-          const parentId = parentCode ? codeMap[parentCode] : null;
+          const parentId = parentCode && codeMap[parentCode] ? codeMap[parentCode] : null;
+
+          let bdiItem: number | undefined = undefined;
+          const rawBdi = getVal(row, ["BDI_INDIVIDUAL", "BDI", "BDI %", "BDI%"]);
+          if (rawBdi) {
+            const parsed = parseFloat(rawBdi.replace(',', '.'));
+            if (!isNaN(parsed)) {
+              // Se o Excel estiver formatado como porcentagem (ex: 23,54%), a lib pode ler 0.2354
+              bdiItem = parsed <= 1 && parsed > 0 ? parsed * 100 : parsed; 
+            }
+          }
 
           novosItens.push({
             id: codeMap[itemCode],
             orcamentoId: orcamento!.id,
-            parentId: parentId || null,
+            parentId: parentId,
             codigo: itemCode,
-            descricao: row.Descricao || row.descricao || row.DESCRIÇÃO || "Sem descrição",
-            unidade: row.Unidade || row.unidade || row.UND || "",
-            quantidade: parseFloat(row.Quantidade || row.quantidade || row.QUANT) || 0,
-            valorUnitMo: parseFloat(row.Valor_MO || row.valor_mo || row.VALOR_MO) || 0,
-            valorUnitMat: parseFloat(row.Valor_MAT || row.valor_mat || row.VALOR_MAT) || 0,
-            bdiItem: row.BDI_Individual ? parseFloat(row.BDI_Individual) : undefined,
+            descricao: getVal(row, ["DESCRICAO", "DESCRIÇÃO", "SERVICO", "SERVIÇO", "NOME"]) || "Sem descrição",
+            unidade: getVal(row, ["UNIDADE", "UND", "UN"]),
+            quantidade: parseFloat(getVal(row, ["QUANTIDADE", "QUANT", "QTD", "QTDE"]).replace(',', '.')) || 0,
+            valorUnitMo: parseFloat(getVal(row, ["VALOR_MO", "MO", "M.O.", "PREÇO_MO", "PRECO_MO"]).replace(',', '.')) || 0,
+            valorUnitMat: parseFloat(getVal(row, ["VALOR_MAT", "MAT", "MATERIAL", "PREÇO_MAT", "PRECO_MAT"]).replace(',', '.')) || 0,
+            bdiItem: bdiItem,
             overrides: {}
           });
         });
