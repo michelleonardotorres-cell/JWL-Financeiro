@@ -1,0 +1,1141 @@
+import React, { useState, useMemo, useEffect } from "react";
+import { Fornecedor, Lancamento } from "../types";
+import { CheckCircle2, Clock, AlertCircle, Plus, Check, X, Eye, MoreHorizontal, Download, Search, Filter, Tag, FileText, Share2, Paperclip } from "lucide-react";
+import { useData } from "../contexts/DataContext";
+import Combobox from "./Combobox";
+import { safeFormatDate } from "../utils";
+import { lancamentosApi } from "../apiClient";
+import { AnexosModal } from "./AnexosModal";
+import { usePeriodFilter } from "../hooks/usePeriodFilter";
+import { PeriodFilter } from "./PeriodFilter";
+
+export default function ContasReceber({ onEfetivar }: { onEfetivar?: (data: any) => void }) {
+    const { obras, fornecedores, recebedores, lancamentos, contratos, addLancamento, updateLancamento, deleteLancamento, addObra, updateObra, deleteObra, addFornecedor, updateFornecedor, deleteFornecedor, addContrato, updateContrato, deleteContrato } = useData();
+      const initialLancamentos = lancamentos;
+      const initialContratos = contratos;
+      const initialObras = obras;
+      const initialFornecedores = fornecedores;
+
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const periodFilterState = usePeriodFilter();
+  const { activeFilter, setActiveFilter, monthNames, setTempMonth, setTempYear, setTempPeriodType } = periodFilterState;
+  const [contasSelecionadas, setContasSelecionadas] = useState<string[]>([]);
+  const [serverLancamentos, setServerLancamentos] = useState<Lancamento[]>([]);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const [filterStatus, setFilterStatus] = useState<
+    "Todos" | "Aberto" | "Atrasado" | "Pago"
+  >("Todos");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [colFilters, setColFilters] = useState({
+    dataVencimento: "",
+    descricao: "",
+    recebedorFornecedor: "",
+    obraId: "",
+  });
+  const [debouncedColFilters, setDebouncedColFilters] = useState(colFilters);
+
+  useEffect(() => {
+    if (isInitialized || lancamentos.length === 0) return;
+    
+    const receitas = lancamentos.filter(l => l.tipo === "Receita");
+    const atrasados = receitas.filter(l => l.status === "Atrasado");
+    const abertos = receitas.filter(l => l.status === "Aberto");
+
+    let targetStatus: "Todos" | "Aberto" | "Atrasado" | "Pago" = "Todos";
+    let targetDateStr: string | null = null;
+
+    if (atrasados.length > 0) {
+      targetStatus = "Atrasado";
+      targetDateStr = atrasados.reduce((acc, curr) => (curr.dataVencimento < acc ? curr.dataVencimento : acc), atrasados[0].dataVencimento);
+    } else if (abertos.length > 0) {
+      targetStatus = "Aberto";
+      targetDateStr = abertos.reduce((acc, curr) => (curr.dataVencimento < acc ? curr.dataVencimento : acc), abertos[0].dataVencimento);
+    }
+
+    if (targetStatus !== "Todos" && targetDateStr) {
+      const [y, m] = targetDateStr.split('-');
+      const year = parseInt(y, 10);
+      const month = parseInt(m, 10) - 1;
+      const monthStr = String(month + 1).padStart(2, "0");
+      const start = `${year}-${monthStr}-01`;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const end = `${year}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
+
+      setFilterStatus(targetStatus);
+      setActiveFilter({
+        type: "mes",
+        start,
+        end,
+        label: `${monthNames[month]} ${year}`,
+        month,
+        year
+      });
+      setTempMonth(month);
+      setTempYear(year);
+      setTempPeriodType("mes");
+    } else {
+      setFilterStatus("Todos");
+    }
+    
+    setIsInitialized(true);
+  }, [lancamentos, isInitialized, setActiveFilter, monthNames, setTempMonth, setTempYear, setTempPeriodType]);
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [valorInput, setValorInput] = useState("");
+  const [newConta, setNewConta] = useState({
+    dataVencimento: new Date().toISOString().split('T')[0],
+    descricao: "",
+    fornecedorId: "",
+    obraId: "",
+    valor: 0,
+    formaPagamento: "A PRAZO",
+    dataCompetencia: "",
+    tipoLancamento: "Conta Fixa",
+    nf: "",
+  });
+  
+  const [isCompletingConta, setIsCompletingConta] = useState(false);
+  
+  const [parcelasCount, setParcelasCount] = useState<number>(1);
+  const [parcelasDates, setParcelasDates] = useState<string[]>([]);
+
+  // States for Modals
+  const [recebendoContaId, setrecebendoContaId] = useState<string | null>(null);
+  const [dataPagamentoInput, setDataPagamentoInput] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [valorPagoInput, setValorPagoInput] = useState<string>("");
+  const [jurosMultaInput, setJurosMultaInput] = useState<string>("");
+  
+  const [deletandoContaId, setDeletandoContaId] = useState<string | null>(null);
+  const [confirmDeleteText, setConfirmDeleteText] = useState("");
+  const [anexosModalId, setAnexosModalId] = useState<string | null>(null);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+
+  const tiposOptions = [
+    "RECEITAS", "COMISSÕES SOBRE VENDAS", "IMPOSTOS", "CUSTO VARIÁVEL",
+    "CUSTO FIXO", "receitas OPERACIONAIS", "receitas ADMINISTRATIVAS",
+    "receitas FINANCEIRAS", "OUTRAS RECEITAS", "OUTRAS receitas", "PARCELA",
+    "RETIRADA VB", "ANTECIPAÇÃO DE RECEBÍVEIS", "AMORTIZAÇÃO",
+    "PATRIMÔNIO", "EMPRESTIMOS"
+  ];
+
+  const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    const numericValue = Number(value) / 100;
+    setValorInput(formatCurrency(numericValue));
+    setNewConta((prev) => ({ ...prev, valor: numericValue }));
+  };
+
+  const handleOpenCompletionModal = () => {
+    if (!newConta.descricao || !newConta.valor) {
+      alert("Por favor, preencha a descrição e o valor.");
+      return;
+    }
+    setNewConta(prev => ({
+      ...prev,
+      dataCompetencia: prev.dataCompetencia || new Date().toISOString().split('T')[0]
+    }));
+    setIsCompletingConta(true);
+  };
+
+  const handleFinalizeNewConta = async () => {
+    if (newConta.formaPagamento !== "À VISTA" && parcelasCount > 1) {
+      let totalAssigned = 0;
+      const createdItems = [];
+      const entryValue = newConta.valor || 0;
+      
+      for (let i = 0; i < parcelasCount; i++) {
+        let parcelaValor = Number((entryValue / parcelasCount).toFixed(2));
+        if (i === parcelasCount - 1) {
+          parcelaValor = Number((entryValue - totalAssigned).toFixed(2));
+        } else {
+          totalAssigned += parcelaValor;
+        }
+
+        const date = parcelasDates[i] || newConta.dataVencimento;
+
+        const newLancamento: Omit<Lancamento, "id"> = {
+          dataCompetencia: newConta.dataCompetencia || undefined,
+          dataVencimento: date,
+          dataPagamento: undefined,
+          formaPagamento: newConta.formaPagamento,
+          nf: newConta.nf || "",
+          recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
+          descricao: `${newConta.descricao} (${i + 1}/${parcelasCount})`,
+          categoria: newConta.tipoLancamento || "Conta Fixa",
+          tipoLancamento: newConta.tipoLancamento || "Conta Fixa",
+          obraId: newConta.obraId || undefined,
+          valor: parcelaValor,
+          tipo: "Receita" as const,
+          status: "Aberto" as const,
+          fornecedorId: newConta.fornecedorId || undefined,
+        };
+
+        try {
+          const created = await addLancamento(newLancamento);
+          createdItems.push(created);
+        } catch(e) {
+          alert(`Erro ao salvar parcela ${i + 1}`);
+          return;
+        }
+      }
+      setServerLancamentos([...createdItems, ...serverLancamentos]);
+      setLancamentosBase([...createdItems, ...lancamentosBase]);
+      alert("Contas cadastradas com sucesso!");
+    } else {
+      const newLancamento: Omit<Lancamento, "id"> = {
+        dataCompetencia: newConta.dataCompetencia || undefined,
+        dataVencimento: newConta.dataVencimento,
+        dataPagamento: undefined,
+        formaPagamento: newConta.formaPagamento,
+        nf: newConta.nf || "",
+        recebedorFornecedor: [...fornecedores, ...recebedores].find(f => f.id === newConta.fornecedorId)?.nome || "",
+        descricao: newConta.descricao,
+        categoria: newConta.tipoLancamento || "Conta Fixa",
+        tipoLancamento: newConta.tipoLancamento || "Conta Fixa",
+        obraId: newConta.obraId || undefined,
+        valor: newConta.valor,
+        tipo: "Receita" as const,
+        status: "Aberto" as const,
+        fornecedorId: newConta.fornecedorId || undefined,
+      };
+      try {
+        const created = await addLancamento(newLancamento);
+        setServerLancamentos([created, ...serverLancamentos]);
+        setLancamentosBase([created, ...lancamentosBase]);
+        alert("Nova conta cadastrada com sucesso!");
+      } catch(e) {
+        alert("Erro ao salvar conta");
+        return;
+      }
+    }
+
+    setIsCompletingConta(false);
+    setIsAdding(false);
+    setNewConta({
+      dataVencimento: new Date().toISOString().split('T')[0],
+      descricao: "",
+      fornecedorId: "",
+      obraId: "",
+      valor: 0,
+      formaPagamento: "A PRAZO",
+      dataCompetencia: "",
+      tipoLancamento: "Conta Fixa",
+      nf: "",
+    });
+    setValorInput("");
+    setParcelasCount(1);
+    setParcelasDates([]);
+  };
+
+  const handleCancelNewConta = () => {
+    setIsAdding(false);
+    setNewConta({
+      dataVencimento: new Date().toISOString().split('T')[0],
+      descricao: "",
+      fornecedorId: "",
+      obraId: "",
+      valor: 0,
+      formaPagamento: "A PRAZO",
+      dataCompetencia: "",
+      tipoLancamento: "Conta Fixa",
+      nf: "",
+    });
+    setValorInput("");
+    setParcelasCount(1);
+    setParcelasDates([]);
+  };
+
+  const handleReceber = async (id: string) => {
+    setrecebendoContaId(id);
+    setDataPagamentoInput(new Date().toISOString().split("T")[0]);
+    const item = serverLancamentos.find((l) => l.id === id);
+    if (item) {
+      setValorPagoInput(formatCurrency(item.valor));
+      setJurosMultaInput(formatCurrency(0));
+    }
+  };
+
+  const handleConfirmarPagamento = async () => {
+    if (!recebendoContaId) return;
+    const item = serverLancamentos.find((l) => l.id === recebendoContaId);
+    if (item) {
+      const valorPagoNum = Number(valorPagoInput.replace(/\D/g, "")) / 100;
+      const jurosMultaNum = Number(jurosMultaInput.replace(/\D/g, "")) / 100;
+      const updated: Lancamento = {
+        ...item,
+        status: "Pago" as const,
+        dataPagamento: dataPagamentoInput,
+        valorPago: valorPagoNum,
+        jurosMulta: jurosMultaNum,
+      };
+      try {
+        await updateLancamento(updated);
+        setServerLancamentos(prev => prev.map(l => l.id === recebendoContaId ? updated : l));
+        setLancamentosBase(prev => prev.map(l => l.id === recebendoContaId ? updated : l));
+        alert("Conta marcada como paga!");
+      } catch(e) {
+        alert("Erro ao Marcar como Recebido");
+      }
+    }
+    setrecebendoContaId(null);
+  };
+
+  const handleDesfazerPagamento = async (id: string) => {
+    const item = serverLancamentos.find((l) => l.id === id);
+    if (item) {
+      const updated: Lancamento = {
+        ...item,
+        status: "Aberto" as const,
+        dataPagamento: undefined,
+        valorPago: undefined,
+        jurosMulta: undefined,
+      };
+      try {
+        await updateLancamento(updated);
+        setServerLancamentos(prev => prev.map(l => l.id === id ? updated : l));
+        setLancamentosBase(prev => prev.map(l => l.id === id ? updated : l));
+        alert("Pagamento desfeito com sucesso! A conta voltou para o estado em aberto.");
+      } catch(e) {
+        alert("Erro ao Desfazer Recebimento");
+      }
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletandoContaId) return;
+    if (confirmDeleteText.toLowerCase() !== "confirmar") {
+      alert("Digite 'confirmar' para prosseguir.");
+      return;
+    }
+    try {
+      await deleteLancamento(deletandoContaId);
+      setServerLancamentos(prev => prev.filter(l => l.id !== deletandoContaId));
+      setLancamentosBase(prev => prev.filter(l => l.id !== deletandoContaId));
+      alert("Conta excluída com sucesso!");
+    } catch(e) {
+      alert("Erro ao excluir conta");
+    }
+    setDeletandoContaId(null);
+  };
+
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const [lancamentosBase, setLancamentosBase] = useState(initialLancamentos);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedColFilters(colFilters);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [colFilters]);
+
+  useEffect(() => {
+    let start: string | undefined;
+    let end: string | undefined;
+    
+    if (activeFilter && activeFilter.start && activeFilter.end) {
+      start = activeFilter.start;
+      end = activeFilter.end;
+    }
+
+    const fetchServer = async () => {
+      try {
+        const params: any = { tipo: "Receita", sortOrder: "ASC", ...debouncedColFilters };
+        if (start && end) {
+          params.vencimentoStart = start;
+          params.vencimentoEnd = end;
+        }
+        const res = await lancamentosApi.getPaginated(params);
+        setServerLancamentos(res.data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchServer();
+  }, [activeFilter, lancamentosBase, debouncedColFilters]);
+
+  const handleBaixarLote = async () => {
+    if (contasSelecionadas.length === 0) return;
+    try {
+      await lancamentosApi.batchPay(contasSelecionadas);
+      setContasSelecionadas([]);
+      const today = new Date().toISOString().split('T')[0];
+      const updateFn = (prev: Lancamento[]) => prev.map(l => 
+        contasSelecionadas.includes(l.id) 
+          ? { ...l, status: "Pago" as const, dataPagamento: today, valorPago: l.valor } 
+          : l
+      );
+      setServerLancamentos(updateFn);
+      setLancamentosBase(updateFn);
+      alert("Contas baixadas com sucesso!");
+    } catch (e) {
+      alert("Erro ao baixar contas em lote");
+    }
+  };
+
+  const previsoes = useMemo(() => {
+    // DESATIVADO: Caminho A escolhido. A injeção automática de "Previsões" amarelas no Contas a Receber
+    // foi desativada para não gerar duplicidade com a nova tela de Recorrências (Medições/Contratos).
+    // Agora o usuário deve sempre gerar o lançamento pelo painel de Recorrências.
+    // 
+    // LÓGICA ANTERIOR (Mantida para documentação caso seja necessário reativar no futuro):
+    /*
+    return contratos
+      .filter((c) => c.ativo)
+      .filter((c) => c.tipoLancamento !== "Contrato de Serviço")
+      .filter((c) => {
+        // Only show if a lancamento hasn't been generated for this month
+        const thisMonthLancamento = lancamentosBase.find((l) => {
+          if (!l.contratoId || l.contratoId !== c.id) return false;
+          const compDate = l.dataCompetencia ? new Date(l.dataCompetencia) : new Date(l.dataVencimento);
+          return compDate.getMonth() === currentMonth && compDate.getFullYear() === currentYear;
+        });
+        return !thisMonthLancamento;
+      })
+      .map((c) => {
+        const dataVencimento = new Date(currentYear, currentMonth, c.diaVencimento).toISOString().split('T')[0];
+        return {
+          id: `prev-${c.id}`,
+          isPrevisao: true,
+          contratoId: c.id,
+          dataCompetencia: dataVencimento,
+          dataVencimento,
+          descricao: c.descricao,
+          recebedorFornecedor: c.recebedorFornecedor,
+          fornecedorId: c.fornecedorId,
+          valor: c.valorPrevisto,
+          status: "Aberto" as const,
+          tipo: "Receita" as const,
+          categoria: c.categoria,
+          obraId: c.obraId,
+        };
+      });
+    */
+    return [];
+  }, [contratos, lancamentosBase, currentMonth, currentYear]);
+
+  const receitas = [
+    ...serverLancamentos,
+    ...previsoes.filter(p => {
+      if (!activeFilter || !activeFilter.start || !activeFilter.end) return true;
+      return p.dataVencimento >= activeFilter.start && p.dataVencimento <= activeFilter.end;
+    })
+  ];
+
+  const filtered = receitas
+    .filter((l) => {
+      if (filterStatus === "Todos") return true;
+      return l.status === filterStatus;
+    })
+    .sort((a, b) => {
+      const statusOrder = { Atrasado: 1, Aberto: 2, Pago: 3 };
+      const aStatus = statusOrder[a.status as keyof typeof statusOrder] || 4;
+      const bStatus = statusOrder[b.status as keyof typeof statusOrder] || 4;
+      if (aStatus !== bStatus) {
+        return aStatus - bStatus;
+      }
+      return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime();
+    });
+
+  const totalAberto = receitas
+    .filter((l) => l.status === "Aberto")
+    .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
+  const totalAtrasado = receitas
+    .filter((l) => l.status === "Atrasado" && !(l as any).isPrevisao)
+    .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
+  const totalPago = receitas
+    .filter((l) => l.status === "Pago" && !(l as any).isPrevisao)
+    .reduce((acc, curr) => acc + Number(curr.valor || 0) + Number(curr.jurosMulta || 0), 0);
+
+  const handleEfetivar = (prev: any) => {
+    if (onEfetivar) {
+      onEfetivar(prev);
+    } else {
+      alert("Redirecionando para Lançamentos...");
+    }
+  };
+
+  return (
+    <div className="p-8 w-full h-full flex flex-col space-y-6 overflow-hidden mx-auto">
+      <header className="flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">
+            Contas a Receber
+          </h1>
+          <p className="text-zinc-500 mt-1">
+            Gerenciamento de vencimentos e pagamentos.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsAdding(true)}
+          disabled={isAdding}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+        >
+          <Plus size={16} />
+          Nova Conta
+        </button>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+            <Clock className="text-amber-600" size={24} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-zinc-500">A Vencer</p>
+            <p className="text-2xl font-semibold text-zinc-900">
+              {formatCurrency(totalAberto)}
+            </p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center">
+            <AlertCircle className="text-rose-600" size={24} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-zinc-500">Atrasadas</p>
+            <p className="text-2xl font-semibold text-rose-600">
+              {formatCurrency(totalAtrasado)}
+            </p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+            <CheckCircle2 className="text-emerald-600" size={24} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-zinc-500">Pagas</p>
+            <p className="text-2xl font-semibold text-emerald-600">
+              {formatCurrency(totalPago)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col">
+        <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-50/50 shrink-0">
+          <div className="flex items-center gap-2">
+            {["Todos", "Aberto", "Atrasado", "Pago"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status as any)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filterStatus === status
+                  ? "bg-zinc-900 text-white"
+                  : "bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+                  }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-4">
+            <PeriodFilter filterState={periodFilterState} />
+
+            {contasSelecionadas.length > 0 && (
+              <button
+                onClick={handleBaixarLote}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-sm"
+              >
+                Baixar Selecionados ({contasSelecionadas.length})
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="overflow-x-auto overflow-y-auto flex-1">
+          <table className="min-w-[1400px] w-full table-fixed text-left border-collapse">
+            <thead className="sticky top-0 z-10 bg-zinc-50 shadow-[inset_0_-1px_0_rgba(228,228,231,1)]">
+              <tr className="bg-zinc-50 border-b border-zinc-200 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <th className="p-3 w-10 text-center align-top">
+                  <div className="flex flex-col gap-1.5 items-center justify-start h-full">
+                    <span>
+                      <input
+                        type="checkbox"
+                        checked={contasSelecionadas.length > 0 && contasSelecionadas.length === filtered.filter(l => l.status !== "Pago" && !(l as any).isPrevisao).length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setContasSelecionadas(filtered.filter(l => !(l as any).isPrevisao && l.status !== "Pago").map(l => l.id));
+                          } else {
+                            setContasSelecionadas([]);
+                          }
+                        }}
+                        className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                      />
+                    </span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
+                <th className="p-3 w-[40px] align-top text-center">
+                  <div className="flex flex-col gap-1.5 items-center justify-center">
+                    <Paperclip size={14} className="opacity-0" />
+                  </div>
+                </th>
+                <th className="p-3 w-[90px] align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Vencimento</span>
+                    <input
+                      type="text"
+                      placeholder="Filtrar data..."
+                      value={colFilters.dataVencimento}
+                      onChange={(e) => setColFilters({ ...colFilters, dataVencimento: e.target.value })}
+                      className="w-full min-w-[90px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                  </div>
+                </th>
+                <th className="p-3 w-[140px] align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Data Pgto</span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
+                <th className="p-3 w-auto align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Fornecedor</span>
+                    <input
+                      type="text"
+                      placeholder="Filtrar fornecedor..."
+                      value={colFilters.recebedorFornecedor}
+                      onChange={(e) => setColFilters({ ...colFilters, recebedorFornecedor: e.target.value })}
+                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                  </div>
+                </th>
+                <th className="p-3 w-auto align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Descrição</span>
+                    <input
+                      type="text"
+                      placeholder="Filtrar descrição..."
+                      value={colFilters.descricao}
+                      onChange={(e) => setColFilters({ ...colFilters, descricao: e.target.value })}
+                      className="w-full min-w-[120px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                  </div>
+                </th>
+                <th className="p-3 w-[220px] align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <span>Centro de Custo</span>
+                    <input
+                      type="text"
+                      list="col-filter-centro-list-cp"
+                      placeholder="Filtrar centro..."
+                      value={colFilters.obraId}
+                      onChange={(e) => setColFilters({ ...colFilters, obraId: e.target.value })}
+                      onClick={() => setColFilters({ ...colFilters, obraId: "" })}
+                      className="w-full min-w-[110px] px-2 py-1 text-[10px] font-normal border border-zinc-300 rounded bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent normal-case"
+                    />
+                    <datalist id="col-filter-centro-list-cp">
+                      {[...obras].sort((a, b) => a.nome.localeCompare(b.nome)).map(o => <option key={o.id} value={o.nome} />)}
+                    </datalist>
+                  </div>
+                </th>
+                <th className="p-3 w-[110px] text-right align-top">
+                  <div className="flex flex-col gap-1.5 items-end">
+                    <span>Valor</span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
+                <th className="p-3 w-[90px] text-center align-top">
+                  <div className="flex flex-col gap-1.5 items-center">
+                    <span>Status</span>
+                    <div className="h-6" /> {/* spacer */}
+                  </div>
+                </th>
+
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200">
+              {isAdding && (
+                <>
+                <tr className="bg-indigo-50/30">
+                  <td className="p-2"></td>
+                  <td className="p-2"></td>
+                  <td className="p-2">
+                    <input
+                      type="date"
+                      value={newConta.dataVencimento}
+                      onChange={(e) => setNewConta({ ...newConta, dataVencimento: e.target.value })}
+                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                    />
+                  </td>
+                  <td className="p-2"></td>
+                  <td className="p-2">
+                    <Combobox
+                      options={[...fornecedores, ...recebedores].map(f => ({ id: f.id, label: f.nome }))}
+                      value={newConta.fornecedorId || ""}
+                      onChange={(id) => setNewConta({ ...newConta, fornecedorId: id })}
+                      placeholder="Fornecedor"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      placeholder="Descrição"
+                      value={newConta.descricao}
+                      onChange={(e) => setNewConta({ ...newConta, descricao: e.target.value })}
+                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Combobox
+                      options={obras.map(o => ({ id: o.id, label: o.nome }))}
+                      value={newConta.obraId || ""}
+                      onChange={(id) => setNewConta({ ...newConta, obraId: id })}
+                      placeholder="Centro de Custo"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      placeholder="R$ 0,00"
+                      value={valorInput}
+                      onChange={handleValorChange}
+                      className="w-full p-2 bg-white border border-zinc-300 rounded text-xs text-right focus:ring-1 focus:ring-indigo-500 outline-none font-semibold"
+                    />
+                  </td>
+                  <td className="p-2 text-center">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      Aberto
+                    </span>
+                  </td>
+                  <td className="p-2 text-center">
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={handleOpenCompletionModal} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">
+                        <Check size={14} />
+                      </button>
+                      <button onClick={handleCancelNewConta} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600 transition-colors">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr className="bg-indigo-50/10">
+                  <td colSpan={9} className="p-3 border-t border-indigo-100">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4">
+                        <label className="text-xs font-semibold text-zinc-600">Forma de Pagamento:</label>
+                        <select
+                          value={newConta.formaPagamento}
+                          onChange={(e) => setNewConta({ ...newConta, formaPagamento: e.target.value })}
+                          className="w-32 p-1.5 bg-white border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                        >
+                          {["À VISTA", "CARTÃO", "BOLETO", "A PRAZO"].sort((a, b) => a.localeCompare(b)).map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+
+                        {newConta.formaPagamento !== "À VISTA" && (
+                          <>
+                            <label className="text-xs font-semibold text-zinc-600 ml-4">Quantidade de Parcelas:</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="72"
+                              value={parcelasCount}
+                              onChange={(e) => {
+                                const count = parseInt(e.target.value) || 1;
+                                setParcelasCount(count);
+                                const baseDate = new Date(newConta.dataVencimento + "T12:00:00");
+                                const newDates = [];
+                                for(let i = 0; i < count; i++) {
+                                   const d = new Date(baseDate);
+                                   d.setMonth(d.getMonth() + i);
+                                   newDates.push(d.toISOString().split("T")[0]);
+                                }
+                                setParcelasDates(newDates);
+                              }}
+                              className="w-20 p-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                            />
+                          </>
+                        )}
+                      </div>
+                      
+                      {newConta.formaPagamento !== "À VISTA" && parcelasCount > 1 && (
+                        <div className="flex flex-wrap gap-4 mt-2 bg-white p-3 rounded border border-zinc-200">
+                          {Array.from({ length: parcelasCount }).map((_, i) => (
+                            <div key={i} className="flex flex-col gap-1">
+                              <span className="text-[10px] font-semibold text-zinc-500">{i + 1}ª Parcela</span>
+                              <input
+                                type="date"
+                                value={parcelasDates[i] || ""}
+                                onChange={(e) => {
+                                  const newDates = [...parcelasDates];
+                                  newDates[i] = e.target.value;
+                                  setParcelasDates(newDates);
+                                }}
+                                className="p-1 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none w-[110px]"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                </>
+              )}
+              {filtered.map((l, i) => {
+                const fornecedor = [...fornecedores, ...recebedores].find(
+                  (f) => f.id === l.fornecedorId
+                );
+                const obra = obras.find(
+                  (o) => o.id === l.obraId || o.nome === l.obraId
+                );
+                return (
+                  <tr 
+                    key={`${l.id}-${i}`} 
+                    className={`transition-colors cursor-pointer relative ${l.status === 'Atrasado' ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-zinc-50'}`}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('.action-menu-popup') || (e.target as HTMLElement).tagName.toLowerCase() === 'input') return;
+                      const isNearBottom = e.clientY > window.innerHeight - 150;
+                      setMenuPos({ 
+                        top: isNearBottom ? e.clientY - 130 : e.clientY + 10, 
+                        right: window.innerWidth - e.clientX - 10 
+                      });
+                      setActiveMenuId(activeMenuId === l.id ? null : l.id);
+                    }}
+                  >
+                    <td className="p-4 text-center">
+                      {!(l as any).isPrevisao && l.status !== "Pago" && (
+                        <input
+                          type="checkbox"
+                          checked={contasSelecionadas.includes(l.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setContasSelecionadas([...contasSelecionadas, l.id]);
+                            } else {
+                              setContasSelecionadas(contasSelecionadas.filter(id => id !== l.id));
+                            }
+                          }}
+                          className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                        />
+                      )}
+                    </td>
+                    <td 
+                      className="p-4 text-center cursor-pointer hover:bg-zinc-200 transition-colors" 
+                      onClick={(e) => { e.stopPropagation(); setAnexosModalId(l.id); }}
+                    >
+                      <Paperclip size={16} className={(l as any).anexosCount && (l as any).anexosCount > 0 ? "text-emerald-500" : "text-zinc-400"} />
+                    </td>
+                    <td className="p-4 text-sm font-medium whitespace-nowrap">
+                      {(() => {
+                        const today = new Date();
+                        const tzOffset = today.getTimezoneOffset() * 60000;
+                        const localTodayStr = new Date(Date.now() - tzOffset).toISOString().split('T')[0];
+                        const tomorrowStr = new Date(Date.now() - tzOffset + 24*60*60*1000).toISOString().split('T')[0];
+                        
+                        const isUrgent = l.status !== "Pago" && (l.dataVencimento === localTodayStr || l.dataVencimento === tomorrowStr);
+                        
+                        return (
+                          <div className={`flex items-center gap-1.5 ${isUrgent ? 'text-orange-600 font-bold' : 'text-zinc-900'}`}>
+                            {isUrgent && <Clock size={14} className="text-orange-600" />}
+                            {safeFormatDate(l.dataVencimento)}
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    <td className="p-4 text-sm font-medium text-zinc-900 whitespace-nowrap">
+                      {l.dataPagamento ? safeFormatDate(l.dataPagamento) : "-"}
+                    </td>
+                    <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
+                      {fornecedor?.nome || "-"}
+                    </td>
+                    <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">{l.descricao}</td>
+                    <td className="p-4 text-sm text-zinc-600 break-words whitespace-normal">
+                      {obra?.nome || l.obraId || "-"}
+                    </td>
+                    <td className="p-4 text-sm font-semibold text-zinc-900 text-right whitespace-nowrap">
+                      {formatCurrency(l.valor)}
+                      {l.jurosMulta ? (
+                        <div className="text-[10px] text-rose-500 font-normal mt-0.5 leading-tight flex flex-col items-end">
+                          <span>+ {formatCurrency(l.jurosMulta)}</span>
+                          <span>(Juros/Multa)</span>
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="p-4 text-center select-none cursor-default" title={(l as any).isPrevisao ? "Esta é uma previsão de contrato. Confirme os valores para efetivar e enviar ao Lançamentos." : ""}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                        ${l.status === "Pago"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : l.status === "Atrasado"
+                              ? "bg-rose-100 text-rose-800"
+                              : "bg-amber-100 text-amber-800"
+                          } ${(l as any).isPrevisao ? "border border-amber-300 border-dashed" : ""}`}
+                      >
+                        {l.status} {(l as any).isPrevisao && <span className="ml-1 opacity-70 italic">- Previsão</span>}
+                      </span>
+
+                      {activeMenuId === l.id && (
+                        <div className="action-menu-popup" onClick={(e) => e.stopPropagation()}>
+                          <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
+                          <div 
+                             className="fixed bg-white border border-zinc-200 rounded-lg shadow-lg z-[99] py-1 text-left w-32"
+                             style={{ top: menuPos.top, right: menuPos.right }}
+                          >
+                            {l.status !== "Pago" ? (
+                              (l as any).isPrevisao ? (
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    handleEfetivar(l);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 transition-colors block text-left font-medium"
+                                >
+                                  Efetivar
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    handleReceber(l.id);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 transition-colors block text-left font-medium"
+                                >
+                                  Pagar
+                                </button>
+                              )
+                            ) : (
+                              !(l as any).isPrevisao && (
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    handleDesfazerPagamento(l.id);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
+                                >
+                                  Desfazer
+                                </button>
+                              )
+                            )}
+                            {!(l as any).isPrevisao && (
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  setAnexosModalId(l.id);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors block text-left font-medium flex justify-between items-center"
+                              >
+                                Anexos
+                                <Paperclip size={14} className="opacity-50" />
+                              </button>
+                            )}
+                            {!(l as any).isPrevisao && (
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  setDeletandoContaId(l.id);
+                                  setConfirmDeleteText("");
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors block text-left font-medium"
+                              >
+                                Excluir
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <div className="p-8 text-center text-zinc-500">
+              Nenhuma conta encontrada para o filtro selecionado.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {anexosModalId && (
+        <AnexosModal entityId={anexosModalId} onClose={() => setAnexosModalId(null)} />
+      )}
+
+      {/* Payment Modal */}
+      {recebendoContaId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-6 relative">
+            <h3 className="text-xl font-semibold text-zinc-900 border-b border-zinc-100 pb-3">
+              Confirmar Pagamento
+            </h3>
+            <button
+              onClick={() => setrecebendoContaId(null)}
+              className="absolute right-6 top-6 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Data do Pagamento</label>
+                <input
+                  type="date"
+                  value={dataPagamentoInput}
+                  onChange={(e) => setDataPagamentoInput(e.target.value)}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Valor Pago</label>
+                <input
+                  type="text"
+                  value={valorPagoInput}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
+                    setValorPagoInput(formatCurrency(Number(value) / 100));
+                  }}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Juros / Multa</label>
+                <input
+                  type="text"
+                  value={jurosMultaInput}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
+                    setJurosMultaInput(formatCurrency(Number(value) / 100));
+                  }}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+              <button
+                onClick={handleConfirmarPagamento}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Confirmar
+              </button>
+              <button
+                onClick={() => setrecebendoContaId(null)}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletandoContaId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-6 relative">
+            <h3 className="text-xl font-semibold text-zinc-900 border-b border-zinc-100 pb-3">
+              Confirmar Exclusão
+            </h3>
+            <button
+              onClick={() => setDeletandoContaId(null)}
+              className="absolute right-6 top-6 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="space-y-4">
+              <p className="text-sm text-zinc-600">
+                Tem certeza que deseja apagar esta conta?
+              </p>
+              <p className="text-sm text-rose-600 font-semibold bg-rose-50 p-3 rounded-lg border border-rose-100 mb-4">
+                Esta ação é irreversível. Para prosseguir, digite a palavra <strong>confirmar</strong> no campo abaixo:
+              </p>
+              <input
+                type="text"
+                value={confirmDeleteText}
+                onChange={(e) => setConfirmDeleteText(e.target.value)}
+                placeholder='Digite "confirmar"'
+                className="w-full p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none font-medium"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Deletar
+              </button>
+              <button
+                onClick={() => setDeletandoContaId(null)}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Completar Conta Modal */}
+      {isCompletingConta && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-6 relative">
+            <h3 className="text-xl font-semibold text-zinc-900 border-b border-zinc-100 pb-3">
+              Completar Dados
+            </h3>
+            <button
+              onClick={() => setIsCompletingConta(false)}
+              className="absolute right-6 top-6 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Data de Competência</label>
+                <input
+                  type="date"
+                  value={newConta.dataCompetencia}
+                  onChange={(e) => setNewConta({ ...newConta, dataCompetencia: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Nota Fiscal (NF)</label>
+                <input
+                  type="text"
+                  value={newConta.nf}
+                  onChange={(e) => setNewConta({ ...newConta, nf: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                  placeholder="Ex: 123456"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700">Tipo de Lançamento</label>
+                <select
+                  value={newConta.tipoLancamento}
+                  onChange={(e) => setNewConta({ ...newConta, tipoLancamento: e.target.value })}
+                  className="w-full mt-1 p-2.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
+                >
+                  <option value="" disabled>Selecione o Tipo</option>
+                  {[...tiposOptions].sort((a, b) => a.localeCompare(b)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+              <button
+                onClick={handleFinalizeNewConta}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Salvar Conta
+              </button>
+              <button
+                onClick={() => setIsCompletingConta(false)}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

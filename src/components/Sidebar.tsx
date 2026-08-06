@@ -31,7 +31,15 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const menuItems = [
     { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
     { id: "lancamentos", label: "Lançamentos", icon: FileText },
-    { id: "contas-pagar", label: "Contas a Pagar", icon: CreditCard },
+    { 
+      id: "contas", 
+      label: "Contas", 
+      icon: CreditCard,
+      subItems: [
+        { id: "contas-receber", label: "Contas a Receber" },
+        { id: "contas-pagar", label: "Contas a Pagar" },
+      ]
+    },
     { id: "contratos", label: "Contratos Fixos", icon: CalendarDays },
     { id: "dre", label: "DRE Construtora", icon: BarChart3 },
     { 

@@ -8,6 +8,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import Lancamentos from "./components/Lancamentos";
 import ContasPagar from "./components/ContasPagar";
+import ContasReceber from "./components/ContasReceber";
 import DRE from "./components/DRE";
 import Obras from "./components/Obras";
 import Fornecedores from "./components/Fornecedores";
@@ -53,6 +54,8 @@ function AppContent() {
         return <Lancamentos setActiveTab={setActiveTab} efetivarData={efetivarData} setEfetivarData={setEfetivarData} />;
       case "contas-pagar":
         return <ContasPagar onEfetivar={(data: any) => { setEfetivarData(data); setActiveTab("lancamentos"); }} />;
+      case "contas-receber":
+        return <ContasReceber onEfetivar={(data: any) => { setEfetivarData(data); setActiveTab("lancamentos"); }} />;
       case "dre":
         return <DRE />;
       case "obras":
