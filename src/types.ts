@@ -163,6 +163,7 @@ export type OrcamentoItem = {
   valorUnitMo?: number;
   valorUnitMat?: number;
   bdiItem?: number;
+  overrides?: Record<string, number>;
   // Transients for UI calculation
   subItens?: OrcamentoItem[];
 };

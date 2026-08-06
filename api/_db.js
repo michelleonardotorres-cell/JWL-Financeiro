@@ -122,6 +122,7 @@ function getPool() {
         "valorUnitMo" numeric,
         "valorUnitMat" numeric,
         "bdiItem" numeric,
+        overrides jsonb,
         CONSTRAINT fk_orcamento FOREIGN KEY("orcamentoId") REFERENCES orcamentos(id) ON DELETE CASCADE,
         CONSTRAINT fk_parent_item FOREIGN KEY("parentId") REFERENCES orcamento_itens(id) ON DELETE CASCADE
       );
@@ -135,6 +136,8 @@ function getPool() {
         valor numeric NOT NULL,
         CONSTRAINT fk_orcamento_item FOREIGN KEY("orcamentoItemId") REFERENCES orcamento_itens(id) ON DELETE CASCADE
       );
+
+      ALTER TABLE orcamento_itens ADD COLUMN IF NOT EXISTS overrides jsonb;
     `).catch(e => console.log('Orcamentos schema migration note:', e.message));
   }
   return pool;

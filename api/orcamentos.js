@@ -59,12 +59,13 @@ export default async function handler(req, res) {
           
           for (const item of itens) {
             await client.query(`
-              INSERT INTO orcamento_itens (id, "orcamentoId", "parentId", codigo, descricao, unidade, quantidade, "valorUnitMo", "valorUnitMat", "bdiItem")
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              INSERT INTO orcamento_itens (id, "orcamentoId", "parentId", codigo, descricao, unidade, quantidade, "valorUnitMo", "valorUnitMat", "bdiItem", overrides)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             `, [
               item.id, id, item.parentId || null, item.codigo || null, item.descricao, 
               item.unidade || null, item.quantidade || null, item.valorUnitMo || null, 
-              item.valorUnitMat || null, item.bdiItem || null
+              item.valorUnitMat || null, item.bdiItem || null,
+              item.overrides ? JSON.stringify(item.overrides) : null
             ]);
           }
         }
