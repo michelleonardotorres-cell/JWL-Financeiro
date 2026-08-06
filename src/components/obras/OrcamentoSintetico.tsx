@@ -115,32 +115,36 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       
       const ov = child.overrides || {};
       
-      let calcTotMO = 0, calcTotMat = 0;
+      let calcTotMO = 0, calcTotMat = 0, calcTotMOComBdi = 0, calcTotMatComBdi = 0;
+      
+      const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
+      const bdiMult = 1 + (bdi / 100);
+
       if (hasChildren) {
         calcTotMO = subTree.reduce((sum, c) => sum + c.totais.totMO, 0);
         calcTotMat = subTree.reduce((sum, c) => sum + c.totais.totMat, 0);
+        calcTotMOComBdi = subTree.reduce((sum, c) => sum + c.totais.totMOComBdi, 0);
+        calcTotMatComBdi = subTree.reduce((sum, c) => sum + c.totais.totMatComBdi, 0);
       } else {
         const qtd = child.quantidade || 0;
         calcTotMO = qtd * (child.valorUnitMo || 0);
         calcTotMat = qtd * (child.valorUnitMat || 0);
+        calcTotMOComBdi = calcTotMO * bdiMult;
+        calcTotMatComBdi = calcTotMat * bdiMult;
       }
 
       const totMO = ov.totMO !== undefined ? ov.totMO : calcTotMO;
       const totMat = ov.totMat !== undefined ? ov.totMat : calcTotMat;
       const totGeralBase = ov.totGeralBase !== undefined ? ov.totGeralBase : (totMO + totMat);
 
-      // BDI and Unit overrides for leaves
       const calcUnitTotal = (child.valorUnitMo || 0) + (child.valorUnitMat || 0);
       const unitTotal = ov.unitTotal !== undefined ? ov.unitTotal : calcUnitTotal;
 
-      const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
-      const bdiMult = 1 + (bdi / 100);
-
       const unitTotalComBdi = ov.unitTotalComBdi !== undefined ? ov.unitTotalComBdi : (unitTotal * bdiMult);
 
-      const totMOComBdi = ov.totMOComBdi !== undefined ? ov.totMOComBdi : (totMO * bdiMult);
-      const totMatComBdi = ov.totMatComBdi !== undefined ? ov.totMatComBdi : (totMat * bdiMult);
-      const totGeralComBdi = ov.totGeralComBdi !== undefined ? ov.totGeralComBdi : (totGeralBase * bdiMult);
+      const totMOComBdi = ov.totMOComBdi !== undefined ? ov.totMOComBdi : calcTotMOComBdi;
+      const totMatComBdi = ov.totMatComBdi !== undefined ? ov.totMatComBdi : calcTotMatComBdi;
+      const totGeralComBdi = ov.totGeralComBdi !== undefined ? ov.totGeralComBdi : (totMOComBdi + totMatComBdi);
 
       return {
         ...child,
@@ -418,14 +422,22 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
       
       const ov = child.overrides || {};
 
-      let calcTotMO = 0, calcTotMat = 0;
+      let calcTotMO = 0, calcTotMat = 0, calcTotMOComBdi = 0, calcTotMatComBdi = 0;
+      
+      const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
+      const bdiMult = 1 + (bdi / 100);
+
       if (hasChildren) {
         calcTotMO = subTree.reduce((sum, c) => sum + c.totais.totMO, 0);
         calcTotMat = subTree.reduce((sum, c) => sum + c.totais.totMat, 0);
+        calcTotMOComBdi = subTree.reduce((sum, c) => sum + c.totais.totMOComBdi, 0);
+        calcTotMatComBdi = subTree.reduce((sum, c) => sum + c.totais.totMatComBdi, 0);
       } else {
         const qtd = child.quantidade || 0;
         calcTotMO = qtd * (child.valorUnitMo || 0);
         calcTotMat = qtd * (child.valorUnitMat || 0);
+        calcTotMOComBdi = calcTotMO * bdiMult;
+        calcTotMatComBdi = calcTotMat * bdiMult;
       }
       
       const totMO = ov.totMO !== undefined ? ov.totMO : calcTotMO;
@@ -435,14 +447,11 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
       const calcUnitTotal = (child.valorUnitMo || 0) + (child.valorUnitMat || 0);
       const unitTotal = ov.unitTotal !== undefined ? ov.unitTotal : calcUnitTotal;
 
-      const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
-      const bdiMult = 1 + (bdi / 100);
-
       const unitTotalComBdi = ov.unitTotalComBdi !== undefined ? ov.unitTotalComBdi : (unitTotal * bdiMult);
 
-      const totMOComBdi = ov.totMOComBdi !== undefined ? ov.totMOComBdi : (totMO * bdiMult);
-      const totMatComBdi = ov.totMatComBdi !== undefined ? ov.totMatComBdi : (totMat * bdiMult);
-      const totGeralComBdi = ov.totGeralComBdi !== undefined ? ov.totGeralComBdi : (totGeralBase * bdiMult);
+      const totMOComBdi = ov.totMOComBdi !== undefined ? ov.totMOComBdi : calcTotMOComBdi;
+      const totMatComBdi = ov.totMatComBdi !== undefined ? ov.totMatComBdi : calcTotMatComBdi;
+      const totGeralComBdi = ov.totGeralComBdi !== undefined ? ov.totGeralComBdi : (totMOComBdi + totMatComBdi);
 
       return {
         ...child,
@@ -457,6 +466,7 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
   const childNodes = buildTree(children);
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+  const formatNum = (val: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
   const isFolder = node.hasChildren;
   const maxLevel = 3; 
@@ -499,9 +509,9 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
         </td>
         <td className="p-2 border-r text-center">
           {editing ? (
-             <input type="number" value={node.quantidade} onChange={e => onUpdate(node.id, { quantidade: parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right" />
+             <input type="number" step="0.01" value={node.quantidade} onChange={e => onUpdate(node.id, { quantidade: parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right" />
           ) : (
-             <span className="text-zinc-700">{isFolder ? '' : node.quantidade}</span>
+             <span className="text-zinc-700">{isFolder ? '' : formatNum(node.quantidade)}</span>
           )}
         </td>
 
@@ -510,7 +520,7 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           {editing ? (
              <input type="number" step="0.01" value={node.bdiItem !== undefined ? node.bdiItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { bdiItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right" />
           ) : (
-             <span className="text-indigo-600 font-medium">{node.bdiItem !== undefined ? `${node.bdiItem}%` : '-'}</span>
+             <span className="text-indigo-600 font-medium">{node.bdiItem !== undefined ? `${formatNum(node.bdiItem)}%` : '-'}</span>
           )}
         </td>
 
