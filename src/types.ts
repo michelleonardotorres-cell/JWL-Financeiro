@@ -148,6 +148,7 @@ export type Orcamento = {
   id: string;
   obraId: string;
   taxaBdi?: number;
+  descontoGlobal?: number;
   dataCriacao?: string;
   itens?: OrcamentoItem[];
 };

@@ -15,6 +15,9 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   // Detalhamento modal state
   const [itemParaDetalhar, setItemParaDetalhar] = useState<OrcamentoItem | null>(null);
   const [showDetalhamento, setShowDetalhamento] = useState(false);
+  const [bdiInput, setBdiInput] = useState('0.00');
+  const [viewMode, setViewMode] = useState<'orcamento' | 'custos'>('orcamento');
+  const [descontoInput, setDescontoInput] = useState('0.00');
 
   useEffect(() => {
     loadOrcamento();
@@ -27,6 +30,8 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       if (res) {
         setOrcamento(res);
         setItens(res.itens || []);
+        setBdiInput((res.taxaBdi || 0).toFixed(2));
+        setDescontoInput((res.descontoGlobal || 0).toFixed(2));
       } else {
         const newId = `orc_${Math.random().toString(36).substring(2, 9)}`;
         setOrcamento({ id: newId, obraId, taxaBdi: 0 });
@@ -104,6 +109,66 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   };
 
   const bdiGlobal = orcamento?.taxaBdi || 0;
+  const effectiveBdi = orcamento?.taxaBdi || 0;
+  const effectiveDesconto = orcamento?.descontoGlobal || 0;
+
+  const handleBdiCommit = () => {
+    const parsed = parseFloat(bdiInput);
+    if (isNaN(parsed)) {
+      setBdiInput(effectiveBdi.toFixed(2));
+      return;
+    }
+    if (Math.abs(parsed - effectiveBdi) < 0.01) {
+      setBdiInput(effectiveBdi.toFixed(2));
+      return;
+    }
+
+    if (window.confirm("Aplicar novo BDI a todos os itens? (Isso resetará o BDI individual de todos os itens)")) {
+      setOrcamento(prev => prev ? {...prev, taxaBdi: parsed} : null);
+      setItens(prev => prev.map(i => ({...i, bdiItem: undefined})));
+    } else {
+      setBdiInput(effectiveBdi.toFixed(2));
+    }
+  };
+
+  const handleDescontoCommit = () => {
+    const parsed = parseFloat(descontoInput);
+    if (isNaN(parsed)) {
+      setDescontoInput(effectiveDesconto.toFixed(2));
+      return;
+    }
+    if (Math.abs(parsed - effectiveDesconto) < 0.01) {
+      setDescontoInput(effectiveDesconto.toFixed(2));
+      return;
+    }
+
+    if (window.confirm("Aplicar novo desconto a todos os itens? (Isso reescreverá edições manuais de preço de custo)")) {
+      setOrcamento(prev => prev ? {...prev, descontoGlobal: parsed} : null);
+      setItens(prev => prev.map(i => {
+        if (!i.overrides) return i;
+        const newOv = {...i.overrides};
+        delete newOv.unitTotalDesconto;
+        delete newOv.totGeralDesconto;
+        return {...i, overrides: newOv};
+      }));
+    } else {
+      setDescontoInput(effectiveDesconto.toFixed(2));
+    }
+  };
+
+  const handleBdiKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  };
+
+  const handleDescontoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  };
 
   // Build tree and calculate totals handling overrides
   const buildTree = (parentId: string | null = null): (OrcamentoItem & { hasChildren: boolean, totais: any })[] => {
@@ -119,6 +184,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       
       const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
       const bdiMult = 1 + (bdi / 100);
+      const descMult = 1 - (effectiveDesconto / 100);
 
       if (hasChildren) {
         calcTotMO = subTree.reduce((sum, c) => sum + c.totais.totMO, 0);
@@ -141,10 +207,12 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       const unitTotal = ov.unitTotal !== undefined ? ov.unitTotal : calcUnitTotal;
 
       const unitTotalComBdi = ov.unitTotalComBdi !== undefined ? ov.unitTotalComBdi : (unitTotal * bdiMult);
+      const unitTotalDesconto = ov.unitTotalDesconto !== undefined ? ov.unitTotalDesconto : (unitTotalComBdi * descMult);
 
-      const totMOComBdi = ov.totMOComBdi !== undefined ? ov.totMOComBdi : calcTotMOComBdi;
-      const totMatComBdi = ov.totMatComBdi !== undefined ? ov.totMatComBdi : calcTotMatComBdi;
+      const totMOComBdi = ov.totMOComBdi !== undefined ? totMO * bdiMult : calcTotMOComBdi;
+      const totMatComBdi = ov.totMatComBdi !== undefined ? totMat * bdiMult : calcTotMatComBdi;
       const totGeralComBdi = ov.totGeralComBdi !== undefined ? ov.totGeralComBdi : (totMOComBdi + totMatComBdi);
+      const totGeralDesconto = ov.totGeralDesconto !== undefined ? ov.totGeralDesconto : (totGeralComBdi * descMult);
 
       return {
         ...child,
@@ -156,8 +224,10 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
           totMOComBdi,
           totMatComBdi,
           totGeralComBdi,
+          totGeralDesconto,
           unitTotal,
-          unitTotalComBdi
+          unitTotalComBdi,
+          unitTotalDesconto
         }
       };
     });
@@ -167,6 +237,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   
   const totalGeralSemBdi = tree.reduce((sum, c) => sum + c.totais.totGeralBase, 0);
   const totalGeralComBdi = tree.reduce((sum, c) => sum + c.totais.totGeralComBdi, 0);
+  const totalFinalComDesconto = tree.reduce((sum, c) => sum + c.totais.totGeralDesconto, 0);
 
   const downloadModelo = () => {
     const ws_data = [
@@ -331,18 +402,45 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
           </div>
         </div>
 
-        {/* Header e Ações Globais */}
-        <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-zinc-200 shadow-sm mt-4">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setShowDetalhamento(true)} className="px-4 py-2 bg-blue-50 text-blue-700 rounded font-medium hover:bg-blue-100 transition-colors flex items-center gap-2">
-              <FileText size={18} /> Acessar Tela de Detalhamento
+        {/* Header e Abas */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl border border-zinc-200 shadow-sm mt-4 gap-4">
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setViewMode('orcamento')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'orcamento' ? "bg-zinc-900 text-white" : "bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50"}`}
+            >
+              Orçamento
+            </button>
+            <button 
+              onClick={() => setViewMode('custos')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'custos' ? "bg-zinc-900 text-white" : "bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50"}`}
+            >
+              Preço de Custos
             </button>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={downloadModelo} className="px-4 py-2 bg-zinc-100 text-zinc-700 border border-zinc-200 rounded font-medium hover:bg-zinc-200 transition-colors flex items-center gap-2 text-sm">
+          
+          <div className="flex flex-wrap items-center gap-3">
+            {viewMode === 'custos' && (
+              <div className="flex items-center gap-2 mr-2 bg-amber-50 p-1.5 rounded-lg border border-amber-200">
+                <label className="text-sm font-medium text-amber-900" title="Desconto Global sobre o Orçamento Final">Desconto Global (%):</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  className="w-16 p-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 font-semibold text-amber-700 bg-white" 
+                  value={descontoInput}
+                  onChange={e => setDescontoInput(e.target.value)}
+                  onBlur={handleDescontoCommit}
+                  onKeyDown={handleDescontoKeyDown}
+                />
+              </div>
+            )}
+            <button onClick={() => setShowDetalhamento(true)} className="px-4 py-2 bg-blue-50 text-blue-700 rounded font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm">
+              <FileText size={16} /> Acessar Detalhamento
+            </button>
+            <button onClick={downloadModelo} className="px-4 py-2 bg-zinc-100 text-zinc-700 border border-zinc-200 rounded font-medium hover:bg-zinc-200 transition-colors flex items-center gap-2 text-sm hidden sm:flex">
               <Download size={16} /> Baixar Modelo
             </button>
-            <label className="px-4 py-2 bg-emerald-600 text-white rounded font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm cursor-pointer">
+            <label className="px-4 py-2 bg-emerald-600 text-white rounded font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm cursor-pointer hidden sm:flex">
               <Upload size={16} /> Importar XLSX
               <input type="file" className="hidden" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleImport} />
             </label>
@@ -359,18 +457,34 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
                   <th className="p-2 border-r font-semibold" rowSpan={2} style={{minWidth: '200px'}}>Descrição</th>
                   <th className="p-2 border-r font-semibold text-center" rowSpan={2}>Und</th>
                   <th className="p-2 border-r font-semibold text-center" rowSpan={2}>Quant.</th>
-                  <th className="p-2 border-r font-semibold text-center" rowSpan={2} title="Porcentagem de BDI Individual">BDI %</th>
-                  <th className="p-2 border-r font-semibold text-center" colSpan={2}>Valor Unit. s/ BDI</th>
-                  <th className="p-2 border-r font-semibold text-center bg-indigo-50" colSpan={2}>Valor Unit. e Total Geral c/ BDI</th>
+                  {viewMode === 'orcamento' ? (
+                    <>
+                      <th className="p-2 border-r font-semibold text-center" rowSpan={2} title="Porcentagem de BDI Individual">BDI %</th>
+                      <th className="p-2 border-r font-semibold text-center" colSpan={2}>Valor Unit. s/ BDI</th>
+                      <th className="p-2 border-r font-semibold text-center bg-indigo-50" colSpan={2}>Valor Unit. e Total Geral c/ BDI</th>
+                    </>
+                  ) : (
+                    <th className="p-2 border-r font-semibold text-center bg-amber-50 text-amber-900" colSpan={2}>Valores com Desconto</th>
+                  )}
                   <th className="p-2 font-semibold text-center" rowSpan={2}>Ações</th>
                 </tr>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-600">
-                  {/* Unit s/ BDI */}
-                  <th className="p-2 border-r text-right font-medium">Valor Unit.</th>
-                  <th className="p-2 border-r text-right font-medium">Total</th>
-                  {/* Unit e Total c/ BDI */}
-                  <th className="p-2 border-r text-right font-medium bg-indigo-50">Valor Unit.</th>
-                  <th className="p-2 border-r text-right font-medium bg-indigo-50">Total</th>
+                  {viewMode === 'orcamento' ? (
+                    <>
+                      {/* Unit s/ BDI */}
+                      <th className="p-2 border-r text-right font-medium">Valor Unit.</th>
+                      <th className="p-2 border-r text-right font-medium">Total</th>
+                      {/* Unit e Total c/ BDI */}
+                      <th className="p-2 border-r text-right font-medium bg-indigo-50">Valor Unit.</th>
+                      <th className="p-2 border-r text-right font-medium bg-indigo-50">Total</th>
+                    </>
+                  ) : (
+                    <>
+                      {/* Valores com Desconto */}
+                      <th className="p-2 border-r text-right font-medium bg-amber-50 text-amber-900">Valor Unit.</th>
+                      <th className="p-2 border-r text-right font-medium bg-amber-50 text-amber-900">Total</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
@@ -386,6 +500,8 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
                     updateOverride={updateOverride}
                     allItens={itens}
                     bdiGlobal={bdiGlobal}
+                    viewMode={viewMode}
+                    descontoGlobal={orcamento?.descontoGlobal || 0}
                   />
                 ))}
               </tbody>
@@ -402,7 +518,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   );
 }
 
-function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, updateOverride, allItens, bdiGlobal }: any) {
+function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, updateOverride, allItens, bdiGlobal, viewMode, descontoGlobal }: any) {
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState(false);
   
@@ -410,13 +526,15 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
   const children = allItens.filter((i:any) => i.parentId === node.id).sort((a:any, b:any) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
   
   const buildTree = (childList: any[]): any[] => {
+    const descMult = 1 - (descontoGlobal / 100);
+
     return childList.map(child => {
       const subTree = buildTree(allItens.filter((i:any) => i.parentId === child.id));
       const hasChildren = subTree.length > 0;
       
       const ov = child.overrides || {};
 
-      let calcTotMO = 0, calcTotMat = 0, calcTotMOComBdi = 0, calcTotMatComBdi = 0;
+      let calcTotMO = 0, calcTotMat = 0, calcTotMOComBdi = 0, calcTotMatComBdi = 0, calcTotGeralDesconto = 0, calcUnitTotalDesconto = 0;
       
       const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
       const bdiMult = 1 + (bdi / 100);
@@ -426,12 +544,15 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
         calcTotMat = subTree.reduce((sum, c) => sum + c.totais.totMat, 0);
         calcTotMOComBdi = subTree.reduce((sum, c) => sum + c.totais.totMOComBdi, 0);
         calcTotMatComBdi = subTree.reduce((sum, c) => sum + c.totais.totMatComBdi, 0);
+        calcTotGeralDesconto = subTree.reduce((sum, c) => sum + c.totais.totGeralDesconto, 0);
       } else {
         const qtd = child.quantidade || 0;
         calcTotMO = qtd * (child.valorUnitMo || 0);
         calcTotMat = qtd * (child.valorUnitMat || 0);
         calcTotMOComBdi = calcTotMO * bdiMult;
         calcTotMatComBdi = calcTotMat * bdiMult;
+        calcTotGeralDesconto = (calcTotMOComBdi + calcTotMatComBdi) * descMult;
+        calcUnitTotalDesconto = ((child.valorUnitMo || 0) + (child.valorUnitMat || 0)) * bdiMult * descMult;
       }
       
       const totMO = ov.totMO !== undefined ? ov.totMO : calcTotMO;
@@ -447,11 +568,16 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
       const totMatComBdi = ov.totMatComBdi !== undefined ? ov.totMatComBdi : calcTotMatComBdi;
       const totGeralComBdi = ov.totGeralComBdi !== undefined ? ov.totGeralComBdi : (totMOComBdi + totMatComBdi);
 
+      // Desconto Final (override)
+      const unitTotalDesconto = ov.unitTotalDesconto !== undefined ? ov.unitTotalDesconto : calcUnitTotalDesconto;
+      const totGeralDesconto = ov.totGeralDesconto !== undefined ? ov.totGeralDesconto : calcTotGeralDesconto;
+
       return {
         ...child,
         hasChildren,
         totais: {
-          totMO, totMat, totGeralBase, totMOComBdi, totMatComBdi, totGeralComBdi, unitTotal, unitTotalComBdi
+          totMO, totMat, totGeralBase, totMOComBdi, totMatComBdi, totGeralComBdi, unitTotal, unitTotalComBdi,
+          unitTotalDesconto, totGeralDesconto
         }
       };
     });
@@ -519,50 +645,74 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           )}
         </td>
 
-        {/* BDI Individual */}
-        <td className="p-2 border-r text-center">
-          {editing ? (
-             <input type="number" step="0.01" value={node.bdiItem !== undefined ? node.bdiItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { bdiItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
-          ) : (
-             <span className="text-indigo-600 font-medium">{node.bdiItem !== undefined ? `${formatNum(node.bdiItem)}%` : '-'}</span>
-          )}
-        </td>
+        {viewMode === 'orcamento' ? (
+          <>
+            {/* BDI Individual */}
+            <td className="p-2 border-r text-center">
+              {editing ? (
+                 <input type="number" step="0.01" value={node.bdiItem !== undefined ? node.bdiItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { bdiItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
+              ) : (
+                 <span className="text-indigo-600 font-medium">{node.bdiItem !== undefined ? `${formatNum(node.bdiItem)}%` : '-'}</span>
+              )}
+            </td>
 
-        {/* --- Grupo 1: Valor Unit. s/ BDI --- */}
-        <td className="p-2 border-r text-right text-zinc-600">
-          {/* Valor Unit. */}
-          {!isFolder && editing ? (
-            <CurrencyInput value={node.valorUnitMo} onChangeValue={val => onUpdate(node.id, { valorUnitMo: val })} className="w-24 p-1 border rounded text-xs text-right font-normal" />
-          ) : (
-            !isFolder ? formatCurrency(node.totais.unitTotal) : ''
-          )}
-        </td>
-        <td className={`p-2 border-r text-right ${ov.totGeralBase !== undefined ? 'text-amber-700' : 'text-zinc-700 font-semibold'}`}>
-          {/* Total */}
-          {editing ? (
-            <CurrencyInput value={node.totais.totGeralBase || 0} onChangeValue={val => updateOverride(node.id, 'totGeralBase', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
-          ) : (
-            formatCurrency(node.totais.totGeralBase)
-          )}
-        </td>
+            {/* --- Grupo 1: Valor Unit. s/ BDI --- */}
+            <td className="p-2 border-r text-right text-zinc-600">
+              {/* Valor Unit. */}
+              {!isFolder && editing ? (
+                <CurrencyInput value={node.valorUnitMo} onChangeValue={val => onUpdate(node.id, { valorUnitMo: val })} className="w-24 p-1 border rounded text-xs text-right font-normal" />
+              ) : (
+                !isFolder ? formatCurrency(node.totais.unitTotal) : ''
+              )}
+            </td>
+            <td className={`p-2 border-r text-right ${ov.totGeralBase !== undefined ? 'text-amber-700' : 'text-zinc-700 font-semibold'}`}>
+              {/* Total */}
+              {editing ? (
+                <CurrencyInput value={node.totais.totGeralBase || 0} onChangeValue={val => updateOverride(node.id, 'totGeralBase', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
+              ) : (
+                formatCurrency(node.totais.totGeralBase)
+              )}
+            </td>
 
-        {/* --- Grupo 2: Valor Unit. e Total Geral c/ BDI --- */}
-        <td className="p-2 border-r text-right bg-indigo-50/30 text-indigo-900">
-          {/* Valor Unit. */}
-          {!isFolder && editing ? (
-            <CurrencyInput value={node.totais.unitTotalComBdi || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
-          ) : (
-            !isFolder ? formatCurrency(node.totais.unitTotalComBdi) : ''
-          )}
-        </td>
-        <td className={`p-2 border-r text-right bg-indigo-50/30 ${ov.totGeralComBdi !== undefined ? 'text-amber-700' : 'text-indigo-900 font-semibold'}`}>
-          {/* Total */}
-          {editing ? (
-             <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
-          ) : (
-            formatCurrency(node.totais.totGeralComBdi)
-          )}
-        </td>
+            {/* --- Grupo 2: Valor Unit. e Total Geral c/ BDI --- */}
+            <td className="p-2 border-r text-right bg-indigo-50/30 text-indigo-900">
+              {/* Valor Unit. */}
+              {!isFolder && editing ? (
+                <CurrencyInput value={node.totais.unitTotalComBdi || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
+              ) : (
+                !isFolder ? formatCurrency(node.totais.unitTotalComBdi) : ''
+              )}
+            </td>
+            <td className={`p-2 border-r text-right bg-indigo-50/30 ${ov.totGeralComBdi !== undefined ? 'text-amber-700' : 'text-indigo-900 font-semibold'}`}>
+              {/* Total */}
+              {editing ? (
+                 <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
+              ) : (
+                formatCurrency(node.totais.totGeralComBdi)
+              )}
+            </td>
+          </>
+        ) : (
+          <>
+            {/* --- Valores com Desconto (Aba Custos) --- */}
+            <td className="p-2 border-r text-right bg-amber-50/30 text-amber-900">
+              {/* Valor Unit. (Com Desconto) */}
+              {!isFolder && editing ? (
+                <CurrencyInput value={node.totais.unitTotalDesconto || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalDesconto', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-100 font-normal" />
+              ) : (
+                !isFolder ? formatCurrency(node.totais.unitTotalDesconto) : ''
+              )}
+            </td>
+            <td className={`p-2 border-r text-right bg-amber-50/30 ${ov.totGeralDesconto !== undefined ? 'text-rose-600' : 'text-amber-900 font-bold'}`}>
+              {/* Total (Com Desconto) */}
+              {editing ? (
+                 <CurrencyInput value={node.totais.totGeralDesconto || 0} onChangeValue={val => updateOverride(node.id, 'totGeralDesconto', val)} className="w-28 p-1 border border-amber-300 rounded text-xs text-right bg-amber-100 font-normal" />
+              ) : (
+                formatCurrency(node.totais.totGeralDesconto)
+              )}
+            </td>
+          </>
+        )}
 
         {/* Ações */}
         <td className="p-2 text-center space-x-1">
@@ -598,6 +748,8 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           updateOverride={updateOverride}
           allItens={allItens}
           bdiGlobal={bdiGlobal}
+          viewMode={viewMode}
+          descontoGlobal={descontoGlobal}
         />
       ))}
     </>
