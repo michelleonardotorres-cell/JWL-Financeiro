@@ -57,6 +57,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   const [itemParaDetalhar, setItemParaDetalhar] = useState<OrcamentoItem | null>(null);
   const [showDetalhamento, setShowDetalhamento] = useState(false);
   const [viewMode, setViewMode] = useState<'orcamento' | 'custos'>('orcamento');
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     loadOrcamento();
@@ -74,6 +75,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
         setOrcamento({ id: newId, obraId, taxaBdi: 0 });
         setItens([]);
       }
+      setIsDirty(false);
     } catch (error) {
       console.error(error);
       alert("Erro ao carregar orçamento.");
@@ -86,6 +88,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
     if (!orcamento) return;
     try {
       await orcamentosApi.save({ ...orcamento, itens });
+      setIsDirty(false);
       alert("Orçamento salvo com sucesso!");
     } catch (error) {
       console.error(error);
@@ -113,10 +116,12 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
     };
 
     setItens([...itens, novoItem]);
+    setIsDirty(true);
   };
 
   const updateItem = (id: string, updates: Partial<OrcamentoItem>) => {
     setItens(itens.map(i => i.id === id ? { ...i, ...updates } : i));
+    setIsDirty(true);
   };
 
   const updateOverride = (id: string, field: string, val: number | undefined) => {
@@ -132,6 +137,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       }
       return i;
     }));
+    setIsDirty(true);
   };
 
   const removeItem = (id: string) => {
@@ -143,6 +149,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
     };
     gatherIds(id);
     setItens(itens.filter(i => !idsToRemove.has(i.id)));
+    setIsDirty(true);
   };
 
   const totalGeralSemBdiCalc = itens.filter(i => !i.parentId).reduce((sum, c) => sum + (c.overrides?.totGeralBase || ((c.quantidade || 0) * ((c.valorUnitMo || 0) + (c.valorUnitMat || 0)))), 0); // Rough approximation before tree, actual effective will use built tree.
@@ -154,6 +161,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
     if (window.confirm("Aplicar novo BDI a todos os itens? (Isso resetará o BDI individual de todos os itens)")) {
       setOrcamento(prev => prev ? {...prev, taxaBdi: parsed} : null);
       setItens(prev => prev.map(i => ({...i, bdiItem: undefined})));
+      setIsDirty(true);
     }
   };
 
@@ -173,6 +181,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
         }
         return novo;
       }));
+      setIsDirty(true);
     }
   };
 
@@ -342,6 +351,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
         });
 
         setItens(novosItens);
+        setIsDirty(true);
         alert("Importação realizada. Não esqueça de Salvar o Orçamento.");
       } catch (err) {
         console.error(err);
@@ -392,9 +402,11 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
                 title="BDI efetivo médio. Clique para editar o BDI Global."
               />
             )}
-            <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2">
-              <Save size={18} /> Salvar Orçamento
-            </button>
+            {isDirty && (
+              <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2">
+                <Save size={18} /> Salvar Orçamento
+              </button>
+            )}
           </div>
         </div>
 
@@ -611,17 +623,30 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
 
   // Cores de destaque para diferenciar hierarquia
   let rowBg = 'bg-white hover:bg-zinc-50';
-  if (level === 0) rowBg = 'bg-slate-200/60 font-bold hover:bg-slate-300/60';
-  else if (level === 1) rowBg = 'bg-slate-100/80 font-semibold hover:bg-slate-200/80';
-  else if (isFolder) rowBg = 'bg-slate-50 font-medium hover:bg-slate-100';
+  let fontClasses = 'font-normal text-zinc-600';
+  let codigoClasses = 'text-slate-700';
+  
+  if (level === 0) {
+    rowBg = 'bg-slate-200/60 hover:bg-slate-300/60';
+    fontClasses = 'font-bold text-slate-900';
+    codigoClasses = 'font-bold text-slate-900';
+  } else if (level === 1) {
+    rowBg = 'bg-slate-100/80 hover:bg-slate-200/80';
+    fontClasses = 'font-semibold text-slate-800';
+    codigoClasses = 'font-semibold text-slate-800';
+  } else if (isFolder) {
+    rowBg = 'bg-slate-50 hover:bg-slate-100';
+    fontClasses = 'font-medium text-slate-700';
+    codigoClasses = 'font-medium text-slate-700';
+  }
 
   if (hasOverride && !editing) {
-    rowBg = 'bg-amber-50/50 hover:bg-amber-100/50 font-semibold';
+    rowBg = 'bg-amber-50/50 hover:bg-amber-100/50';
   }
 
   return (
     <>
-      <tr className={rowBg}>
+      <tr className={`${rowBg}`}>
         <td className="p-2 border-r">
           <div className="flex items-center gap-1" style={{ paddingLeft: `${level * 16}px` }}>
             {isFolder ? (
@@ -632,7 +657,7 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
             {editing ? (
               <input type="text" value={node.codigo} onChange={e => onUpdate(node.id, { codigo: e.target.value })} className="w-16 p-1 border rounded text-xs font-normal" />
             ) : (
-              <span className={level === 0 ? "text-slate-900" : "text-slate-700"}>{node.codigo}</span>
+              <span className={codigoClasses}>{node.codigo}</span>
             )}
           </div>
         </td>
@@ -640,7 +665,7 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           {editing ? (
             <input type="text" value={node.descricao} onChange={e => onUpdate(node.id, { descricao: e.target.value })} className="w-full p-1 border rounded text-xs font-normal" />
           ) : (
-            <span className={isFolder ? 'uppercase text-slate-900' : 'text-zinc-600'}>{node.descricao}</span>
+            <span className={`${isFolder ? 'uppercase' : ''} ${fontClasses}`}>{node.descricao}</span>
           )}
         </td>
         <td className="p-2 border-r text-center">
