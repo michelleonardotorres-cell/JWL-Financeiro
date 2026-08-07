@@ -42,12 +42,12 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     },
     { id: "contratos", label: "Contratos Fixos", icon: CalendarDays },
     { id: "dre", label: "DRE Construtora", icon: BarChart3 },
+    { id: "obras", label: "Obras", icon: Building2 },
     { 
-      id: "contatos", 
-      label: "Contatos", 
+      id: "cadastro", 
+      label: "Cadastro", 
       icon: BookUser,
       subItems: [
-        { id: "obras", label: "Obras" },
         { id: "fornecedores", label: "Fornecedor / Recebedor" },
       ]
     },
