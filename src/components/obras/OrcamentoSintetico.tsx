@@ -359,20 +359,16 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
                   <th className="p-2 border-r font-semibold text-center" rowSpan={2}>Quant.</th>
                   <th className="p-2 border-r font-semibold text-center" rowSpan={2} title="Porcentagem de BDI Individual">BDI %</th>
                   <th className="p-2 border-r font-semibold text-center" colSpan={2}>Valor Unit. s/ BDI</th>
-                  <th className="p-2 border-r font-semibold text-center bg-indigo-50" colSpan={2}>Valor Unit. c/ BDI</th>
-                  <th className="p-2 border-r font-semibold text-center bg-emerald-50" colSpan={2}>Total Geral (c/ BDI)</th>
+                  <th className="p-2 border-r font-semibold text-center bg-indigo-50" colSpan={2}>Valor Unit. e Total Geral c/ BDI</th>
                   <th className="p-2 font-semibold text-center" rowSpan={2}>Ações</th>
                 </tr>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-600">
                   {/* Unit s/ BDI */}
                   <th className="p-2 border-r text-right font-medium">Valor Unit.</th>
                   <th className="p-2 border-r text-right font-medium">Total</th>
-                  {/* Unit c/ BDI */}
+                  {/* Unit e Total c/ BDI */}
                   <th className="p-2 border-r text-right font-medium bg-indigo-50">Valor Unit.</th>
                   <th className="p-2 border-r text-right font-medium bg-indigo-50">Total</th>
-                  {/* Totais Gerais */}
-                  <th className="p-2 border-r text-right font-medium bg-emerald-50">Valor Unit.</th>
-                  <th className="p-2 border-r text-right font-medium bg-emerald-50">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
@@ -548,7 +544,7 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           )}
         </td>
 
-        {/* --- Grupo 2: Valor Unit. c/ BDI --- */}
+        {/* --- Grupo 2: Valor Unit. e Total Geral c/ BDI --- */}
         <td className="p-2 border-r text-right bg-indigo-50/30 text-indigo-900">
           {/* Valor Unit. */}
           {!isFolder && editing ? (
@@ -561,27 +557,6 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           {/* Total */}
           {editing ? (
              <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
-          ) : (
-            formatCurrency(node.totais.totGeralComBdi)
-          )}
-        </td>
-
-        {/* --- Grupo 3: Total Geral (c/ BDI) --- */}
-        {/* Como solicitado, manter os mesmos headers: Valor Unit. e Total.
-            Para Valor Unitario, repetimos o unitTotalComBdi (que é o Unitario com BDI).
-            Para Total, repetimos o totGeralComBdi. */}
-        <td className="p-2 border-r text-right bg-emerald-50/30 text-emerald-900">
-          {/* Valor Unit. */}
-          {!isFolder && editing ? (
-            <CurrencyInput value={node.totais.unitTotalComBdi || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
-          ) : (
-            !isFolder ? formatCurrency(node.totais.unitTotalComBdi) : ''
-          )}
-        </td>
-        <td className={`p-2 border-r text-right bg-emerald-50/30 ${ov.totGeralComBdi !== undefined ? 'text-amber-700' : 'text-emerald-900 font-semibold'}`}>
-          {/* Total */}
-          {editing ? (
-             <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className="w-28 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
           ) : (
             formatCurrency(node.totais.totGeralComBdi)
           )}
