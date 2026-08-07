@@ -298,13 +298,15 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-zinc-700">BDI Global (%):</label>
+              <label className="text-sm font-medium text-zinc-700" title="Mostra o BDI médio efetivo atual. Digite para aplicar a todos.">BDI Global (%):</label>
               <input 
                 type="number" 
                 step="0.01"
-                className="w-20 p-2 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500" 
-                value={orcamento?.taxaBdi || 0}
-                onChange={e => setOrcamento(prev => prev ? {...prev, taxaBdi: parseFloat(e.target.value)} : null)}
+                className="w-20 p-2 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-700" 
+                value={bdiInput}
+                onChange={e => setBdiInput(e.target.value)}
+                onBlur={handleBdiCommit}
+                onKeyDown={handleBdiKeyDown}
               />
             </div>
             <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2">
