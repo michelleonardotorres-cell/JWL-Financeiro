@@ -45,6 +45,11 @@ export default async function handler(req, res) {
       try {
         await client.query('BEGIN');
         
+        // Safety check: ensure columns exist before upserting (fixes Vercel warm start migration issues)
+        await client.query('ALTER TABLE orcamentos ADD COLUMN IF NOT EXISTS "descontoGlobal" numeric DEFAULT 0').catch(() => {});
+        await client.query('ALTER TABLE orcamento_itens ADD COLUMN IF NOT EXISTS "descontoItem" numeric').catch(() => {});
+        await client.query('ALTER TABLE orcamento_itens ADD COLUMN IF NOT EXISTS overrides jsonb').catch(() => {});
+
         // Upsert budget
         await client.query(`
           INSERT INTO orcamentos (id, "obraId", "taxaBdi", "descontoGlobal")

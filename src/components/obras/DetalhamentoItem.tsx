@@ -44,8 +44,8 @@ export default function DetalhamentoItem({ itemSelecionado, todosItens, onBack, 
       {/* Header */}
       <div className="bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="px-4 py-2 flex items-center gap-2 bg-zinc-100 text-zinc-700 rounded-lg font-medium hover:bg-zinc-200 transition-colors">
-            <ArrowLeft size={18} /> Voltar para Orçamento
+          <button onClick={onBack} className="p-2 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition-colors">
+            <ArrowLeft size={20} />
           </button>
           <div>
             <h1 className="text-xl font-bold text-zinc-900">Detalhamento e Cotações</h1>
