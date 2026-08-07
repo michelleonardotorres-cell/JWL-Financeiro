@@ -62,8 +62,20 @@ export default async function handler(req, res) {
         if (itens && Array.isArray(itens)) {
           // Delete existing items to recreate the tree (simple approach)
           await client.query('DELETE FROM orcamento_itens WHERE "orcamentoId" = $1', [id]);
+          // Topologically sort items by dependency (parents first) to prevent fk_parent_item violation
+          const itemMap = new Map(itens.map(i => [i.id, i]));
+          const sorted = [];
+          const visited = new Set();
           
-          for (const item of itens) {
+          function visit(item) {
+            if (!item || visited.has(item.id)) return;
+            if (item.parentId && itemMap.has(item.parentId)) visit(itemMap.get(item.parentId));
+            visited.add(item.id);
+            sorted.push(item);
+          }
+          itens.forEach(visit);
+          
+          for (const item of sorted) {
             await client.query(`
               INSERT INTO orcamento_itens (id, "orcamentoId", "parentId", codigo, descricao, unidade, quantidade, "valorUnitMo", "valorUnitMat", "bdiItem", "descontoItem", overrides)
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
