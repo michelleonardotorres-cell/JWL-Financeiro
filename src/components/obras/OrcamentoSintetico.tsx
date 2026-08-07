@@ -5,6 +5,48 @@ import { orcamentosApi } from "../../apiClient";
 import { Orcamento, OrcamentoItem } from "../../types";
 import CurrencyInput from "../CurrencyInput";
 import DetalhamentoItem from "./DetalhamentoItem";
+import { getVal } from '../../utils/sheetUtils';
+
+const EditableGlobalField = ({ label, value, onChange, onCommit, formatStr, color, title }: any) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [localVal, setLocalVal] = useState(value);
+
+  useEffect(() => { setLocalVal(value); }, [value]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    onCommit(localVal);
+  };
+
+  const bg = color === 'indigo' ? 'bg-indigo-50 border-indigo-200' : 'bg-amber-50 border-amber-200';
+  const text = color === 'indigo' ? 'text-indigo-900' : 'text-amber-900';
+  const valText = color === 'indigo' ? 'text-indigo-700' : 'text-amber-700';
+  const hoverBg = color === 'indigo' ? 'hover:bg-indigo-100' : 'hover:bg-amber-100';
+
+  return (
+    <div className={`flex items-center gap-2 mr-2 p-1.5 rounded-lg border ${bg}`} title={title}>
+      <label className={`text-sm font-medium ${text}`}>{label}</label>
+      {isEditing ? (
+        <input 
+          type="number" step="0.01" 
+          autoFocus
+          className={`w-16 p-1 border border-${color}-300 rounded focus:ring-2 focus:ring-${color}-500 font-semibold ${valText} bg-white text-sm`}
+          value={localVal}
+          onChange={e => setLocalVal(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+        />
+      ) : (
+        <span 
+          className={`w-16 p-1 ${valText} font-bold text-sm cursor-pointer ${hoverBg} rounded text-center inline-block transition-colors`}
+          onClick={() => setIsEditing(true)}
+        >
+          {formatStr(value)}
+        </span>
+      )}
+    </div>
+  );
+};
 
 export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string, onBack: () => void }) {
   const [orcamento, setOrcamento] = useState<Orcamento | null>(null);
@@ -12,12 +54,9 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Detalhamento modal state
   const [itemParaDetalhar, setItemParaDetalhar] = useState<OrcamentoItem | null>(null);
   const [showDetalhamento, setShowDetalhamento] = useState(false);
-  const [bdiInput, setBdiInput] = useState('0.00');
   const [viewMode, setViewMode] = useState<'orcamento' | 'custos'>('orcamento');
-  const [descontoInput, setDescontoInput] = useState('0.00');
 
   useEffect(() => {
     loadOrcamento();
@@ -30,8 +69,6 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       if (res) {
         setOrcamento(res);
         setItens(res.itens || []);
-        setBdiInput((res.taxaBdi || 0).toFixed(2));
-        setDescontoInput((res.descontoGlobal || 0).toFixed(2));
       } else {
         const newId = `orc_${Math.random().toString(36).substring(2, 9)}`;
         setOrcamento({ id: newId, obraId, taxaBdi: 0 });
@@ -108,65 +145,34 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
     setItens(itens.filter(i => !idsToRemove.has(i.id)));
   };
 
-  const bdiGlobal = orcamento?.taxaBdi || 0;
-  const effectiveBdi = orcamento?.taxaBdi || 0;
-  const effectiveDesconto = orcamento?.descontoGlobal || 0;
+  const totalGeralSemBdiCalc = itens.filter(i => !i.parentId).reduce((sum, c) => sum + (c.overrides?.totGeralBase || ((c.quantidade || 0) * ((c.valorUnitMo || 0) + (c.valorUnitMat || 0)))), 0); // Rough approximation before tree, actual effective will use built tree.
 
-  const handleBdiCommit = () => {
-    const parsed = parseFloat(bdiInput);
-    if (isNaN(parsed)) {
-      setBdiInput(effectiveBdi.toFixed(2));
-      return;
-    }
-    if (Math.abs(parsed - effectiveBdi) < 0.01) {
-      setBdiInput(effectiveBdi.toFixed(2));
-      return;
-    }
+  const handleBdiCommit = (newValStr: string) => {
+    const parsed = parseFloat(newValStr);
+    if (isNaN(parsed)) return;
 
     if (window.confirm("Aplicar novo BDI a todos os itens? (Isso resetará o BDI individual de todos os itens)")) {
       setOrcamento(prev => prev ? {...prev, taxaBdi: parsed} : null);
       setItens(prev => prev.map(i => ({...i, bdiItem: undefined})));
-    } else {
-      setBdiInput(effectiveBdi.toFixed(2));
     }
   };
 
-  const handleDescontoCommit = () => {
-    const parsed = parseFloat(descontoInput);
-    if (isNaN(parsed)) {
-      setDescontoInput(effectiveDesconto.toFixed(2));
-      return;
-    }
-    if (Math.abs(parsed - effectiveDesconto) < 0.01) {
-      setDescontoInput(effectiveDesconto.toFixed(2));
-      return;
-    }
+  const handleDescontoCommit = (newValStr: string) => {
+    const parsed = parseFloat(newValStr);
+    if (isNaN(parsed)) return;
 
-    if (window.confirm("Aplicar novo desconto a todos os itens? (Isso reescreverá edições manuais de preço de custo)")) {
+    if (window.confirm("Aplicar novo desconto a todos os itens? (Isso reescreverá edições manuais de preço de custo e descontos individuais)")) {
       setOrcamento(prev => prev ? {...prev, descontoGlobal: parsed} : null);
       setItens(prev => prev.map(i => {
-        if (!i.overrides) return i;
-        const newOv = {...i.overrides};
-        delete newOv.unitTotalDesconto;
-        delete newOv.totGeralDesconto;
-        return {...i, overrides: newOv};
+        const novo = {...i, descontoItem: undefined};
+        if (novo.overrides) {
+          const newOv = {...novo.overrides};
+          delete newOv.unitTotalDesconto;
+          delete newOv.totGeralDesconto;
+          novo.overrides = newOv;
+        }
+        return novo;
       }));
-    } else {
-      setDescontoInput(effectiveDesconto.toFixed(2));
-    }
-  };
-
-  const handleBdiKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.currentTarget.blur();
-    }
-  };
-
-  const handleDescontoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.currentTarget.blur();
     }
   };
 
@@ -238,6 +244,11 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   const totalGeralSemBdi = tree.reduce((sum, c) => sum + c.totais.totGeralBase, 0);
   const totalGeralComBdi = tree.reduce((sum, c) => sum + c.totais.totGeralComBdi, 0);
   const totalFinalComDesconto = tree.reduce((sum, c) => sum + c.totais.totGeralDesconto, 0);
+
+  const calculatedEffectiveBdi = totalGeralSemBdi > 0 ? ((totalGeralComBdi - totalGeralSemBdi) / totalGeralSemBdi) * 100 : (orcamento?.taxaBdi || 0);
+  const calculatedEffectiveDesconto = totalGeralComBdi > 0 ? ((totalGeralComBdi - totalFinalComDesconto) / totalGeralComBdi) * 100 : (orcamento?.descontoGlobal || 0);
+
+  const bdiGlobal = orcamento?.taxaBdi || 0;
 
   const downloadModelo = () => {
     const ws_data = [
@@ -368,18 +379,16 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-zinc-700" title="Mostra o BDI médio efetivo atual. Digite para aplicar a todos.">BDI Global (%):</label>
-              <input 
-                type="number" 
-                step="0.01"
-                className="w-20 p-2 border border-zinc-300 rounded focus:ring-2 focus:ring-indigo-500 font-semibold text-indigo-700" 
-                value={bdiInput}
-                onChange={e => setBdiInput(e.target.value)}
-                onBlur={handleBdiCommit}
-                onKeyDown={handleBdiKeyDown}
+            {viewMode === 'orcamento' && (
+              <EditableGlobalField 
+                label="BDI Global (%):" 
+                value={calculatedEffectiveBdi.toFixed(2)} 
+                onCommit={handleBdiCommit} 
+                formatStr={(v: string) => `${v}%`} 
+                color="indigo" 
+                title="BDI efetivo médio. Clique para editar o BDI Global."
               />
-            </div>
+            )}
             <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2">
               <Save size={18} /> Salvar Orçamento
             </button>
@@ -387,18 +396,22 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
         </div>
 
         {/* Totais Gerais */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
             <p className="text-sm text-zinc-500 font-medium mb-1">Total Sem BDI</p>
-            <p className="text-2xl font-bold text-zinc-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeralSemBdi)}</p>
+            <p className="text-xl lg:text-2xl font-bold text-zinc-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeralSemBdi)}</p>
           </div>
           <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
             <p className="text-sm text-zinc-500 font-medium mb-1">Total do BDI</p>
-            <p className="text-2xl font-bold text-indigo-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeralComBdi - totalGeralSemBdi)}</p>
+            <p className="text-xl lg:text-2xl font-bold text-indigo-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeralComBdi - totalGeralSemBdi)}</p>
           </div>
           <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
             <p className="text-sm text-zinc-500 font-medium mb-1">Total Geral (Com BDI)</p>
-            <p className="text-2xl font-bold text-emerald-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeralComBdi)}</p>
+            <p className="text-xl lg:text-2xl font-bold text-emerald-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeralComBdi)}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm bg-amber-50/50">
+            <p className="text-sm text-amber-700 font-medium mb-1">Total c/ Desconto</p>
+            <p className="text-xl lg:text-2xl font-bold text-rose-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFinalComDesconto)}</p>
           </div>
         </div>
 
@@ -421,18 +434,14 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
           
           <div className="flex flex-wrap items-center gap-3">
             {viewMode === 'custos' && (
-              <div className="flex items-center gap-2 mr-2 bg-amber-50 p-1.5 rounded-lg border border-amber-200">
-                <label className="text-sm font-medium text-amber-900" title="Desconto Global sobre o Orçamento Final">Desconto Global (%):</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  className="w-16 p-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 font-semibold text-amber-700 bg-white" 
-                  value={descontoInput}
-                  onChange={e => setDescontoInput(e.target.value)}
-                  onBlur={handleDescontoCommit}
-                  onKeyDown={handleDescontoKeyDown}
-                />
-              </div>
+              <EditableGlobalField 
+                label="Desconto Global (%):" 
+                value={calculatedEffectiveDesconto.toFixed(2)} 
+                onCommit={handleDescontoCommit} 
+                formatStr={(v: string) => `${v}%`} 
+                color="amber" 
+                title="Desconto efetivo médio. Clique para editar o Desconto Global."
+              />
             )}
             <button onClick={() => setShowDetalhamento(true)} className="px-4 py-2 bg-blue-50 text-blue-700 rounded font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm">
               <FileText size={16} /> Acessar Detalhamento
@@ -453,34 +462,34 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-700">
-                  <th className="p-2 border-r font-semibold" rowSpan={2}>Item</th>
-                  <th className="p-2 border-r font-semibold" rowSpan={2} style={{minWidth: '200px'}}>Descrição</th>
-                  <th className="p-2 border-r font-semibold text-center" rowSpan={2}>Und</th>
-                  <th className="p-2 border-r font-semibold text-center" rowSpan={2}>Quant.</th>
+                  <th className="p-2 border-r font-semibold w-[80px]">Item</th>
+                  <th className="p-2 border-r font-semibold w-full min-w-[200px]">Descrição</th>
+                  <th className="p-2 border-r font-semibold text-center w-[60px]">Und</th>
+                  <th className="p-2 border-r font-semibold text-center w-[80px]">Quant.</th>
                   {viewMode === 'orcamento' ? (
                     <>
-                      <th className="p-2 border-r font-semibold text-center" rowSpan={2} title="Porcentagem de BDI Individual">BDI %</th>
+                      <th className="p-2 border-r font-semibold text-center w-[80px]" title="Porcentagem de BDI Individual">BDI %</th>
                       <th className="p-2 border-r font-semibold text-center" colSpan={2}>Valor Unit. s/ BDI</th>
                       <th className="p-2 border-r font-semibold text-center bg-indigo-50" colSpan={2}>Valor Unit. e Total Geral c/ BDI</th>
                     </>
                   ) : (
-                    <th className="p-2 border-r font-semibold text-center bg-amber-50 text-amber-900" colSpan={2}>Valores com Desconto</th>
+                    <>
+                      <th className="p-2 border-r font-semibold text-center w-[100px]" title="Porcentagem de Desconto Individual">Desconto %</th>
+                      <th className="p-2 border-r font-semibold text-center bg-amber-50 text-amber-900" colSpan={2}>Valores com Desconto</th>
+                    </>
                   )}
-                  <th className="p-2 font-semibold text-center" rowSpan={2}>Ações</th>
+                  <th className="p-2 font-semibold text-center w-[120px]">Ações</th>
                 </tr>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-600">
                   {viewMode === 'orcamento' ? (
                     <>
-                      {/* Unit s/ BDI */}
                       <th className="p-2 border-r text-right font-medium">Valor Unit.</th>
                       <th className="p-2 border-r text-right font-medium">Total</th>
-                      {/* Unit e Total c/ BDI */}
                       <th className="p-2 border-r text-right font-medium bg-indigo-50">Valor Unit.</th>
                       <th className="p-2 border-r text-right font-medium bg-indigo-50">Total</th>
                     </>
                   ) : (
                     <>
-                      {/* Valores com Desconto */}
                       <th className="p-2 border-r text-right font-medium bg-amber-50 text-amber-900">Valor Unit.</th>
                       <th className="p-2 border-r text-right font-medium bg-amber-50 text-amber-900">Total</th>
                     </>
@@ -526,8 +535,6 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
   const children = allItens.filter((i:any) => i.parentId === node.id).sort((a:any, b:any) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
   
   const buildTree = (childList: any[]): any[] => {
-    const descMult = 1 - (descontoGlobal / 100);
-
     return childList.map(child => {
       const subTree = buildTree(allItens.filter((i:any) => i.parentId === child.id));
       const hasChildren = subTree.length > 0;
@@ -538,6 +545,9 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
       
       const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
       const bdiMult = 1 + (bdi / 100);
+
+      const descItem = child.descontoItem !== undefined ? child.descontoItem : descontoGlobal;
+      const descMult = 1 - (descItem / 100);
 
       if (hasChildren) {
         calcTotMO = subTree.reduce((sum, c) => sum + c.totais.totMO, 0);
@@ -694,6 +704,15 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           </>
         ) : (
           <>
+            {/* Desconto Individual */}
+            <td className="p-2 border-r text-center">
+              {editing ? (
+                 <input type="number" step="0.01" value={node.descontoItem !== undefined ? node.descontoItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { descontoItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
+              ) : (
+                 <span className="text-amber-600 font-medium">{node.descontoItem !== undefined ? `${formatNum(node.descontoItem)}%` : '-'}</span>
+              )}
+            </td>
+
             {/* --- Valores com Desconto (Aba Custos) --- */}
             <td className="p-2 border-r text-right bg-amber-50/30 text-amber-900">
               {/* Valor Unit. (Com Desconto) */}
