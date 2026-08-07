@@ -176,6 +176,9 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
     }
   };
 
+  const bdiGlobal = orcamento?.taxaBdi || 0;
+  const descontoGlobal = orcamento?.descontoGlobal || 0;
+
   // Build tree and calculate totals handling overrides
   const buildTree = (parentId: string | null = null): (OrcamentoItem & { hasChildren: boolean, totais: any })[] => {
     const children = itens.filter(i => i.parentId === parentId).sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
@@ -190,7 +193,9 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       
       const bdi = child.bdiItem !== undefined ? child.bdiItem : bdiGlobal;
       const bdiMult = 1 + (bdi / 100);
-      const descMult = 1 - (effectiveDesconto / 100);
+      
+      const descItem = child.descontoItem !== undefined ? child.descontoItem : descontoGlobal;
+      const descMult = 1 - (descItem / 100);
 
       if (hasChildren) {
         calcTotMO = subTree.reduce((sum, c) => sum + c.totais.totMO, 0);
@@ -245,10 +250,8 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   const totalGeralComBdi = tree.reduce((sum, c) => sum + c.totais.totGeralComBdi, 0);
   const totalFinalComDesconto = tree.reduce((sum, c) => sum + c.totais.totGeralDesconto, 0);
 
-  const calculatedEffectiveBdi = totalGeralSemBdi > 0 ? ((totalGeralComBdi - totalGeralSemBdi) / totalGeralSemBdi) * 100 : (orcamento?.taxaBdi || 0);
-  const calculatedEffectiveDesconto = totalGeralComBdi > 0 ? ((totalGeralComBdi - totalFinalComDesconto) / totalGeralComBdi) * 100 : (orcamento?.descontoGlobal || 0);
-
-  const bdiGlobal = orcamento?.taxaBdi || 0;
+  const calculatedEffectiveBdi = totalGeralSemBdi > 0 ? ((totalGeralComBdi - totalGeralSemBdi) / totalGeralSemBdi) * 100 : bdiGlobal;
+  const calculatedEffectiveDesconto = totalGeralComBdi > 0 ? ((totalGeralComBdi - totalFinalComDesconto) / totalGeralComBdi) * 100 : descontoGlobal;
 
   const downloadModelo = () => {
     const ws_data = [
