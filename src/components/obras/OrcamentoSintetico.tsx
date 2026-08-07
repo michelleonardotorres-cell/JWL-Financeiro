@@ -344,7 +344,10 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
               <Upload size={16} /> Importar XLSX
               <input type="file" className="hidden" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleImport} />
             </label>
-           {/* Tabela Principal */}
+          </div>
+        </div>
+
+        {/* Tabela Principal */}
         <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden mt-4">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
@@ -618,11 +621,6 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           updateOverride={updateOverride}
           allItens={allItens}
           bdiGlobal={bdiGlobal}
-        />
-      ))}
-    </>
-  );
-}obal}
         />
       ))}
     </>
