@@ -90,9 +90,9 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
       await orcamentosApi.save({ ...orcamento, itens });
       setIsDirty(false);
       alert("Orçamento salvo com sucesso!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Erro ao salvar orçamento.");
+      alert(`Erro ao salvar orçamento: ${error.message || error}`);
     }
   };
 
