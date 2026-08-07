@@ -345,38 +345,21 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
               <Upload size={16} /> Importar XLSX
               <input type="file" className="hidden" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleImport} />
             </label>
-          </div>
-        </div>
-
-        {/* Tabela Principal */}
+           {/* Tabela Principal */}
         <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden mt-4">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-700">
-                  <th className="p-2 border-r font-semibold" rowSpan={2}>Item</th>
-                  <th className="p-2 border-r font-semibold" rowSpan={2} style={{minWidth: '200px'}}>Descrição</th>
-                  <th className="p-2 border-r font-semibold text-center" rowSpan={2}>Und</th>
-                  <th className="p-2 border-r font-semibold text-center" rowSpan={2}>Quant.</th>
-                  <th className="p-2 border-r font-semibold text-center" rowSpan={2} title="Porcentagem de BDI Individual">BDI %</th>
-                  <th className="p-2 border-r font-semibold text-center" colSpan={3}>Valor Unit. s/ BDI</th>
-                  <th className="p-2 border-r font-semibold text-center bg-indigo-50" colSpan={3}>Valor Unit. c/ BDI</th>
-                  <th className="p-2 border-r font-semibold text-center bg-emerald-50" colSpan={3}>Total Geral (c/ BDI)</th>
-                  <th className="p-2 font-semibold text-center" rowSpan={2}>Ações</th>
-                </tr>
-                <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-600">
-                  {/* Unit s/ BDI */}
-                  <th className="p-2 border-r text-right font-medium">M.O.</th>
-                  <th className="p-2 border-r text-right font-medium">MAT.</th>
-                  <th className="p-2 border-r text-right font-medium text-amber-800">Total (Edit)</th>
-                  {/* Unit c/ BDI */}
-                  <th className="p-2 border-r text-right font-medium bg-indigo-50">M.O.</th>
-                  <th className="p-2 border-r text-right font-medium bg-indigo-50">MAT.</th>
-                  <th className="p-2 border-r text-right font-medium bg-indigo-50 text-amber-800">Total (Edit)</th>
-                  {/* Totais Gerais */}
-                  <th className="p-2 border-r text-right font-medium bg-emerald-50 text-amber-800">M.O. (Edit)</th>
-                  <th className="p-2 border-r text-right font-medium bg-emerald-50 text-amber-800">MAT. (Edit)</th>
-                  <th className="p-2 border-r text-right font-medium bg-emerald-50 text-amber-800">Total (Edit)</th>
+                  <th className="p-2 border-r font-semibold">Item</th>
+                  <th className="p-2 border-r font-semibold" style={{minWidth: '200px'}}>Descrição</th>
+                  <th className="p-2 border-r font-semibold text-center">Und</th>
+                  <th className="p-2 border-r font-semibold text-center">Quant.</th>
+                  <th className="p-2 border-r font-semibold text-center" title="Porcentagem de BDI Individual">BDI %</th>
+                  <th className="p-2 border-r font-semibold text-center text-amber-800">Valor Unit. s/ BDI (Edit)</th>
+                  <th className="p-2 border-r font-semibold text-center bg-indigo-50 text-amber-800">Valor Unit. c/ BDI (Edit)</th>
+                  <th className="p-2 border-r font-semibold text-center bg-emerald-50 text-amber-800">Total Geral (c/ BDI) (Edit)</th>
+                  <th className="p-2 font-semibold text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
@@ -476,110 +459,86 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
 
   const bdiMult = 1 + ((node.bdiItem !== undefined ? node.bdiItem : bdiGlobal) / 100);
 
+  // Cores de destaque para diferenciar hierarquia
+  let rowBg = 'bg-white hover:bg-zinc-50';
+  if (level === 0) rowBg = 'bg-slate-200/60 font-bold hover:bg-slate-300/60';
+  else if (level === 1) rowBg = 'bg-slate-100/80 font-semibold hover:bg-slate-200/80';
+  else if (isFolder) rowBg = 'bg-slate-50 font-medium hover:bg-slate-100';
+
+  if (hasOverride && !editing) {
+    rowBg = 'bg-amber-50/50 hover:bg-amber-100/50 font-semibold';
+  }
+
   return (
     <>
-      <tr className={`hover:bg-zinc-50 ${isFolder ? 'bg-indigo-50/20 font-medium' : ''} ${hasOverride && !editing ? 'bg-amber-50/20' : ''}`}>
+      <tr className={rowBg}>
         <td className="p-2 border-r">
           <div className="flex items-center gap-1" style={{ paddingLeft: `${level * 16}px` }}>
             {isFolder ? (
-              <button onClick={() => setExpanded(!expanded)} className="p-0.5 hover:bg-zinc-200 rounded">
+              <button onClick={() => setExpanded(!expanded)} className="p-0.5 hover:bg-black/10 rounded transition-colors">
                 {expanded ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
               </button>
             ) : <span className="w-4 inline-block"></span>}
             {editing ? (
-              <input type="text" value={node.codigo} onChange={e => onUpdate(node.id, { codigo: e.target.value })} className="w-16 p-1 border rounded text-xs" />
+              <input type="text" value={node.codigo} onChange={e => onUpdate(node.id, { codigo: e.target.value })} className="w-16 p-1 border rounded text-xs font-normal" />
             ) : (
-              <span className="text-indigo-900">{node.codigo}</span>
+              <span className={level === 0 ? "text-slate-900" : "text-slate-700"}>{node.codigo}</span>
             )}
           </div>
         </td>
         <td className="p-2 border-r max-w-xs truncate" title={node.descricao}>
           {editing ? (
-            <input type="text" value={node.descricao} onChange={e => onUpdate(node.id, { descricao: e.target.value })} className="w-full p-1 border rounded text-xs" />
+            <input type="text" value={node.descricao} onChange={e => onUpdate(node.id, { descricao: e.target.value })} className="w-full p-1 border rounded text-xs font-normal" />
           ) : (
-            <span className={isFolder ? 'uppercase text-zinc-800' : 'text-zinc-600'}>{node.descricao}</span>
+            <span className={isFolder ? 'uppercase text-slate-900' : 'text-zinc-600'}>{node.descricao}</span>
           )}
         </td>
         <td className="p-2 border-r text-center">
           {editing ? (
-             <input type="text" value={node.unidade} onChange={e => onUpdate(node.id, { unidade: e.target.value })} className="w-10 p-1 border rounded text-xs text-center" />
+             <input type="text" value={node.unidade} onChange={e => onUpdate(node.id, { unidade: e.target.value })} className="w-10 p-1 border rounded text-xs text-center font-normal" />
           ) : (
-            <span className="text-zinc-500">{isFolder ? '' : node.unidade}</span>
+            <span className="text-zinc-500 font-normal">{isFolder ? '' : node.unidade}</span>
           )}
         </td>
         <td className="p-2 border-r text-center">
           {editing ? (
-             <input type="number" step="0.01" value={node.quantidade} onChange={e => onUpdate(node.id, { quantidade: parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right" />
+             <input type="number" step="0.01" value={node.quantidade} onChange={e => onUpdate(node.id, { quantidade: parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
           ) : (
-             <span className="text-zinc-700">{isFolder ? '' : formatNum(node.quantidade)}</span>
+             <span className="text-zinc-700 font-normal">{isFolder ? '' : formatNum(node.quantidade)}</span>
           )}
         </td>
 
         {/* BDI Individual */}
         <td className="p-2 border-r text-center">
           {editing ? (
-             <input type="number" step="0.01" value={node.bdiItem !== undefined ? node.bdiItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { bdiItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right" />
+             <input type="number" step="0.01" value={node.bdiItem !== undefined ? node.bdiItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { bdiItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
           ) : (
              <span className="text-indigo-600 font-medium">{node.bdiItem !== undefined ? `${formatNum(node.bdiItem)}%` : '-'}</span>
           )}
         </td>
 
-        {/* Unit s/ BDI */}
-        <td className="p-2 border-r text-right text-zinc-600">
+        {/* Unit s/ BDI (TOTAL) */}
+        <td className={`p-2 border-r text-right ${ov.unitTotal !== undefined ? 'text-amber-700' : 'text-zinc-700'}`}>
           {!isFolder && editing ? (
-            <input type="number" step="0.01" value={node.valorUnitMo} onChange={e => onUpdate(node.id, { valorUnitMo: parseFloat(e.target.value) })} className="w-20 p-1 border rounded text-xs text-right" />
-          ) : (
-            !isFolder ? formatCurrency(node.valorUnitMo) : ''
-          )}
-        </td>
-        <td className="p-2 border-r text-right text-zinc-600">
-          {!isFolder && editing ? (
-            <input type="number" step="0.01" value={node.valorUnitMat} onChange={e => onUpdate(node.id, { valorUnitMat: parseFloat(e.target.value) })} className="w-20 p-1 border rounded text-xs text-right" />
-          ) : (
-            !isFolder ? formatCurrency(node.valorUnitMat) : ''
-          )}
-        </td>
-        <td className={`p-2 border-r text-right font-semibold ${ov.unitTotal !== undefined ? 'text-amber-600' : 'text-zinc-700'}`}>
-          {!isFolder && editing ? (
-            <CurrencyInput value={node.totais.unitTotal || 0} onChangeValue={val => updateOverride(node.id, 'unitTotal', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50" />
+            <CurrencyInput value={node.totais.unitTotal || 0} onChangeValue={val => updateOverride(node.id, 'unitTotal', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
           ) : (
             !isFolder ? formatCurrency(node.totais.unitTotal) : ''
           )}
         </td>
 
-        {/* Unit c/ BDI */}
-        <td className="p-2 border-r text-right text-indigo-700 bg-indigo-50/50">
-          {!isFolder ? formatCurrency((node.valorUnitMo || 0) * bdiMult) : ''}
-        </td>
-        <td className="p-2 border-r text-right text-indigo-700 bg-indigo-50/50">
-          {!isFolder ? formatCurrency((node.valorUnitMat || 0) * bdiMult) : ''}
-        </td>
-        <td className={`p-2 border-r text-right font-semibold bg-indigo-50/50 ${ov.unitTotalComBdi !== undefined ? 'text-amber-600' : 'text-indigo-800'}`}>
+        {/* Unit c/ BDI (TOTAL) */}
+        <td className={`p-2 border-r text-right bg-indigo-50/30 ${ov.unitTotalComBdi !== undefined ? 'text-amber-700' : 'text-indigo-900'}`}>
           {!isFolder && editing ? (
-            <CurrencyInput value={node.totais.unitTotalComBdi || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50" />
+            <CurrencyInput value={node.totais.unitTotalComBdi || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
           ) : (
             !isFolder ? formatCurrency(node.totais.unitTotalComBdi) : ''
           )}
         </td>
 
-        {/* Totais Gerais */}
-        <td className={`p-2 border-r text-right bg-emerald-50/50 ${ov.totMOComBdi !== undefined ? 'text-amber-600 font-semibold' : 'text-emerald-700'}`}>
+        {/* Total Geral (TOTAL) */}
+        <td className={`p-2 border-r text-right bg-emerald-50/30 ${ov.totGeralComBdi !== undefined ? 'text-amber-700' : 'text-emerald-900'}`}>
           {editing ? (
-             <CurrencyInput value={node.totais.totMOComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totMOComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50" />
-          ) : (
-            formatCurrency(node.totais.totMOComBdi)
-          )}
-        </td>
-        <td className={`p-2 border-r text-right bg-emerald-50/50 ${ov.totMatComBdi !== undefined ? 'text-amber-600 font-semibold' : 'text-emerald-700'}`}>
-          {editing ? (
-             <CurrencyInput value={node.totais.totMatComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totMatComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50" />
-          ) : (
-            formatCurrency(node.totais.totMatComBdi)
-          )}
-        </td>
-        <td className={`p-2 border-r text-right font-bold bg-emerald-50/50 ${ov.totGeralComBdi !== undefined ? 'text-amber-600' : 'text-emerald-800'}`}>
-          {editing ? (
-             <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50" />
+             <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className="w-28 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
           ) : (
             formatCurrency(node.totais.totGeralComBdi)
           )}
@@ -619,6 +578,11 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           updateOverride={updateOverride}
           allItens={allItens}
           bdiGlobal={bdiGlobal}
+        />
+      ))}
+    </>
+  );
+}obal}
         />
       ))}
     </>
