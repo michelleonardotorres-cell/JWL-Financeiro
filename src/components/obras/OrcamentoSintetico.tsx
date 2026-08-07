@@ -465,23 +465,23 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-700">
-                  <th className="p-2 border-r font-semibold w-[80px]">Item</th>
-                  <th className="p-2 border-r font-semibold w-full min-w-[200px]">Descrição</th>
-                  <th className="p-2 border-r font-semibold text-center w-[60px]">Und</th>
-                  <th className="p-2 border-r font-semibold text-center w-[80px]">Quant.</th>
+                  <th className="p-2 border-r font-semibold w-[80px]" rowSpan={2}>Item</th>
+                  <th className="p-2 border-r font-semibold w-full min-w-[200px]" rowSpan={2}>Descrição</th>
+                  <th className="p-2 border-r font-semibold text-center w-[60px]" rowSpan={2}>Und</th>
+                  <th className="p-2 border-r font-semibold text-center w-[80px]" rowSpan={2}>Quant.</th>
                   {viewMode === 'orcamento' ? (
                     <>
-                      <th className="p-2 border-r font-semibold text-center w-[80px]" title="Porcentagem de BDI Individual">BDI %</th>
+                      <th className="p-2 border-r font-semibold text-center w-[80px]" rowSpan={2} title="Porcentagem de BDI Individual">BDI %</th>
                       <th className="p-2 border-r font-semibold text-center" colSpan={2}>Valor Unit. s/ BDI</th>
                       <th className="p-2 border-r font-semibold text-center bg-indigo-50" colSpan={2}>Valor Unit. e Total Geral c/ BDI</th>
                     </>
                   ) : (
                     <>
-                      <th className="p-2 border-r font-semibold text-center w-[100px]" title="Porcentagem de Desconto Individual">Desconto %</th>
+                      <th className="p-2 border-r font-semibold text-center w-[100px]" rowSpan={2} title="Porcentagem de Desconto Individual">Desconto %</th>
                       <th className="p-2 border-r font-semibold text-center bg-amber-50 text-amber-900" colSpan={2}>Valores com Desconto</th>
                     </>
                   )}
-                  <th className="p-2 font-semibold text-center w-[120px]">Ações</th>
+                  <th className="p-2 font-semibold text-center w-[120px]" rowSpan={2}>Ações</th>
                 </tr>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-600">
                   {viewMode === 'orcamento' ? (
