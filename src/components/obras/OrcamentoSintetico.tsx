@@ -625,23 +625,20 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
   let rowBg = 'bg-white hover:bg-zinc-50';
   let fontClasses = 'text-zinc-600';
   let codigoClasses = 'text-slate-700';
-  let fontWeight = 'font-normal';
+  let fontWeight = node.codigo?.includes('.') ? 'font-normal' : 'font-bold';
   
   if (level === 0) {
     rowBg = 'bg-slate-200/60 hover:bg-slate-300/60';
     fontClasses = 'text-slate-900';
     codigoClasses = 'text-slate-900';
-    fontWeight = 'font-bold';
   } else if (level === 1) {
     rowBg = 'bg-slate-100/80 hover:bg-slate-200/80';
     fontClasses = 'text-slate-800';
     codigoClasses = 'text-slate-800';
-    fontWeight = 'font-semibold';
   } else if (isFolder) {
     rowBg = 'bg-slate-50 hover:bg-slate-100';
     fontClasses = 'text-slate-700';
     codigoClasses = 'text-slate-700';
-    fontWeight = 'font-medium';
   }
 
   if (hasOverride && !editing) {
