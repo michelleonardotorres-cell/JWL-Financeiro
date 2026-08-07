@@ -5,8 +5,9 @@ type OrcamentoDetalhadoResumo = {
   id: string;
   nome_etapa: string;
   total_planilha: number;
-  total_real_mat: number;
-  total_real_mo: number;
+  total_real_mat: number | string;
+  total_real_mo: number | string;
+  numero_controle?: number;
   xata_createdat: string;
 };
 
@@ -89,20 +90,21 @@ export default function ListagemOrcamentosDetalhados({ obraId, onBack, onSelectO
             <table className="w-full text-left text-sm">
               <thead className="bg-zinc-100 text-zinc-600">
                 <tr>
+                  <th className="px-6 py-3 font-medium w-24"># Controle</th>
                   <th className="px-6 py-3 font-medium">Nome da Etapa</th>
                   <th className="px-6 py-3 font-medium">Data de Criação</th>
                   <th className="px-6 py-3 font-medium text-right">Valor Previsto</th>
-                  <th className="px-6 py-3 font-medium text-right">Custo Real (Mat + MO)</th>
+                  <th className="px-6 py-3 font-medium text-right">Custo Real</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-zinc-500">Carregando orçamentos...</td>
+                    <td colSpan={5} className="text-center py-8 text-zinc-500">Carregando orçamentos...</td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-zinc-500">
+                    <td colSpan={5} className="text-center py-8 text-zinc-500">
                       Nenhum orçamento detalhado encontrado. Crie um novo para começar.
                     </td>
                   </tr>
@@ -113,16 +115,17 @@ export default function ListagemOrcamentosDetalhados({ obraId, onBack, onSelectO
                       className="hover:bg-zinc-50 cursor-pointer transition-colors"
                       onClick={() => onSelectOrcamento(orc.id)}
                     >
+                      <td className="px-6 py-4 font-medium text-zinc-500">{orc.numero_controle ? `Etapa ${String(orc.numero_controle).padStart(2, '0')}` : '-'}</td>
                       <td className="px-6 py-4 font-medium text-zinc-900">{orc.nome_etapa || "Etapa sem nome"}</td>
                       <td className="px-6 py-4 text-zinc-500 flex items-center gap-2">
                         <Calendar size={14} /> 
                         {orc.xata_createdat ? new Date(orc.xata_createdat).toLocaleDateString('pt-BR') : '-'}
                       </td>
                       <td className="px-6 py-4 text-right font-medium text-indigo-600">
-                        {formatCurrency(orc.total_planilha)}
+                        {formatCurrency(Number(orc.total_planilha))}
                       </td>
                       <td className="px-6 py-4 text-right font-medium text-emerald-600">
-                        {formatCurrency(orc.total_real_mat + orc.total_real_mo)}
+                        {formatCurrency(Number(orc.total_real_mat || 0) + Number(orc.total_real_mo || 0))}
                       </td>
                     </tr>
                   ))
