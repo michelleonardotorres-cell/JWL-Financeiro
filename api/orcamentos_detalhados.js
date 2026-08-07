@@ -7,6 +7,9 @@ export default async function handler(req, res) {
   const pool = getPool();
 
   try {
+    // Garantir que a coluna existe antes de qualquer query (seja GET ou POST)
+    await pool.query('ALTER TABLE orcamentos_detalhados ADD COLUMN IF NOT EXISTS numero_controle INTEGER').catch(() => {});
+
     if (req.method === "GET") {
       const { obra_id } = req.query;
       let query = "SELECT * FROM orcamentos_detalhados";
@@ -24,9 +27,7 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       const { nome_etapa, obra_id, itens, cotacoes_mat, cotacoes_mo, total_planilha, total_real_mat, total_real_mo } = req.body;
-      
-      // Auto-migrate if column doesn't exist (fails silently if it does)
-      await pool.query('ALTER TABLE orcamentos_detalhados ADD COLUMN IF NOT EXISTS numero_controle INTEGER').catch(() => {});
+
 
       const client = await pool.connect();
       try {
