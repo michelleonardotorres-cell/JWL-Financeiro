@@ -5,7 +5,6 @@ import { orcamentosApi } from "../../apiClient";
 import { Orcamento, OrcamentoItem } from "../../types";
 import CurrencyInput from "../CurrencyInput";
 import DetalhamentoItem from "./DetalhamentoItem";
-import { getVal } from '../../utils/sheetUtils';
 
 const EditableGlobalField = ({ label, value, onChange, onCommit, formatStr, color, title }: any) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -22,6 +21,7 @@ const EditableGlobalField = ({ label, value, onChange, onCommit, formatStr, colo
   const text = color === 'indigo' ? 'text-indigo-900' : 'text-amber-900';
   const valText = color === 'indigo' ? 'text-indigo-700' : 'text-amber-700';
   const hoverBg = color === 'indigo' ? 'hover:bg-indigo-100' : 'hover:bg-amber-100';
+  const inputBorder = color === 'indigo' ? 'border-indigo-300 focus:ring-indigo-500' : 'border-amber-300 focus:ring-amber-500';
 
   return (
     <div className={`flex items-center gap-2 mr-2 p-1.5 rounded-lg border ${bg}`} title={title}>
@@ -30,7 +30,7 @@ const EditableGlobalField = ({ label, value, onChange, onCommit, formatStr, colo
         <input 
           type="number" step="0.01" 
           autoFocus
-          className={`w-16 p-1 border border-${color}-300 rounded focus:ring-2 focus:ring-${color}-500 font-semibold ${valText} bg-white text-sm`}
+          className={`w-16 p-1 border ${inputBorder} rounded focus:ring-2 font-semibold ${valText} bg-white text-sm`}
           value={localVal}
           onChange={e => setLocalVal(e.target.value)}
           onBlur={handleBlur}
