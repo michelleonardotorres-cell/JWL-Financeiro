@@ -138,6 +138,8 @@ function getPool() {
       );
 
       ALTER TABLE orcamento_itens ADD COLUMN IF NOT EXISTS overrides jsonb;
+      ALTER TABLE orcamentos ADD COLUMN IF NOT EXISTS "descontoGlobal" numeric DEFAULT 0;
+      ALTER TABLE orcamento_itens ADD COLUMN IF NOT EXISTS "descontoItem" numeric;
     `).catch(e => console.log('Orcamentos schema migration note:', e.message));
   }
   return pool;

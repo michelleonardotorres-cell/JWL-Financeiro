@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       // Create or update a full budget tree
-      const { id, obraId, taxaBdi, itens } = req.body;
+      const { id, obraId, taxaBdi, descontoGlobal, itens } = req.body;
       if (!id || !obraId) return res.status(400).json({ error: "id e obraId são obrigatórios" });
 
       const client = await pool.connect();
@@ -47,10 +47,10 @@ export default async function handler(req, res) {
         
         // Upsert budget
         await client.query(`
-          INSERT INTO orcamentos (id, "obraId", "taxaBdi")
-          VALUES ($1, $2, $3)
-          ON CONFLICT (id) DO UPDATE SET "taxaBdi" = $3
-        `, [id, obraId, taxaBdi || null]);
+          INSERT INTO orcamentos (id, "obraId", "taxaBdi", "descontoGlobal")
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (id) DO UPDATE SET "taxaBdi" = $3, "descontoGlobal" = $4
+        `, [id, obraId, taxaBdi || null, descontoGlobal || 0]);
 
         // If items are provided, replace them all for simplicity (or we can just upsert/delete)
         if (itens && Array.isArray(itens)) {
@@ -59,12 +59,13 @@ export default async function handler(req, res) {
           
           for (const item of itens) {
             await client.query(`
-              INSERT INTO orcamento_itens (id, "orcamentoId", "parentId", codigo, descricao, unidade, quantidade, "valorUnitMo", "valorUnitMat", "bdiItem", overrides)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+              INSERT INTO orcamento_itens (id, "orcamentoId", "parentId", codigo, descricao, unidade, quantidade, "valorUnitMo", "valorUnitMat", "bdiItem", "descontoItem", overrides)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             `, [
               item.id, id, item.parentId || null, item.codigo || null, item.descricao, 
               item.unidade || null, item.quantidade || null, item.valorUnitMo || null, 
-              item.valorUnitMat || null, item.bdiItem || null,
+              item.valorUnitMat || null, item.bdiItem !== undefined ? item.bdiItem : null,
+              item.descontoItem !== undefined ? item.descontoItem : null,
               item.overrides ? JSON.stringify(item.overrides) : null
             ]);
           }

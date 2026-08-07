@@ -623,21 +623,25 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
 
   // Cores de destaque para diferenciar hierarquia
   let rowBg = 'bg-white hover:bg-zinc-50';
-  let fontClasses = 'font-normal text-zinc-600';
+  let fontClasses = 'text-zinc-600';
   let codigoClasses = 'text-slate-700';
+  let fontWeight = 'font-normal';
   
   if (level === 0) {
     rowBg = 'bg-slate-200/60 hover:bg-slate-300/60';
-    fontClasses = 'font-bold text-slate-900';
-    codigoClasses = 'font-bold text-slate-900';
+    fontClasses = 'text-slate-900';
+    codigoClasses = 'text-slate-900';
+    fontWeight = 'font-bold';
   } else if (level === 1) {
     rowBg = 'bg-slate-100/80 hover:bg-slate-200/80';
-    fontClasses = 'font-semibold text-slate-800';
-    codigoClasses = 'font-semibold text-slate-800';
+    fontClasses = 'text-slate-800';
+    codigoClasses = 'text-slate-800';
+    fontWeight = 'font-semibold';
   } else if (isFolder) {
     rowBg = 'bg-slate-50 hover:bg-slate-100';
-    fontClasses = 'font-medium text-slate-700';
-    codigoClasses = 'font-medium text-slate-700';
+    fontClasses = 'text-slate-700';
+    codigoClasses = 'text-slate-700';
+    fontWeight = 'font-medium';
   }
 
   if (hasOverride && !editing) {
@@ -655,31 +659,31 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
               </button>
             ) : <span className="w-4 inline-block"></span>}
             {editing ? (
-              <input type="text" value={node.codigo} onChange={e => onUpdate(node.id, { codigo: e.target.value })} className="w-16 p-1 border rounded text-xs font-normal" />
+              <input type="text" value={node.codigo} onChange={e => onUpdate(node.id, { codigo: e.target.value })} className={`w-16 p-1 border rounded text-xs ${fontWeight}`} />
             ) : (
-              <span className={codigoClasses}>{node.codigo}</span>
+              <span className={`${codigoClasses} ${fontWeight}`}>{node.codigo}</span>
             )}
           </div>
         </td>
         <td className="p-2 border-r max-w-xs truncate" title={node.descricao}>
           {editing ? (
-            <input type="text" value={node.descricao} onChange={e => onUpdate(node.id, { descricao: e.target.value })} className="w-full p-1 border rounded text-xs font-normal" />
+            <input type="text" value={node.descricao} onChange={e => onUpdate(node.id, { descricao: e.target.value })} className={`w-full p-1 border rounded text-xs ${fontWeight}`} />
           ) : (
-            <span className={`${isFolder ? 'uppercase' : ''} ${fontClasses}`}>{node.descricao}</span>
+            <span className={`${isFolder ? 'uppercase' : ''} ${fontClasses} ${fontWeight}`}>{node.descricao}</span>
           )}
         </td>
         <td className="p-2 border-r text-center">
           {editing ? (
-             <input type="text" value={node.unidade} onChange={e => onUpdate(node.id, { unidade: e.target.value })} className="w-10 p-1 border rounded text-xs text-center font-normal" />
+             <input type="text" value={node.unidade} onChange={e => onUpdate(node.id, { unidade: e.target.value })} className={`w-10 p-1 border rounded text-xs text-center ${fontWeight}`} />
           ) : (
-            <span className="text-zinc-500 font-normal">{isFolder ? '' : node.unidade}</span>
+            <span className={`text-zinc-500 ${fontWeight}`}>{isFolder ? '' : node.unidade}</span>
           )}
         </td>
         <td className="p-2 border-r text-center">
           {editing ? (
-             <input type="number" step="0.01" value={node.quantidade} onChange={e => onUpdate(node.id, { quantidade: parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
+             <input type="number" step="0.01" value={node.quantidade} onChange={e => onUpdate(node.id, { quantidade: parseFloat(e.target.value) })} className={`w-16 p-1 border rounded text-xs text-right ${fontWeight}`} />
           ) : (
-             <span className="text-zinc-700 font-normal">{isFolder ? '' : formatNum(node.quantidade)}</span>
+             <span className={`text-zinc-700 ${fontWeight}`}>{isFolder ? '' : formatNum(node.quantidade)}</span>
           )}
         </td>
 
@@ -688,43 +692,43 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
             {/* BDI Individual */}
             <td className="p-2 border-r text-center">
               {editing ? (
-                 <input type="number" step="0.01" value={node.bdiItem !== undefined ? node.bdiItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { bdiItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
+                 <input type="number" step="0.01" value={node.bdiItem !== undefined ? node.bdiItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { bdiItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className={`w-16 p-1 border rounded text-xs text-right ${fontWeight}`} />
               ) : (
-                 <span className="text-indigo-600 font-medium">{node.bdiItem !== undefined ? `${formatNum(node.bdiItem)}%` : '-'}</span>
+                 <span className={`text-indigo-600 ${fontWeight}`}>{node.bdiItem !== undefined ? `${formatNum(node.bdiItem)}%` : '-'}</span>
               )}
             </td>
 
             {/* --- Grupo 1: Valor Unit. s/ BDI --- */}
-            <td className="p-2 border-r text-right text-zinc-600">
+            <td className={`p-2 border-r text-right ${fontWeight}`}>
               {/* Valor Unit. */}
               {!isFolder && editing ? (
-                <CurrencyInput value={node.valorUnitMo} onChangeValue={val => onUpdate(node.id, { valorUnitMo: val })} className="w-24 p-1 border rounded text-xs text-right font-normal" />
+                <CurrencyInput value={node.valorUnitMo} onChangeValue={val => onUpdate(node.id, { valorUnitMo: val })} className={`w-24 p-1 border rounded text-xs text-right ${fontWeight}`} />
               ) : (
-                !isFolder ? formatCurrency(node.totais.unitTotal) : ''
+                <span className={fontClasses}>{!isFolder ? formatCurrency(node.totais.unitTotal) : ''}</span>
               )}
             </td>
-            <td className={`p-2 border-r text-right ${ov.totGeralBase !== undefined ? 'text-amber-700' : 'text-zinc-700 font-semibold'}`}>
+            <td className={`p-2 border-r text-right ${fontWeight} ${ov.totGeralBase !== undefined ? 'text-amber-700' : fontClasses}`}>
               {/* Total */}
               {editing ? (
-                <CurrencyInput value={node.totais.totGeralBase || 0} onChangeValue={val => updateOverride(node.id, 'totGeralBase', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
+                <CurrencyInput value={node.totais.totGeralBase || 0} onChangeValue={val => updateOverride(node.id, 'totGeralBase', val)} className={`w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 ${fontWeight}`} />
               ) : (
                 formatCurrency(node.totais.totGeralBase)
               )}
             </td>
 
             {/* --- Grupo 2: Valor Unit. e Total Geral c/ BDI --- */}
-            <td className="p-2 border-r text-right bg-indigo-50/30 text-indigo-900">
+            <td className={`p-2 border-r text-right bg-indigo-50/30 text-indigo-900 ${fontWeight}`}>
               {/* Valor Unit. */}
               {!isFolder && editing ? (
-                <CurrencyInput value={node.totais.unitTotalComBdi || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
+                <CurrencyInput value={node.totais.unitTotalComBdi || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalComBdi', val)} className={`w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 ${fontWeight}`} />
               ) : (
                 !isFolder ? formatCurrency(node.totais.unitTotalComBdi) : ''
               )}
             </td>
-            <td className={`p-2 border-r text-right bg-indigo-50/30 ${ov.totGeralComBdi !== undefined ? 'text-amber-700' : 'text-indigo-900 font-semibold'}`}>
+            <td className={`p-2 border-r text-right bg-indigo-50/30 ${fontWeight} ${ov.totGeralComBdi !== undefined ? 'text-amber-700' : 'text-indigo-900'}`}>
               {/* Total */}
               {editing ? (
-                 <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 font-normal" />
+                 <CurrencyInput value={node.totais.totGeralComBdi || 0} onChangeValue={val => updateOverride(node.id, 'totGeralComBdi', val)} className={`w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-50 ${fontWeight}`} />
               ) : (
                 formatCurrency(node.totais.totGeralComBdi)
               )}
@@ -735,25 +739,25 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
             {/* Desconto Individual */}
             <td className="p-2 border-r text-center">
               {editing ? (
-                 <input type="number" step="0.01" value={node.descontoItem !== undefined ? node.descontoItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { descontoItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-16 p-1 border rounded text-xs text-right font-normal" />
+                 <input type="number" step="0.01" value={node.descontoItem !== undefined ? node.descontoItem : ''} placeholder="Global" onChange={e => onUpdate(node.id, { descontoItem: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className={`w-16 p-1 border rounded text-xs text-right ${fontWeight}`} />
               ) : (
-                 <span className="text-amber-600 font-medium">{node.descontoItem !== undefined ? `${formatNum(node.descontoItem)}%` : '-'}</span>
+                 <span className={`text-amber-600 ${fontWeight}`}>{node.descontoItem !== undefined ? `${formatNum(node.descontoItem)}%` : '-'}</span>
               )}
             </td>
 
             {/* --- Valores com Desconto (Aba Custos) --- */}
-            <td className="p-2 border-r text-right bg-amber-50/30 text-amber-900">
+            <td className={`p-2 border-r text-right bg-amber-50/30 text-amber-900 ${fontWeight}`}>
               {/* Valor Unit. (Com Desconto) */}
               {!isFolder && editing ? (
-                <CurrencyInput value={node.totais.unitTotalDesconto || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalDesconto', val)} className="w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-100 font-normal" />
+                <CurrencyInput value={node.totais.unitTotalDesconto || 0} onChangeValue={val => updateOverride(node.id, 'unitTotalDesconto', val)} className={`w-24 p-1 border border-amber-300 rounded text-xs text-right bg-amber-100 ${fontWeight}`} />
               ) : (
                 !isFolder ? formatCurrency(node.totais.unitTotalDesconto) : ''
               )}
             </td>
-            <td className={`p-2 border-r text-right bg-amber-50/30 ${ov.totGeralDesconto !== undefined ? 'text-rose-600' : 'text-amber-900 font-bold'}`}>
+            <td className={`p-2 border-r text-right bg-amber-50/30 ${fontWeight} ${ov.totGeralDesconto !== undefined ? 'text-rose-600' : 'text-amber-900'}`}>
               {/* Total (Com Desconto) */}
               {editing ? (
-                 <CurrencyInput value={node.totais.totGeralDesconto || 0} onChangeValue={val => updateOverride(node.id, 'totGeralDesconto', val)} className="w-28 p-1 border border-amber-300 rounded text-xs text-right bg-amber-100 font-normal" />
+                 <CurrencyInput value={node.totais.totGeralDesconto || 0} onChangeValue={val => updateOverride(node.id, 'totGeralDesconto', val)} className={`w-28 p-1 border border-amber-300 rounded text-xs text-right bg-amber-100 ${fontWeight}`} />
               ) : (
                 formatCurrency(node.totais.totGeralDesconto)
               )}
