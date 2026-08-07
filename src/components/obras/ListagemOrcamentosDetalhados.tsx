@@ -95,16 +95,17 @@ export default function ListagemOrcamentosDetalhados({ obraId, onBack, onSelectO
                   <th className="px-6 py-3 font-medium">Data de Criação</th>
                   <th className="px-6 py-3 font-medium text-right">Valor Previsto</th>
                   <th className="px-6 py-3 font-medium text-right">Custo Real</th>
+                  <th className="px-6 py-3 font-medium text-right">Resultado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-zinc-500">Carregando orçamentos...</td>
+                    <td colSpan={6} className="text-center py-8 text-zinc-500">Carregando orçamentos...</td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-zinc-500">
+                    <td colSpan={6} className="text-center py-8 text-zinc-500">
                       Nenhum orçamento detalhado encontrado. Crie um novo para começar.
                     </td>
                   </tr>
@@ -124,8 +125,11 @@ export default function ListagemOrcamentosDetalhados({ obraId, onBack, onSelectO
                       <td className="px-6 py-4 text-right font-medium text-indigo-600">
                         {formatCurrency(Number(orc.total_planilha))}
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-emerald-600">
+                      <td className="px-6 py-4 text-right font-medium text-slate-700">
                         {formatCurrency(Number(orc.total_real_mat || 0) + Number(orc.total_real_mo || 0))}
+                      </td>
+                      <td className={`px-6 py-4 text-right font-medium ${Number(orc.total_planilha) - (Number(orc.total_real_mat || 0) + Number(orc.total_real_mo || 0)) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {formatCurrency(Number(orc.total_planilha) - (Number(orc.total_real_mat || 0) + Number(orc.total_real_mo || 0)))}
                       </td>
                     </tr>
                   ))
