@@ -40,7 +40,7 @@ export default function DetalhamentoItem({ itemSelecionado, todosItens, onBack, 
   const totalGeral = totalMat + totalMo;
 
   return (
-    <div className="fixed inset-0 z-50 bg-zinc-50 overflow-auto flex flex-col">
+    <div className="fixed inset-0 z-[70] bg-zinc-50 overflow-auto flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
