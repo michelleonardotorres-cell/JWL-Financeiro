@@ -4,7 +4,8 @@ import * as XLSX from "xlsx";
 import { orcamentosApi } from "../../apiClient";
 import { Orcamento, OrcamentoItem } from "../../types";
 import CurrencyInput from "../CurrencyInput";
-import DetalhamentoItem from "./DetalhamentoItem";
+import ListagemOrcamentosDetalhados from "./ListagemOrcamentosDetalhados";
+import OrcamentoDetalhadoView from "./OrcamentoDetalhadoView";
 
 const EditableGlobalField = ({ label, value, onChange, onCommit, formatStr, color, title }: any) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -54,8 +55,8 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [itemParaDetalhar, setItemParaDetalhar] = useState<OrcamentoItem | null>(null);
-  const [showDetalhamento, setShowDetalhamento] = useState(false);
+  const [viewState, setViewState] = useState<'planilha' | 'listagem' | 'detalhado'>('planilha');
+  const [selectedOrcamentoDetalhado, setSelectedOrcamentoDetalhado] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'orcamento' | 'custos'>('orcamento');
   const [isDirty, setIsDirty] = useState(false);
 
@@ -364,21 +365,26 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
 
   if (loading) return <div className="p-8">Carregando orçamento...</div>;
 
-  if (showDetalhamento || itemParaDetalhar) {
+  if (viewState === 'listagem') {
     return (
-      <DetalhamentoItem 
-        itemSelecionado={itemParaDetalhar} 
-        todosItens={itens}
-        onBack={() => {
-          setItemParaDetalhar(null);
-          setShowDetalhamento(false);
-        }} 
-        onSave={(itemId, novosValores) => {
-          updateItem(itemId, { 
-            valorUnitMat: novosValores.valorUnitMat, 
-            valorUnitMo: novosValores.valorUnitMo 
-          });
+      <ListagemOrcamentosDetalhados 
+        obraId={obraId}
+        onBack={() => setViewState('planilha')}
+        onSelectOrcamento={(orcId) => {
+          setSelectedOrcamentoDetalhado(orcId);
+          setViewState('detalhado');
         }}
+      />
+    );
+  }
+
+  if (viewState === 'detalhado') {
+    return (
+      <OrcamentoDetalhadoView
+        orcamentoId={selectedOrcamentoDetalhado}
+        obraId={obraId}
+        todosItens={itens}
+        onBack={() => setViewState('listagem')}
       />
     );
   }
@@ -464,7 +470,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
                 title="Desconto efetivo médio. Clique para editar o Desconto Global."
               />
             )}
-            <button onClick={() => setShowDetalhamento(true)} className="px-4 py-2 bg-blue-50 text-blue-700 rounded font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm">
+            <button onClick={() => setViewState('listagem')} className="px-4 py-2 bg-blue-50 text-blue-700 rounded font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm">
               <FileText size={16} /> Acessar Detalhamento
             </button>
             <button onClick={downloadModelo} className="px-4 py-2 bg-zinc-100 text-zinc-700 border border-zinc-200 rounded font-medium hover:bg-zinc-200 transition-colors flex items-center gap-2 text-sm hidden sm:flex">
@@ -526,7 +532,6 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
                     onAddSub={(id, codigo) => addItem(id, codigo)} 
                     onUpdate={updateItem}
                     onRemove={removeItem}
-                    onDetalhar={setItemParaDetalhar}
                     updateOverride={updateOverride}
                     allItens={itens}
                     bdiGlobal={bdiGlobal}
@@ -548,7 +553,7 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
   );
 }
 
-function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, updateOverride, allItens, bdiGlobal, viewMode, descontoGlobal }: any) {
+function ItemRow({ node, level, onAddSub, onUpdate, onRemove, updateOverride, allItens, bdiGlobal, viewMode, descontoGlobal }: any) {
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState(false);
   
@@ -783,9 +788,6 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           {level < maxLevel && (
             <button onClick={() => onAddSub(node.id, node.codigo)} title="Adicionar Subitem" className="p-1 text-zinc-400 hover:text-emerald-600 rounded hover:bg-zinc-100"><Plus size={14}/></button>
           )}
-          {!isFolder && (
-            <button onClick={() => onDetalhar(node)} title="Detalhar Cotações" className="p-1 text-zinc-400 hover:text-blue-600 rounded hover:bg-zinc-100"><FileText size={14}/></button>
-          )}
           <button onClick={() => onRemove(node.id)} title="Excluir" className="p-1 text-zinc-400 hover:text-rose-600 rounded hover:bg-zinc-100"><Trash2 size={14}/></button>
         </td>
       </tr>
@@ -798,7 +800,6 @@ function ItemRow({ node, level, onAddSub, onUpdate, onRemove, onDetalhar, update
           onAddSub={onAddSub} 
           onUpdate={onUpdate}
           onRemove={onRemove}
-          onDetalhar={onDetalhar}
           updateOverride={updateOverride}
           allItens={allItens}
           bdiGlobal={bdiGlobal}

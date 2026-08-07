@@ -14,6 +14,7 @@ import lancamentosHandler from './api/lancamentos.js';
 import contratosHandler from './api/contratos.js';
 import recebedoresHandler from './api/recebedores.js';
 import orcamentosHandler from './api/orcamentos.js';
+import orcamentosDetalhadosHandler from './api/orcamentos_detalhados.js';
 
 const app = express();
 const port = 3001;
@@ -42,6 +43,7 @@ app.all('/api/lancamentos', vercelHandler(lancamentosHandler));
 app.all('/api/contratos', vercelHandler(contratosHandler));
 app.all('/api/recebedores', vercelHandler(recebedoresHandler));
 app.all('/api/orcamentos', vercelHandler(orcamentosHandler));
+app.all('/api/orcamentos_detalhados', vercelHandler(orcamentosDetalhadosHandler));
 
 app.listen(port, () => {
   console.log(`API Server is running locally on http://localhost:${port}`);

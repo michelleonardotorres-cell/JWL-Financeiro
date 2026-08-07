@@ -52,6 +52,18 @@ export interface Contrato {
 }
 export type ContratoRecord = Contrato & XataRecord;
 
+export interface OrcamentoDetalhado {
+  nome_etapa: string;
+  obra_id: string;
+  itens: string;
+  cotacoes_mat: string;
+  cotacoes_mo: string;
+  total_planilha: number;
+  total_real_mat: number;
+  total_real_mo: number;
+}
+export type OrcamentoDetalhadoRecord = OrcamentoDetalhado & XataRecord;
+
 const tables = [
   {
     name: "obras",
@@ -137,6 +149,19 @@ const tables = [
       { name: "anexos", type: "file[]" },
     ],
   },
+  {
+    name: "orcamentos_detalhados",
+    columns: [
+      { name: "nome_etapa", type: "text" },
+      { name: "obra_id", type: "text" },
+      { name: "itens", type: "text" },
+      { name: "cotacoes_mat", type: "text" },
+      { name: "cotacoes_mo", type: "text" },
+      { name: "total_planilha", type: "float" },
+      { name: "total_real_mat", type: "float" },
+      { name: "total_real_mo", type: "float" },
+    ],
+  },
 ] as const;
 
 export type SchemaTables = {
@@ -144,6 +169,7 @@ export type SchemaTables = {
   fornecedores: FornecedorRecord;
   lancamentos: LancamentoRecord;
   contratos: ContratoRecord;
+  orcamentos_detalhados: OrcamentoDetalhadoRecord;
 };
 
 const DatabaseClient = buildClient();
