@@ -373,6 +373,12 @@ export default function OrcamentoSintetico({ obraId, onBack }: { obraId: string,
           setItemParaDetalhar(null);
           setShowDetalhamento(false);
         }} 
+        onSave={(itemId, novosValores) => {
+          updateItem(itemId, { 
+            valorUnitMat: novosValores.valorUnitMat, 
+            valorUnitMo: novosValores.valorUnitMo 
+          });
+        }}
       />
     );
   }
